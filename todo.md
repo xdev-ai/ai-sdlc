@@ -81,3 +81,4 @@
 - [x] Bổ sung topology object storage, migration, unit/integration tests, CI smoke test và runbook backup/restore cho repository.
 - [ ] Xác minh MinIO Object Lock bucket bootstrap và readiness probe trong Docker Compose smoke trên GitHub Actions (sandbox không có Docker CLI/daemon).
 - [x] Sửa dependency ordering MinIO: dùng `mc ready` từ client bootstrap thay cho healthcheck gọi executable không có trong image server pin.
+- [ ] Sửa MinIO bootstrap retry: chờ `mc alias set` có thể kết nối trước khi gọi `mc ready`, tránh connection-refused race trong Compose CI.
