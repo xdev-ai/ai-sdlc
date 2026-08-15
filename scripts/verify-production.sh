@@ -3,7 +3,7 @@ set -euo pipefail
 
 require() {
   local file="$1" expression="$2" description="$3"
-  if ! grep -Eq "$expression" "$file"; then
+  if ! grep -Eq -- "$expression" "$file"; then
     echo "production verification failed: $description" >&2
     exit 1
   fi
@@ -11,7 +11,7 @@ require() {
 
 forbid() {
   local file="$1" expression="$2" description="$3"
-  if grep -Eq "$expression" "$file"; then
+  if grep -Eq -- "$expression" "$file"; then
     echo "production verification failed: $description" >&2
     exit 1
   fi
@@ -37,5 +37,7 @@ require docker-compose.yml '/tmp:uid=101,gid=101,mode=1777' 'identity gateway mu
 require docker-compose.yml '/var/run:uid=0,gid=0,mode=0755' 'identity gateway must grant only the Nginx master process ownership of its PID directory'
 require infra/postgres/init-keycloak-db.sql '^CREATE DATABASE keycloak;$' 'PostgreSQL init must create the Keycloak database'
 forbid infra/postgres/init-keycloak-db.sql 'GRANT .* TO aisdlc' 'PostgreSQL init must not assume a hard-coded database role'
+require scripts/integration-smoke.sh 'timeout --foreground 420s' 'integration smoke must bound Compose startup duration'
+require scripts/integration-smoke.sh '--connect-timeout 5 --max-time 10' 'integration smoke must bound health probe duration'
 
 echo 'Production topology static verification passed.'

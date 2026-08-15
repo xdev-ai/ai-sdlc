@@ -16,13 +16,13 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"${compose[@]}" up --build --wait --wait-timeout 240
+timeout --foreground 420s "${compose[@]}" up --build --wait --wait-timeout 240
 
-curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 2 \
+curl --fail --silent --show-error --connect-timeout 5 --max-time 10 --retry 12 --retry-all-errors --retry-delay 2 \
   http://localhost:8180/realms/ai-sdlc/.well-known/openid-configuration >/dev/null
-curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 2 \
+curl --fail --silent --show-error --connect-timeout 5 --max-time 10 --retry 12 --retry-all-errors --retry-delay 2 \
   http://localhost:18081/actuator/health/readiness >/dev/null
-curl --fail --silent --show-error --retry 30 --retry-all-errors --retry-delay 2 \
+curl --fail --silent --show-error --connect-timeout 5 --max-time 10 --retry 12 --retry-all-errors --retry-delay 2 \
   http://localhost:8080/ >/dev/null
 
 echo "Compose integration smoke test passed: identity, readiness and SSR landing are reachable."
