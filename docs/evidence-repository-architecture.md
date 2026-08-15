@@ -60,7 +60,7 @@ The repository uses an `ObjectStoragePort` and configuration keys rather than a 
 
 The Java infrastructure adapter uses the AWS SDK for Java 2.x `bom`, `s3` and `url-connection-client` artifacts. AWS documents the BOM as the version-alignment mechanism and recommends importing only the service modules and HTTP client that an application actually needs.[4] This keeps the repository adapter compatible with Amazon S3 and S3-compatible endpoints without leaking provider classes across module boundaries.
 
-Before enabling a bucket for evidence, bootstrap validates bucket privacy, versioning and Object Lock. MinIO documentation confirms that object locking requires versioning and supports retention and legal holds on object versions.[3] The bootstrap operation is idempotent and refuses to silently weaken an existing bucket configuration.
+Before enabling a bucket for evidence, bootstrap validates bucket privacy, versioning and Object Lock. The pinned MinIO server image intentionally omits `curl` and `wget`, so a container-local HTTP healthcheck would permanently report an unavailable executable instead of storage health. The pinned MinIO Client uses `mc ready` to retry the official quorum readiness endpoint, after which it creates the Object Lock bucket before the management server starts. MinIO documentation confirms that object locking requires versioning and supports retention and legal holds on object versions.[3] The bootstrap operation is idempotent and refuses to silently weaken an existing bucket configuration. The integration smoke runner separately probes `/minio/health/ready` over HTTP.
 
 ## API and Event Contracts
 
