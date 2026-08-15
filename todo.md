@@ -72,6 +72,7 @@
 - [ ] Bound Compose integration smoke bằng timeout hữu hạn và diagnostics để CI không thể treo vô thời hạn.
 - [ ] Sửa management-server runtime logging: đóng gói Logstash encoder đúng classpath container để startup không lỗi Logback.
 - [ ] Sửa management-server migration runtime: bổ sung Spring Boot 4 Flyway starter để migrations bắt buộc chạy trước Hibernate validation.
+- [ ] Sửa management-server repository discovery: bật scan Spring Data rõ ràng cho nested repository interfaces trong container runtime.
 - [ ] Thiết kế bounded module contracts để các package governance, validation, review, quality, audit và repository có thể tích hợp độc lập.
 - [ ] Bổ sung Evidence & Governance Data Repository: metadata PostgreSQL, object storage tương thích S3, checksum, provenance, access control và retention/hold.
 - [ ] Công bố API module repository cho upload intent, finalize digest, download authorization, search/filter và lifecycle evidence.
