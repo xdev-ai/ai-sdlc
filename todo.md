@@ -66,3 +66,4 @@
 - [ ] Lập báo cáo kiểm thử pass/fail với log bằng chứng và giới hạn môi trường minh bạch.
 - [ ] Sửa Docker build portal: copy đầy đủ input frontend Vite trước Maven package để Compose CI không thất bại tại `npm ci`.
 - [ ] Sửa OWASP CI: không truyền `nvdApiKey` khi GitHub secret chưa được cấu hình, vẫn giữ security scan bắt buộc.
+- [ ] Sửa PostgreSQL integration init: grant database Keycloak cho username cấu hình thực tế thay vì role hard-code.
