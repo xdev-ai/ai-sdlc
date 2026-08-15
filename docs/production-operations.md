@@ -69,6 +69,8 @@ Application rollback is permissible only when the earlier binary remains compati
 
 Monitor the public HTTPS endpoint, portal sign-in success, `/actuator/health/liveness`, `/actuator/health/readiness`, database connection readiness, 429 rate-limit volume, 5xx rate, audit-chain verification, error logs by correlation ID, and validation-sync conflict counts. Retain logs under the organization’s privacy and incident-response policy.
 
+Keycloak readiness is distinct from process startup. With `KC_HEALTH_ENABLED=true`, Keycloak exposes `/health/ready` on its private management port `9000` by default. The container image intentionally omits HTTP client binaries, so its healthcheck uses the documented Bash TCP socket probe rather than adding `curl` to the runtime image. The public identity gateway should receive traffic only after that private readiness probe succeeds.[3]
+
 When investigating an incident, record the correlation ID, request timestamp, principal subject, project/organization scope, deployment version and audit event sequence. This establishes an evidence trail without putting access tokens or sensitive artifact content into support records.
 
 ## References
@@ -76,3 +78,5 @@ When investigating an incident, record the correlation ID, request timestamp, pr
 [1] [OWASP Dependency-Check — official project documentation](https://owasp.org/www-project-dependency-check/)
 
 [2] [OWASP Dependency-Check GitHub Actions cache guidance](https://dependency-check.github.io/DependencyCheck/data/cache-action.html)
+
+[3] [Keycloak — Tracking instance status with health checks](https://www.keycloak.org/observability/health)

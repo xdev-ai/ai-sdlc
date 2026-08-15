@@ -69,6 +69,7 @@
 - [ ] Sửa PostgreSQL integration init: grant database Keycloak cho username cấu hình thực tế thay vì role hard-code.
 - [ ] Sửa identity gateway integration: cấp temporary paths Nginx có quyền ghi trong topology read-only.
 - [ ] Sửa identity gateway integration: cấp tối thiểu `SETUID`/`SETGID` để Nginx master tạo worker không đặc quyền.
+- [ ] Sửa Compose identity readiness: thêm Keycloak healthcheck private port 9000 và chỉ khởi động gateway sau khi identity sẵn sàng.
 - [ ] Bound Compose integration smoke bằng timeout hữu hạn và diagnostics để CI không thể treo vô thời hạn.
 - [ ] Sửa management-server runtime logging: đóng gói Logstash encoder đúng classpath container để startup không lỗi Logback.
 - [ ] Sửa management-server migration runtime: bổ sung Spring Boot 4 Flyway starter để migrations bắt buộc chạy trước Hibernate validation.
