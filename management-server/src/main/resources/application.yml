@@ -1,5 +1,6 @@
 server:
   port: 8081
+  forward-headers-strategy: framework
 spring:
   application:
     name: ai-sdlc-management-server
@@ -23,11 +24,26 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
   endpoint:
     health:
       probes:
         enabled: true
+      group:
+        liveness:
+          include: livenessState,ping
+        readiness:
+          include: readinessState,db,auditLedger
 springdoc:
   api-docs:
-    enabled: false
+    enabled: true
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  show-actuator: false
+aisdlc:
+  rate-limit:
+    capacity: ${AISDLC_RATE_LIMIT_CAPACITY:120}
+    refill-period: ${AISDLC_RATE_LIMIT_REFILL_PERIOD:PT1M}
+  security:
+    allowed-origins: ${AISDLC_ALLOWED_ORIGINS:http://localhost:8080}

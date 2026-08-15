@@ -23,7 +23,13 @@ public class AuditEvent {
   public AuditEvent(UUID organizationId, UUID projectId, String actorSubject, String action, String entityType, String entityId, String payload, long sequence, String previousHash, String eventHash) { this.organizationId = organizationId; this.projectId = projectId; this.actorSubject = actorSubject; this.action = action; this.entityType = entityType; this.entityId = entityId; this.payload = payload; this.sequence = sequence; this.previousHash = previousHash; this.eventHash = eventHash; }
   public long getSequence() { return sequence; }
   public String getEventHash() { return eventHash; }
+  public UUID getOrganizationId() { return organizationId; }
+  public UUID getProjectId() { return projectId; }
+  public String getActorSubject() { return actorSubject; }
   public Instant getOccurredAt() { return occurredAt; }
   public String getAction() { return action; }
+  public String getEntityType() { return entityType; }
+  public String getEntityId() { return entityId; }
+  public String getPayload() { return payload; }
+  public String getPreviousHash() { return previousHash; }
 }
-

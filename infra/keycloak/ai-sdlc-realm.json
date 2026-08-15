@@ -7,7 +7,8 @@
     "realm": [
       { "name": "admin", "description": "Organization and policy administrator" },
       { "name": "developer", "description": "Developer and validation contributor" },
-      { "name": "reviewer", "description": "Human reviewer and gate approver" }
+      { "name": "reviewer", "description": "Human reviewer and gate approver" },
+      { "name": "viewer", "description": "Read-only project governance and evidence observer" }
     ]
   },
   "clients": [
@@ -38,4 +39,3 @@
     }
   ]
 }
-

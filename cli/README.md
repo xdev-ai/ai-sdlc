@@ -1,20 +1,12 @@
 # AI-SDLC CLI
 
-The CLI is a **deterministic validation boundary**. It does not call an LLM, does not make governance decisions, and cannot run in bare mode. It requires an explicitly revision-pinned model reference solely as provenance metadata.
+This directory contains the deterministic Go validator for the AI-SDLC platform. It is intentionally dependency-free and does not call AI services. The CLI validates governed artifacts locally, emits CI-friendly evidence, and synchronizes the evidence with the Spring Boot control plane using a Keycloak service identity and idempotency key.
+
+Read the operational command reference in [`../docs/cli.md`](../docs/cli.md). The core safety guarantees are: revision-pinned model provenance is mandatory, `--bare` is prohibited, and final review/exception decisions are always taken by a human in the control plane.
 
 ```bash
-go run ./cmd/aisdlc validate \
-  --spec-dir ./spec-kit \
-  --kit-version core@1.0.0 \
-  --model anthropic/claude-sonnet@2026-01-15 \
-  --out validation-result.json
-
-AISDLC_ACCESS_TOKEN="${TOKEN}" go run ./cmd/aisdlc sync \
-  --result validation-result.json \
-  --api-url https://control.example.com \
-  --project 00000000-0000-0000-0000-000000000000 \
-  --idempotency-key ci-run-0001
+go test ./...
+go build ./cmd/aisdlc
+./aisdlc init --project '<uuid>' --api-url 'https://control.example.com' --model 'provider/model@revision'
+./aisdlc validate --config .aisdlc.yml --format json --out validation-result.json
 ```
-
-`sync` posts to the Spring Boot API’s `/api/v1/cli/projects/{projectId}/validation-runs` endpoint using an OAuth2 access token and an idempotency key. The API records the evidence, all findings and a linked immutable audit event in one transaction.
-

@@ -42,20 +42,21 @@ Role realm không đủ để truy cập dữ liệu dự án: management server
 
 ## Quy trình developer
 
-Tạo `spec-kit` chứa tối thiểu `constitution.md`, `spec.md` và `tasks.md`. Chạy validation với một model pin rõ revision. Validation không gọi model — model pin chỉ được lưu như provenance bắt buộc.
+Tạo `spec-kit` chứa tối thiểu `constitution.md`, `spec.md` và `tasks.md`. Khởi tạo `.aisdlc.yml` một lần, commit cấu hình governance không chứa bí mật, rồi chạy validation với một model pin rõ revision. Validation không gọi model — model pin chỉ được lưu như provenance bắt buộc.
 
 ```bash
 cd cli
-go run ./cmd/aisdlc validate \
+go run ./cmd/aisdlc init \
+  --project <project-uuid> \
+  --api-url http://localhost:8081 \
   --spec-dir ../my-project/spec-kit \
   --kit-version core@1.0.0 \
-  --model provider/model@revision \
-  --out validation-result.json
+  --model provider/model@revision
+go run ./cmd/aisdlc validate --config .aisdlc.yml --format json --out validation-result.json
 
 AISDLC_ACCESS_TOKEN="$TOKEN" go run ./cmd/aisdlc sync \
+  --config .aisdlc.yml \
   --result validation-result.json \
-  --api-url http://localhost:8081 \
-  --project <project-uuid> \
   --idempotency-key <ci-run-key>
 ```
 
@@ -84,7 +85,7 @@ Mỗi event nhận `sequence`, `previous_hash` và `event_hash`. Database migrat
 mvn test
 mvn -DskipTests package
 cd cli && go test ./... && go build ./cmd/aisdlc
+bash ../scripts/verify-production.sh
 ```
 
-Build hiện đã pass Java unit test, Go test và Maven package. Integration regression đầy đủ cần Docker daemon để khởi động PostgreSQL, Keycloak và identity gateway; môi trường xây dựng hiện tại không có Docker daemon nên bước đó được giữ rõ là pending, không được coi là hoàn tất.
-
+Build hiện đã pass Java unit test, Go test và Maven package. Integration regression đầy đủ cần Docker daemon để khởi động PostgreSQL, Keycloak và identity gateway; môi trường xây dựng hiện tại không có Docker daemon nên bước đó được giữ rõ là pending, không được coi là hoàn tất. Xem [`cli.md`](cli.md), [`control-plane-api.md`](control-plane-api.md), [`portal-workflows.md`](portal-workflows.md), [`continuous-delivery.md`](continuous-delivery.md) và [`production-operations.md`](production-operations.md) cho contract production chi tiết.

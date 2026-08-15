@@ -22,5 +22,9 @@ public class ValidationRun {
   public UUID getProjectId() { return projectId; }
   public DomainTypes.ValidationStatus getStatus() { return status; }
   public String getIdempotencyKey() { return idempotencyKey; }
+  public String getCliVersion() { return cliVersion; }
+  public String getKitVersion() { return kitVersion; }
+  public String getModelPin() { return modelPin; }
+  public String getActorSubject() { return actorSubject; }
+  public Instant getCompletedAt() { return completedAt; }
 }
-

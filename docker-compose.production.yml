@@ -1,0 +1,15 @@
+services:
+  keycloak:
+    command: start --optimized --import-realm --hostname https://${KEYCLOAK_PUBLIC_HOST:?set KEYCLOAK_PUBLIC_HOST}
+    environment:
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+
+  management-server:
+    environment:
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+
+  portal:
+    environment:
+      KEYCLOAK_PUBLIC_BASE_URL: https://${KEYCLOAK_PUBLIC_HOST:?set KEYCLOAK_PUBLIC_HOST}
+      SERVER_FORWARD_HEADERS_STRATEGY: framework

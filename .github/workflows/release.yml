@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to release
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Assemble and publish signed-by-checksum release
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache-dependency-path: cli/go.mod
+      - name: Verify and package JVM applications
+        run: mvn --batch-mode --no-transfer-progress verify
+      - name: Build reproducible CLI artifacts
+        working-directory: cli
+        run: |
+          mkdir -p ../dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -ldflags='-s -w' -o ../dist/aisdlc-linux-amd64 ./cmd/aisdlc
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -buildvcs=false -ldflags='-s -w' -o ../dist/aisdlc-darwin-arm64 ./cmd/aisdlc
+      - name: Collect release artifacts and SHA-256 checksums
+        run: |
+          mkdir -p dist
+          cp management-server/target/management-server-*.jar dist/
+          cp portal/target/portal-*.jar dist/
+          (cd dist && sha256sum * > SHA256SUMS)
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          files: dist/*

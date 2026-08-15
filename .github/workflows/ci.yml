@@ -1,0 +1,131 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  java:
+    name: Java 25 · Maven verification
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Verify management server and SSR portal
+        run: mvn --batch-mode --no-transfer-progress verify
+      - name: Verify production topology invariants
+        run: bash scripts/verify-production.sh
+      - name: Publish JVM test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maven-test-reports
+          path: '**/target/surefire-reports/**'
+          if-no-files-found: ignore
+
+  cli:
+    name: Go 1.24 · CLI verification
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24.x'
+          cache-dependency-path: cli/go.mod
+      - name: Format check
+        working-directory: cli
+        run: test -z "$(gofmt -l cmd internal)"
+      - name: Test and compile deterministic validator
+        working-directory: cli
+        run: |
+          go test ./...
+          go build -trimpath -buildvcs=false ./cmd/aisdlc
+
+  frontend:
+    name: React Islands · production build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+          cache: npm
+          cache-dependency-path: portal/frontend/package-lock.json
+      - name: Install reproducibly and build Vite assets
+        working-directory: portal/frontend
+        run: |
+          npm ci --ignore-scripts
+          npm run build
+
+  integration:
+    name: Docker Compose integration smoke
+    needs: [java, cli, frontend]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start hardened topology and verify public health surfaces
+        run: bash scripts/integration-smoke.sh
+      - name: Publish Compose diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-integration-logs
+          path: target-compose-integration.log
+          if-no-files-found: ignore
+
+  dependency-review:
+    name: Pull request dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4
+
+  dependency-check:
+    name: OWASP dependency scan
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Cache OWASP vulnerability data
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: owasp-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: owasp-${{ runner.os }}-
+      - name: Build and scan JVM dependencies
+        env:
+          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+        run: >-
+          mvn --batch-mode --no-transfer-progress
+          -DskipTests
+          -DnvdApiKey="$NVD_API_KEY"
+          -DfailBuildOnCVSS=9
+          -Dformat=HTML
+          -Dformat=JSON
+          org.owasp:dependency-check-maven:13.0.0:check
+      - name: Publish OWASP reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-dependency-check-report
+          path: '**/target/dependency-check-report.*'
+          if-no-files-found: warn

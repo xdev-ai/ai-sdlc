@@ -1,0 +1,25 @@
+# Changelog
+
+All notable changes to the AI-SDLC platform are documented in this file. The repository is currently pre-release; version identifiers become immutable only through the tag-triggered GitHub release workflow.
+
+## [0.1.0] — Production hardening baseline
+
+### Added
+
+- Organization, project, membership and viewer-role governance with scope-aware authorization.
+- Versioned Spec Kit lifecycle, policy/constitution activation, capability grants, exception decisioning and audit-chain verification.
+- Paged, filtered REST resources with OpenAPI documentation, rate limiting, correlation IDs, structured logging, liveness/readiness and RFC 9457 error responses.
+- Validation finding triage and evidence-retention lifecycle, including audit events and database integrity constraints.
+- Server-rendered administrative workflows with CSRF protection, responsive pagination, evidence drill-down, accessible no-JavaScript fallback and React Islands for quality/traceability/evidence exploration.
+- Deterministic Go CLI configuration, client-credential login, `status`, JUnit/SARIF output, bounded resilient sync and additional validation rules.
+- Hardened container topology, Keycloak gateway headers, production compose profile, CI smoke topology and GitHub Actions build/security/release workflows.
+
+### Security
+
+- Enforced non-root runtime images, read-only container filesystems, dropped Linux capabilities and bounded writable temporary storage.
+- Enforced role and project-membership checks, CSRF, CSP/HSTS, CORS allowlists, API throttling and PostgreSQL-backed append-only audit records.
+
+### Verification
+
+- Maven reactor verification, portal/React production build, Go format/test/build and static production-topology checks pass in the development environment.
+- The Docker Compose smoke test is executed by GitHub Actions because this sandbox does not include a Docker daemon or CLI.

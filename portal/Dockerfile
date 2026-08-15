@@ -8,7 +8,10 @@ COPY portal/src portal/src
 RUN mvn -q -pl portal -am -DskipTests package
 
 FROM eclipse-temurin:25.0.3_9-jre
+RUN groupadd --system --gid 10001 aisdlc && useradd --system --uid 10001 --gid 10001 --create-home --home-dir /home/aisdlc aisdlc
 WORKDIR /app
-COPY --from=build /workspace/portal/target/portal-*.jar app.jar
+COPY --chown=aisdlc:aisdlc --from=build /workspace/portal/target/portal-*.jar app.jar
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=70 -XX:InitialRAMPercentage=25 -Djava.io.tmpdir=/tmp"
+USER 10001:10001
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

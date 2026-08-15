@@ -37,35 +37,38 @@ function QualityAnalytics({ rows }) {
     window.addEventListener('resize', resize);
     return () => { window.removeEventListener('resize', resize); chart.dispose(); };
   }, [rows, active]);
+  if (!rows.length) return <div className="react-workspace"><strong>No quality periods are available yet.</strong><span>Only persisted metric snapshots are charted; the server-rendered workspace remains the source of truth.</span></div>;
   return <div className="react-workspace"><div className="react-toolbar"><label>Explore metric <select value={field} onChange={event => setField(event.target.value)}>{metricFields.map(([key, label]) => <option value={key} key={key}>{label}</option>)}</select></label><span>{rows.length} recorded periods</span></div><div ref={chartRef} className="react-chart" role="img" aria-label={`${active[1]} trend`}>{!window.echarts && 'Chart module unavailable. Review the server-rendered table below.'}</div></div>;
 }
 
 function TraceabilityExplorer({ trace }) {
   const graphRef = useRef(null);
-  const [selected, setSelected] = useState('Select a node to inspect its delivery evidence.');
+  const [selected, setSelected] = useState(null);
   useEffect(() => {
     if (!graphRef.current || !window.cytoscape || !trace.nodes?.length) return undefined;
     const cy = window.cytoscape({ container: graphRef.current, elements: [
-      ...trace.nodes.map(node => ({ data: { id: String(node.id), label: node.label || node.external_key, type: node.node_type || 'NODE', key: node.external_key || '' } })),
+      ...trace.nodes.map(node => ({ data: { id: String(node.id), label: node.label || node.external_key, type: node.node_type || 'NODE', key: node.external_key || '', status: node.status || 'UNSPECIFIED' } })),
       ...(trace.edges || []).map(edge => ({ data: { id: String(edge.id), source: String(edge.source_node_id), target: String(edge.target_node_id), label: edge.relation || 'links' } }))
-    ], style: [{ selector: 'node', style: { 'background-color': '#5f846f', label: 'data(label)', color: '#19342d', 'font-size': 11, 'text-valign': 'bottom', 'text-margin-y': 8, width: 30, height: 30 } }, { selector: 'edge', style: { width: 1.5, 'line-color': '#9aa99a', 'target-arrow-color': '#9aa99a', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier' } }, { selector: ':selected', style: { 'background-color': '#c8e879' } }], layout: { name: 'breadthfirst', directed: true, padding: 28, spacingFactor: 1.2 } });
-    const announce = node => { cy.elements().unselect(); node.select(); setSelected(`${node.data('type')}: ${node.data('label')} · ${node.data('key')}`); };
+    ], style: [{ selector: 'node', style: { 'background-color': '#5f846f', label: 'data(label)', color: '#19342d', 'font-size': 11, 'text-valign': 'bottom', 'text-margin-y': 8, width: 30, height: 30 } }, { selector: 'edge', style: { width: 1.5, 'line-color': '#9aa99a', 'target-arrow-color': '#9aa99a', 'target-arrow-shape': 'triangle', label: 'data(label)', color: '#5d7063', 'font-size': 9, 'text-rotation': 'autorotate', 'curve-style': 'bezier' } }, { selector: ':selected', style: { 'background-color': '#c8e879' } }], layout: { name: 'breadthfirst', directed: true, padding: 28, spacingFactor: 1.2 } });
+    const announce = node => { cy.elements().unselect(); node.select(); setSelected({ type: node.data('type'), label: node.data('label'), key: node.data('key'), status: node.data('status') }); };
     cy.on('tap', 'node', event => announce(event.target));
     const keyboard = event => { const nodes = cy.nodes(); if (!nodes.length || !['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return; event.preventDefault(); const next = (nodes.indexOf(nodes.filter(':selected')[0]) + (event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1) + nodes.length) % nodes.length; announce(nodes[next]); };
     graphRef.current.addEventListener('keydown', keyboard);
     return () => { graphRef.current?.removeEventListener('keydown', keyboard); cy.destroy(); };
   }, [trace]);
-  return <div className="react-workspace"><div ref={graphRef} className="trace-graph" tabIndex="0" /><div className="trace-selection" aria-live="polite">{selected}</div></div>;
+  return <div className="react-workspace"><div ref={graphRef} className="trace-graph" tabIndex="0" aria-label="Traceability graph. Use arrow keys to select nodes." />{selected ? <div className="trace-selection" aria-live="polite"><strong>{selected.label}</strong><span>{selected.type} · {selected.key} · {selected.status}</span></div> : <div className="trace-selection" aria-live="polite">Select a node to inspect its governed delivery detail.</div>}</div>;
 }
 
 function EvidenceWorkspace({ runs }) {
   const [query, setQuery] = useState('');
-  const matched = useMemo(() => runs.filter(run => `${run.status || ''} ${run.idempotencyKey || ''}`.toLowerCase().includes(query.toLowerCase())), [runs, query]);
-  return <div className="react-workspace evidence-workspace"><label>Filter live validation evidence <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Status or idempotency key" /></label><span aria-live="polite">{matched.length} of {runs.length} runs match. Full evidence remains in the SSR list below.</span></div>;
+  const matched = useMemo(() => runs.filter(run => `${run.status || ''} ${run.idempotencyKey || ''} ${run.modelPin || ''} ${run.kitVersion || ''}`.toLowerCase().includes(query.toLowerCase())), [runs, query]);
+  const blocked = matched.filter(run => ['FAILED', 'BLOCKED'].includes(run.status)).length;
+  return <div className="react-workspace evidence-workspace"><label>Filter live validation evidence <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Status, model pin, kit or key" /></label><span aria-live="polite">{matched.length} of {runs.length} runs match · {blocked} require attention. Select a server-rendered run for the immutable evidence record.</span></div>;
 }
 
-function ReviewGuardrail({ reviews, organizationId, projectId }) {
+function ReviewGuardrail({ reviews, exceptions, organizationId, projectId }) {
   const pending = reviews.filter(review => review.status === 'PENDING');
+  const pendingExceptions = exceptions.filter(request => request.status === 'PENDING');
   const [state, setState] = useState({ busy: '', message: '' });
   async function decide(review, decision) {
     setState({ busy: review.id, message: '' });
@@ -78,8 +81,8 @@ function ReviewGuardrail({ reviews, organizationId, projectId }) {
       else setState({ busy: '', message: 'Decision was not accepted. The server-rendered review form below remains available.' });
     } catch (_) { setState({ busy: '', message: 'Network error. Use the server-rendered review form below.' }); }
   }
-  return <div className="react-workspace review-guardrail"><strong>{pending.length} pending human decision{pending.length === 1 ? '' : 's'}</strong><span>Each decision remains server-authorized, CSRF-protected and appended to the audit ledger.</span>{pending.slice(0, 3).map(review => <div className="react-review-row" key={review.id}><span>{review.title || review.review_type}</span><div><button type="button" disabled={state.busy === review.id} onClick={() => decide(review, 'APPROVED')}>Approve</button><button type="button" disabled={state.busy === review.id} onClick={() => decide(review, 'REJECTED')}>Reject</button></div></div>)}{state.message && <span role="alert">{state.message}</span>}</div>;
+  return <div className="react-workspace review-guardrail"><strong>{pending.length} pending review decision{pending.length === 1 ? '' : 's'} · {pendingExceptions.length} pending exception{pendingExceptions.length === 1 ? '' : 's'}</strong><span>Every decision remains server-authorized, CSRF-protected and appended to the immutable audit ledger. Exception approvals also require an explicit UTC expiry.</span>{pending.slice(0, 3).map(review => <div className="react-review-row" key={review.id}><span>{review.title || review.review_type}</span><div><button type="button" disabled={state.busy === review.id} onClick={() => decide(review, 'APPROVED')}>Approve</button><button type="button" disabled={state.busy === review.id} onClick={() => decide(review, 'REJECTED')}>Reject</button></div></div>)}{state.message && <span role="alert">{state.message}</span>}</div>;
 }
 
-const registry = { quality: data => <QualityAnalytics rows={Array.isArray(data) ? data : []} />, trace: data => <TraceabilityExplorer trace={data || { nodes: [], edges: []}} />, evidence: data => <EvidenceWorkspace runs={Array.isArray(data) ? data : []} />, review: data => <ReviewGuardrail reviews={Array.isArray(data?.reviews) ? data.reviews : []} organizationId={data?.organizationId || ''} projectId={data?.projectId || ''} /> };
+const registry = { quality: data => <QualityAnalytics rows={Array.isArray(data) ? data : []} />, trace: data => <TraceabilityExplorer trace={data || { nodes: [], edges: []}} />, evidence: data => <EvidenceWorkspace runs={Array.isArray(data) ? data : []} />, review: data => <ReviewGuardrail reviews={Array.isArray(data?.reviews) ? data.reviews : []} exceptions={Array.isArray(data?.exceptions) ? data.exceptions : []} organizationId={data?.organizationId || ''} projectId={data?.projectId || ''} /> };
 document.querySelectorAll('[data-react-island]').forEach(node => { const factory = registry[node.dataset.reactIsland]; if (factory) createRoot(node).render(factory(props(node))); });
