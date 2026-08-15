@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="vi" xmlns:th="https://www.thymeleaf.org">
+<body>
+  <section th:fragment="qualitySignals" id="quality-signals" class="panel" aria-live="polite">
+    <div th:if="${!projectId.isEmpty()}" class="sr-refresh" th:attr="hx-get=@{/app/fragments/quality(org=${organizationId},project=${projectId})}" hx-trigger="every 120s" hx-target="#quality-signals" hx-swap="outerHTML"></div>
+    <div class="panel-heading"><div><p class="eyebrow">DORA COUNTER-METRICS</p><h2>Quality signals</h2></div><span class="count" th:text="${#lists.size(metrics)} + ' periods'">0 periods</span></div>
+    <div th:if="${#lists.isEmpty(metrics)}" class="empty-state"><b>No calculated quality period is available.</b><p>When metrics are recorded, this view exposes deployment frequency, lead time, change failure rate, review time delta, rework, queue health and spec alignment.</p></div>
+      <div th:unless="${#lists.isEmpty(metrics)}" class="quality-stack">
+      <div class="chart-frame react-island-mount" data-react-island="quality" role="region" aria-label="Interactive DORA quality analytics" th:attr="data-react-props=${metricsJson}"><span class="visually-hidden">Interactive analytics loads when JavaScript is available. The quality table below remains available.</span></div>
+      <div class="metric-grid"><article th:each="metric : ${metrics}" class="metric-card"><span class="mono" th:text="${metric.period_end}">period</span><strong th:text="${metric.spec_alignment_score}">—</strong><small>Spec alignment</small></article></div>
+      <table data-enhance-table="quality"><caption class="visually-hidden">Quality metrics by period</caption><thead><tr><th>Period</th><th>Deploy frequency</th><th>Lead time</th><th>Change failure</th><th>Review delta</th><th>Rework</th><th>Queue health</th><th>Spec alignment</th></tr></thead><tbody><tr th:each="metric : ${metrics}"><td th:text="${metric.period_end}">period</td><td th:text="${metric.deployment_frequency}">0</td><td th:text="${metric.lead_time_hours}">0</td><td th:text="${metric.change_failure_rate}">0</td><td th:text="${metric.pr_review_time_delta_hours}">0</td><td th:text="${metric.rework_rate}">0</td><td th:text="${metric.review_queue_health}">0</td><td th:text="${metric.spec_alignment_score}">0</td></tr></tbody></table>
+    </div>
+  </section>
+</body>
+</html>

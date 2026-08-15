@@ -13,3 +13,17 @@
 - [ ] Chạy integration regression PostgreSQL/Keycloak qua Docker Compose (chưa thể chạy vì môi trường build hiện tại không có Docker daemon).
 - [x] Hoàn thiện tài liệu thao tác và kiến trúc Build 1.
 - [x] Push monorepo vào `xdev-ai/ai-sdlc` và xác minh repository sạch.
+- [x] Chuẩn hóa bộ thư viện frontend tương thích SSR: HTMX, Alpine.js, ECharts, Cytoscape.js, Tabulator và Lucide Icons.
+- [x] Bổ sung asset pipeline có pin version, Subresource Integrity và progressive enhancement không làm hỏng portal khi JavaScript tắt.
+- [x] Tích hợp DORA quality charts tương tác vào trang Quality, sử dụng dữ liệu API thực thay vì dữ liệu giả.
+- [x] Tích hợp traceability graph Cytoscape.js vào trang Traceability, có keyboard navigation và fallback SSR.
+- [x] Nâng cấp bảng validation, reviews và audit bằng Tabulator có sort/filter/accessibility, kèm fallback HTML table.
+- [ ] Nâng cấp thêm form quản trị cho tạo project, policy và exception request bằng Alpine.js/HTMX (review decision đã hoàn tất bằng SSR và React).
+- [x] Kiểm thử browser, Java build, CLI tests và tài liệu thư viện.
+- [x] Thiết kế và tài liệu hóa kiến trúc React Islands: SSR là nguồn HTML ban đầu, React chỉ hydrate các workspace tương tác.
+- [x] Thêm pipeline Vite/React version-pinned vào module portal, xuất bundle có hashed filenames và tích hợp với Maven build.
+- [x] Giữ Spring MVC, Thymeleaf, Keycloak OAuth2, CSRF và role checks là ranh giới bảo mật/SSR chính; React không tự quản token OAuth2.
+- [x] Xây React Quality Analytics island từ dữ liệu SSR/API thực, duy trì bảng HTML fallback khi JavaScript bị tắt.
+- [x] Xây React Traceability Explorer island với Cytoscape.js và fallback graph table SSR có thể điều hướng bằng bàn phím.
+- [x] Xây React Data Workspace/Review Decision island, dùng cùng các API có phân quyền và không bỏ qua human approval.
+- [ ] Push kiến trúc hybrid lên GitHub và kiểm tra trạng thái repository sau commit.

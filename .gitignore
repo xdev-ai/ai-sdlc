@@ -7,4 +7,7 @@ target/
 .DS_Store
 *.log
 coverage/
-
+node_modules/
+**/node_modules/
+portal/frontend/dist/
+portal/frontend/node/

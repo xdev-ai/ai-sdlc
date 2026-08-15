@@ -10,7 +10,7 @@ public class PortalSecurityConfig {
   @Bean
   SecurityFilterChain portalSecurity(HttpSecurity http) throws Exception {
     http.authorizeHttpRequests(authorize -> authorize
-            .requestMatchers("/", "/css/**", "/images/**", "/actuator/health", "/actuator/info").permitAll()
+            .requestMatchers("/", "/css/**", "/js/**", "/vendor/**", "/react/**", "/images/**", "/actuator/health", "/actuator/info").permitAll()
             .requestMatchers("/app/**").authenticated()
             .anyRequest().authenticated())
         .oauth2Login(login -> login.defaultSuccessUrl("/app", true))
@@ -18,4 +18,3 @@ public class PortalSecurityConfig {
     return http.build();
   }
 }
-
