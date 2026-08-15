@@ -1,0 +1,32 @@
+server:
+  port: 8080
+spring:
+  application:
+    name: ai-sdlc-portal
+  thymeleaf:
+    cache: false
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            provider: keycloak
+            client-id: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_ID:aisdlc-portal}
+            client-secret: ${SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_KEYCLOAK_CLIENT_SECRET:change-me}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope: openid,profile,email
+        provider:
+          keycloak:
+            authorization-uri: ${KEYCLOAK_PUBLIC_BASE_URL:http://auth.localhost:8180}/realms/ai-sdlc/protocol/openid-connect/auth
+            token-uri: ${KEYCLOAK_INTERNAL_BASE_URL:http://auth.localhost:8180}/realms/ai-sdlc/protocol/openid-connect/token
+            user-info-uri: ${KEYCLOAK_INTERNAL_BASE_URL:http://auth.localhost:8180}/realms/ai-sdlc/protocol/openid-connect/userinfo
+            user-name-attribute: preferred_username
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+aisdlc:
+  management-api:
+    base-url: ${MANAGEMENT_API_BASE_URL:http://localhost:8081}

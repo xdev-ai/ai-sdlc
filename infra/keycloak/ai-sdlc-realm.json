@@ -1,0 +1,41 @@
+{
+  "realm": "ai-sdlc",
+  "enabled": true,
+  "displayName": "AI-SDLC Platform",
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "admin", "description": "Organization and policy administrator" },
+      { "name": "developer", "description": "Developer and validation contributor" },
+      { "name": "reviewer", "description": "Human reviewer and gate approver" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "aisdlc-portal",
+      "name": "AI-SDLC SSR Portal",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": ["http://localhost:8080/login/oauth2/code/keycloak"],
+      "webOrigins": ["http://localhost:8080"],
+      "protocolMappers": [
+        { "name": "realm roles", "protocol": "openid-connect", "protocolMapper": "oidc-usermodel-realm-role-mapper", "config": { "claim.name": "roles", "multivalued": "true", "access.token.claim": "true", "id.token.claim": "true", "userinfo.token.claim": "true" } }
+      ]
+    },
+    {
+      "clientId": "aisdlc-cli",
+      "name": "AI-SDLC CLI Evidence Writer",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "protocolMappers": [
+        { "name": "realm roles", "protocol": "openid-connect", "protocolMapper": "oidc-usermodel-realm-role-mapper", "config": { "claim.name": "roles", "multivalued": "true", "access.token.claim": "true" } }
+      ]
+    }
+  ]
+}
+
