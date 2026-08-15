@@ -1,5 +1,5 @@
 <configuration>
-  <appender name="JSON" class="net.logstash.logback.appender.LogstashConsoleAppender">
+  <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
     <encoder class="net.logstash.logback.encoder.LogstashEncoder">
       <includeMdcKeyName>correlationId</includeMdcKeyName>
       <customFields>{"service":"ai-sdlc-management-server"}</customFields>

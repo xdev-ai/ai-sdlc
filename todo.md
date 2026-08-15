@@ -69,6 +69,7 @@
 - [ ] Sửa PostgreSQL integration init: grant database Keycloak cho username cấu hình thực tế thay vì role hard-code.
 - [ ] Sửa identity gateway integration: cấp temporary paths Nginx có quyền ghi trong topology read-only.
 - [ ] Bound Compose integration smoke bằng timeout hữu hạn và diagnostics để CI không thể treo vô thời hạn.
+- [ ] Sửa management-server runtime logging: đóng gói Logstash encoder đúng classpath container để startup không lỗi Logback.
 - [ ] Thiết kế bounded module contracts để các package governance, validation, review, quality, audit và repository có thể tích hợp độc lập.
 - [ ] Bổ sung Evidence & Governance Data Repository: metadata PostgreSQL, object storage tương thích S3, checksum, provenance, access control và retention/hold.
 - [ ] Công bố API module repository cho upload intent, finalize digest, download authorization, search/filter và lifecycle evidence.
