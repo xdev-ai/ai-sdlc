@@ -33,6 +33,8 @@ func main() {
 		sync(os.Args[2:])
 	case "status":
 		status(os.Args[2:])
+	case "upload":
+		upload(os.Args[2:])
 	case "version", "--version", "-v":
 		fmt.Println(version)
 	default:
@@ -95,6 +97,42 @@ func sync(args []string) {
 		fatal(err)
 	}
 	fmt.Println("Validation evidence synchronized.")
+}
+
+func upload(args []string) {
+	fs := flag.NewFlagSet("upload", flag.ExitOnError)
+	configPath := fs.String("config", engine.DefaultConfigPath, "AI-SDLC configuration path")
+	config, err := engine.LoadConfigIfPresent(*configPath)
+	if err != nil {
+		fatal(err)
+	}
+	apiURL := fs.String("api-url", config.APIURL, "Management API root")
+	projectID := fs.String("project", config.Project, "Project UUID")
+	token := fs.String("token", "", "OAuth2 access token (env or stored token if omitted)")
+	assetType := fs.String("asset-type", "VALIDATION", "Evidence type: VALIDATION, SPECIFICATION, REVIEW, GOVERNANCE, DELIVERY, OTHER")
+	accessLevel := fs.String("access-level", "PROJECT", "Access level: PROJECT, REVIEWERS, OWNERS")
+	validationEvidenceID := fs.String("validation-evidence", "", "Optional linked validation evidence UUID")
+	idempotencyKey := fs.String("idempotency-key", "", "Stable retry key; derived from content and metadata when omitted")
+	retries := fs.Int("retries", 4, "Maximum upload attempts for transport, 429 and 5xx failures")
+	asJSON := fs.Bool("json", false, "Emit machine-readable JSON")
+	_ = fs.Parse(args)
+	if fs.NArg() != 1 {
+		fatal(errors.New("upload requires exactly one file path"))
+	}
+	resolvedToken, _, err := engine.ResolveToken(*token)
+	if err != nil {
+		fatal(err)
+	}
+	result, err := engine.UploadEvidence(engine.UploadOptions{FilePath: fs.Arg(0), APIURL: *apiURL, ProjectID: *projectID, Token: resolvedToken, AssetType: strings.ToUpper(*assetType), AccessLevel: strings.ToUpper(*accessLevel), ValidationEvidenceID: *validationEvidenceID, IdempotencyKey: *idempotencyKey, MaxAttempts: *retries})
+	if err != nil {
+		fatal(err)
+	}
+	if *asJSON {
+		encoded, _ := json.MarshalIndent(result, "", "  ")
+		fmt.Println(string(encoded))
+		return
+	}
+	fmt.Printf("Evidence uploaded. sha256=%s idempotency_key=%s attempts=%d\n", result.SHA256, result.IdempotencyKey, result.Attempts)
 }
 
 func initConfig(args []string) {
@@ -173,6 +211,6 @@ func status(args []string) {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "AI-SDLC deterministic validator\n\nCommands:\n  aisdlc init --project <uuid> --api-url https://control.example.com --model provider/model@revision\n  aisdlc login --token-url https://auth.example/realms/ai-sdlc/protocol/openid-connect/token --client-secret <secret>\n  aisdlc validate --config .aisdlc.yml --format json|junit|sarif --out validation-result.json\n  aisdlc sync --config .aisdlc.yml --result validation-result.json --idempotency-key <key>\n  aisdlc status --config .aisdlc.yml --json")
+	fmt.Fprintln(os.Stderr, "AI-SDLC deterministic validator\n\nCommands:\n  aisdlc init --project <uuid> --api-url https://control.example.com --model provider/model@revision\n  aisdlc login --token-url https://auth.example/realms/ai-sdlc/protocol/openid-connect/token --client-secret <secret>\n  aisdlc validate --config .aisdlc.yml --format json|junit|sarif --out validation-result.json\n  aisdlc sync --config .aisdlc.yml --result validation-result.json --idempotency-key <key>\n  aisdlc upload ./evidence.json --project <uuid> --asset-type VALIDATION --json\n  aisdlc status --config .aisdlc.yml --json")
 }
 func fatal(err error) { fmt.Fprintln(os.Stderr, "error:", err); os.Exit(2) }

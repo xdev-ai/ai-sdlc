@@ -11,4 +11,7 @@ public final class DomainTypes {
   public enum ReviewType { MERGE_REQUEST, PHASE_GATE, EXCEPTION }
   public enum ReviewStatus { PENDING, APPROVED, REJECTED, CHANGES_REQUESTED }
   public enum MembershipRole { OWNER, DEVELOPER, REVIEWER, VIEWER }
+  public enum EvidenceAssetType { VALIDATION, SPECIFICATION, REVIEW, GOVERNANCE, DELIVERY, OTHER }
+  public enum EvidenceAccessLevel { PROJECT, REVIEWERS, OWNERS }
+  public enum ObjectLockMode { GOVERNANCE, COMPLIANCE }
 }

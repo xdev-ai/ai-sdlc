@@ -15,6 +15,7 @@ Build 1 cung cấp một **control plane cho AI-assisted software delivery**. H�
 | Keycloak | 26.7.1 | Không public trực tiếp | OpenID Connect, realm roles |
 | Management server | Spring Boot REST API | Không public trực tiếp | Policy, evidence, review và audit |
 | PostgreSQL | 18.6 | Không public trực tiếp | Transactional control-plane store |
+| MinIO | S3-compatible object storage | Không public trực tiếp | Bytes Evidence Repository, versioning/Object Lock bucket |
 | CLI | Go | Không áp dụng | Validation local và evidence sync |
 
 Keycloak được đặt **sau identity gateway**. Trong Docker Compose, services nội bộ không được công bố port tùy tiện; portal là lối vào ứng dụng, identity gateway là lối vào OIDC.
@@ -62,6 +63,18 @@ AISDLC_ACCESS_TOKEN="$TOKEN" go run ./cmd/aisdlc sync \
 
 `sync` gọi `POST /api/v1/cli/projects/{projectId}/validation-runs`. Key idempotency giúp CI retry mà không tạo evidence hoặc audit event trùng. API lưu validation run, findings, evidence và audit event trong cùng unit of work.
 
+Để lưu chứng cứ có kích thước lớn hoặc artefact governance, dùng `upload`. CLI tính SHA-256 cục bộ, truyền digest cho management server kiểm chứng và **không** nhận hoặc lưu credential MinIO/S3.
+
+```bash
+AISDLC_ACCESS_TOKEN="$TOKEN" go run ./cmd/aisdlc upload ./validation-result.json \
+  --config .aisdlc.yml \
+  --asset-type VALIDATION \
+  --access-level PROJECT \
+  --json
+```
+
+MinIO chỉ hiện diện trong network nội bộ Compose. `evidence-bucket-init` tạo bucket `AISDLC_EVIDENCE_S3_BUCKET` với Object Lock một cách idempotent trước khi management server khởi động. Local `.env` bắt buộc có `AISDLC_EVIDENCE_S3_ACCESS_KEY` và `AISDLC_EVIDENCE_S3_SECRET_KEY`; thay hai giá trị mẫu bằng secret riêng và không commit file.
+
 ## REST resource map
 
 | Resource | Mục đích |
@@ -73,6 +86,7 @@ AISDLC_ACCESS_TOKEN="$TOKEN" go run ./cmd/aisdlc sync \
 | `/api/v1/projects/{projectId}/policies` và `/constitutions` | Governance-as-data theo version |
 | `/api/v1/projects/{projectId}/review-items` | Human review và phase gate decision |
 | `/api/v1/projects/{projectId}/quality-metrics` | DORA counter-metrics và spec alignment |
+| `/api/v1/projects/{projectId}/evidence-assets` | Upload/list evidence metadata; detail trả presigned download URL sau authorization; retention/soft delete được audit-backed |
 | `/api/v1/organizations/{organizationId}/audit-events` | Audit ledger append-only hash-chain |
 
 ## Audit integrity

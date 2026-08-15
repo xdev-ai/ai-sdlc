@@ -2,6 +2,15 @@
 
 All notable changes to the AI-SDLC platform are documented in this file. The repository is currently pre-release; version identifiers become immutable only through the tag-triggered GitHub release workflow.
 
+## [Unreleased]
+
+### Added
+
+- Evidence & Governance Data Repository with project-scoped `evidence_assets` metadata, SHA-256 provenance, content classification, bounded multipart upload, pagination, soft delete, optional validation-evidence linkage and private presigned downloads.
+- S3-compatible `ObjectStoragePort` and AWS SDK for Java 2.x adapter, with MinIO Object Lock topology, deterministic bucket bootstrap, retention extension controls and compensating cleanup on metadata rollback.
+- Upload idempotency at the database boundary, audit-backed evidence lifecycle events, SSR portal workflows, and `aisdlc upload` with streaming multipart, digest verification, deterministic retry key and bounded retry/backoff.
+- Module integration guide, storage configuration/backup guidance, API documentation and unit tests for evidence service, controller and CLI transport.
+
 ## [0.1.0] — Production hardening baseline
 
 ### Added

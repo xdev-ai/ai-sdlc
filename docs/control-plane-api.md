@@ -40,6 +40,7 @@ Invalid input produces an RFC 9457 `application/problem+json` response. Conditio
 | Policy and constitution lifecycle | `/organizations/{id}/policies`, `/organizations/{id}/constitutions` | Activation/deactivation transitions include audit entries and lifecycle attribution. |
 | Exceptions and reviews | `/projects/{id}/exception-requests`, `/projects/{id}/review-items` | Decisions are final and require an expected `PENDING` state. Approved exceptions must include a future expiry. |
 | Validation evidence | `/cli/projects/{id}/validation-runs`, `/projects/{id}/validation-runs` | CLI ingest requires `Idempotency-Key`, a non-empty model pin and `bare=false`. |
+| Evidence Repository | `/projects/{id}/evidence-assets` | Multipart upload verifies SHA-256 and stores bytes privately through an S3-compatible adapter. `GET /{assetId}` authorizes a short-lived presigned download URL; `PUT /{assetId}/retention` only extends a human-authorized retention lock; `DELETE /{assetId}` soft-deletes metadata. |
 | Audit verification | `/organizations/{id}/audit-events/verify` | Recomputes the append-only ledger hash chain without modifying historical events. |
 
 ## Runtime Protection and Observability

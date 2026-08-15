@@ -11,6 +11,7 @@ This runbook covers a Docker-capable production environment for the AI-SDLC mono
 | Keycloak | Private network only. Use a production hostname and TLS termination outside the `start-dev` local configuration before an internet-facing release. |
 | Management server | Private network only. It validates JWTs, project scope and policy transitions; never expose its internal port directly to untrusted clients. |
 | PostgreSQL | Private network and persistent encrypted storage only. Never expose port `5432` to the internet. |
+| MinIO / S3-compatible store | Private network and persistent encrypted storage only. The bucket is created with Object Lock before management-server starts; expose neither S3 API nor console to untrusted networks. |
 
 The portal and management server images now run as UID/GID `10001`, with read-only root filesystems and an ephemeral writable `/tmp`. They may not depend on local runtime persistence. The JVM caps its heap as a percentage of the container limit, leaving memory for native/JVM overhead and preventing a single instance from consuming the host allocation.
 
@@ -33,7 +34,7 @@ After startup, check the management API readiness group, the portal OIDC redirec
 
 ## Secret Management and Rotation
 
-Secrets must enter containers only through the runtime secret manager or environment injection. `.env` is for local development only and must never be committed. At minimum, rotate `POSTGRES_PASSWORD`, `KEYCLOAK_ADMIN_PASSWORD`, `PORTAL_CLIENT_SECRET`, `CLI_CLIENT_SECRET`, the JWT/identity signing material managed by Keycloak, and any NVD API key used by CI.
+Secrets must enter containers only through the runtime secret manager or environment injection. `.env` is for local development only and must never be committed. At minimum, rotate `POSTGRES_PASSWORD`, `KEYCLOAK_ADMIN_PASSWORD`, `PORTAL_CLIENT_SECRET`, `CLI_CLIENT_SECRET`, `AISDLC_EVIDENCE_S3_ACCESS_KEY`, `AISDLC_EVIDENCE_S3_SECRET_KEY`, the JWT/identity signing material managed by Keycloak, and any NVD API key used by CI.
 
 | Rotation sequence | Safe procedure |
 |---|---|
@@ -41,6 +42,7 @@ Secrets must enter containers only through the runtime secret manager or environ
 | Database password | Create a new database credential or rotate the role password during a maintenance window, update the secret injection source, restart dependent services one at a time, then validate readiness and a transactional write. |
 | Keycloak bootstrap administrator | Replace the bootstrap secret in the secret manager, use a separately managed administrator account for normal operations, and test a privileged realm operation before revoking old access. |
 | CI scan key | Replace `NVD_API_KEY` in GitHub repository secrets, dispatch the CI workflow, verify scan data download succeeds, then delete the old key. |
+| Object-storage access key | Create a replacement least-privilege service credential, update the runtime secret source and bootstrap configuration, restart management-server, perform an authorized upload/download test, then revoke the old credential. Never rotate a key by editing a committed `.env` file. |
 
 Never record secret values, bearer tokens, JDBC URLs with credentials, or OAuth client secrets in tickets, audit messages, CLI configuration, or application logs.
 
@@ -58,6 +60,14 @@ pg_restore --clean --if-exists --no-owner --dbname=aisdlc_restore aisdlc-YYYYMMD
 ```
 
 The audit table is intentionally append-only. Never repair audit evidence with `UPDATE`, `DELETE`, or direct SQL. If hash verification fails, stop governance mutations, preserve database and application logs, establish the affected sequence interval, and open an incident before any recovery action.
+
+## Evidence Object Storage Backup and Restore
+
+Back up PostgreSQL metadata and the evidence bucket as a coordinated recovery set. A database restore without the corresponding bucket loses retrievability; a bucket restore without the corresponding metadata produces private, unreferenced objects. Store a signed manifest containing the UTC time, database backup identifier, bucket backup identifier and a SHA-256 for each exported artefact.
+
+For MinIO, use an administrative environment with a separate backup identity. First pause evidence mutations or use a provider-supported point-in-time/versioning mechanism, then mirror the complete versioned bucket to encrypted, access-controlled backup storage. Test the mirror and record its manifest before declaring the backup successful. Object Lock protects retained versions; it is not a substitute for disaster recovery backups.[4]
+
+Restoration requires an approved incident/recovery decision. Restore the database to an isolated target, restore the bucket and object versions to a non-public target bucket, run audit-chain verification, sample SHA-256 evidence metadata against retrieved objects, and validate authorization before switching application traffic. Do not use a normal application credential to weaken, shorten or bypass a compliance retention mode.[5]
 
 ## Migration, Rollout and Rollback
 
@@ -80,3 +90,7 @@ When investigating an incident, record the correlation ID, request timestamp, pr
 [2] [OWASP Dependency-Check GitHub Actions cache guidance](https://dependency-check.github.io/DependencyCheck/data/cache-action.html)
 
 [3] [Keycloak — Tracking instance status with health checks](https://www.keycloak.org/observability/health)
+
+[4] [MinIO AIStor — `mc mirror` replication and synchronization](https://docs.min.io/community/minio-object-store/reference/minio-mc/mc-mirror.html)
+
+[5] [Amazon S3 Object Lock — retention modes and legal holds](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html)

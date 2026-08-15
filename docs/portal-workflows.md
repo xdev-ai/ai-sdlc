@@ -14,6 +14,7 @@ Every form result redirects to the relevant scoped page and uses a flash notific
 | Spec Kits | Register immutable versions, inspect lifecycle, pin by precedence, unpin a resolved assignment and deprecate an active kit with a reason. |
 | Governance | Record versioned policies and constitutions, activate/deactivate lifecycle versions, submit exception requests, and create expiring scoped capability grants. |
 | Validations | Filter and page validation runs; select a run to inspect deterministic findings and evidence digests/verified URIs. |
+| Evidence Repository | Upload a bounded project-scoped artefact with type/access classification, list its SHA-256 provenance, open an authorized short-lived download, extend a retention lock, or soft-delete metadata when holding owner/reviewer authority. The portal sends multipart through its server-side API client; object-store credentials and bearer tokens never reach the browser. |
 | Traceability | Inspect the requirement-to-evidence graph in both a no-JavaScript summary and enhanced interactive explorer. |
 | Reviews | Submit merge-request, phase-gate or exception review requests; reviewers provide a human final approve/reject decision and rationale. |
 | Quality | Record a real metric period in UTC and inspect DORA counter-metrics in tables or an enhanced analytics island. |

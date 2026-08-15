@@ -5,9 +5,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.multipart.MultipartFile;
 
 /** Server-side OAuth client. Browser code never receives a management API access token. */
 @Component
@@ -54,6 +57,18 @@ public class ManagementApiClient {
   public String post(String path, String accessToken, Map<String, Object> payload) { return mutate(path, accessToken, payload, "POST"); }
   public String put(String path, String accessToken, Map<String, Object> payload) { return mutate(path, accessToken, payload, "PUT"); }
   public String delete(String path, String accessToken) { return mutate(path, accessToken, Map.of(), "DELETE"); }
+
+  public String uploadEvidence(String path, String accessToken, MultipartFile file, Map<String, String> fields, String digest) {
+    try {
+      MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+      body.add("file", file.getResource());
+      fields.forEach(body::add);
+      var request = rest.post().uri(path).header(HttpHeaders.AUTHORIZATION, bearer(accessToken));
+      if (digest != null && !digest.isBlank()) request.header("X-Content-SHA256", digest);
+      request.contentType(MediaType.MULTIPART_FORM_DATA).body(body).retrieve().toBodilessEntity();
+      return null;
+    } catch (RuntimeException error) { return errorMessage(error); }
+  }
 
   private String mutate(String path, String accessToken, Map<String, Object> payload, String method) {
     try {

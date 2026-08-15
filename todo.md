@@ -64,18 +64,19 @@
 - [x] Chạy production verification, push toàn bộ source/docs/tests và bàn giao release-ready repository.
 - [ ] Chạy release verification theo yêu cầu người dùng: Maven reactor, Go CLI, static production checks, GitHub workflow và Compose runtime nếu môi trường hỗ trợ Docker.
 - [ ] Lập báo cáo kiểm thử pass/fail với log bằng chứng và giới hạn môi trường minh bạch.
-- [ ] Sửa Docker build portal: copy đầy đủ input frontend Vite trước Maven package để Compose CI không thất bại tại `npm ci`.
+- [x] Sửa Docker build portal: copy đầy đủ input frontend Vite trước Maven package để Compose CI không thất bại tại `npm ci`.
 - [ ] Sửa OWASP CI: không truyền `nvdApiKey` khi GitHub secret chưa được cấu hình, vẫn giữ security scan bắt buộc.
-- [ ] Sửa PostgreSQL integration init: grant database Keycloak cho username cấu hình thực tế thay vì role hard-code.
-- [ ] Sửa identity gateway integration: cấp temporary paths Nginx có quyền ghi trong topology read-only.
-- [ ] Sửa identity gateway integration: cấp tối thiểu `SETUID`/`SETGID` để Nginx master tạo worker không đặc quyền.
-- [ ] Sửa Compose identity readiness: thêm Keycloak healthcheck private port 9000 và chỉ khởi động gateway sau khi identity sẵn sàng.
-- [ ] Bound Compose integration smoke bằng timeout hữu hạn và diagnostics để CI không thể treo vô thời hạn.
-- [ ] Sửa management-server runtime logging: đóng gói Logstash encoder đúng classpath container để startup không lỗi Logback.
-- [ ] Sửa management-server migration runtime: bổ sung Spring Boot 4 Flyway starter để migrations bắt buộc chạy trước Hibernate validation.
-- [ ] Sửa management-server repository discovery: bật scan Spring Data rõ ràng cho nested repository interfaces trong container runtime.
-- [ ] Thiết kế bounded module contracts để các package governance, validation, review, quality, audit và repository có thể tích hợp độc lập.
-- [ ] Bổ sung Evidence & Governance Data Repository: metadata PostgreSQL, object storage tương thích S3, checksum, provenance, access control và retention/hold.
-- [ ] Công bố API module repository cho upload intent, finalize digest, download authorization, search/filter và lifecycle evidence.
-- [ ] Tích hợp portal SSR và CLI để người dùng đưa evidence vào kho, xem provenance và truy xuất asset được cấp quyền.
-- [ ] Bổ sung topology object storage, migration, unit/integration tests, CI smoke test và runbook backup/restore cho repository.
+- [x] Sửa PostgreSQL integration init: grant database Keycloak cho username cấu hình thực tế thay vì role hard-code.
+- [x] Sửa identity gateway integration: cấp temporary paths Nginx có quyền ghi trong topology read-only.
+- [x] Sửa identity gateway integration: cấp tối thiểu `SETUID`/`SETGID` để Nginx master tạo worker không đặc quyền.
+- [x] Sửa Compose identity readiness: thêm Keycloak healthcheck private port 9000 và chỉ khởi động gateway sau khi identity sẵn sàng.
+- [x] Bound Compose integration smoke bằng timeout hữu hạn và diagnostics để CI không thể treo vô thời hạn.
+- [x] Sửa management-server runtime logging: đóng gói Logstash encoder đúng classpath container để startup không lỗi Logback.
+- [x] Sửa management-server migration runtime: bổ sung Spring Boot 4 Flyway starter để migrations bắt buộc chạy trước Hibernate validation.
+- [x] Sửa management-server repository discovery: bật scan Spring Data rõ ràng cho nested repository interfaces trong container runtime.
+- [x] Thiết kế bounded module contracts để các package governance, validation, review, quality, audit và repository có thể tích hợp độc lập.
+- [x] Bổ sung Evidence & Governance Data Repository: metadata PostgreSQL, object storage tương thích S3, checksum, provenance, access control và retention/hold.
+- [x] Công bố API module repository cho upload intent, finalize digest, download authorization, search/filter và lifecycle evidence.
+- [x] Tích hợp portal SSR và CLI để người dùng đưa evidence vào kho, xem provenance và truy xuất asset được cấp quyền.
+- [x] Bổ sung topology object storage, migration, unit/integration tests, CI smoke test và runbook backup/restore cho repository.
+- [ ] Xác minh MinIO Object Lock bucket bootstrap và readiness probe trong Docker Compose smoke trên GitHub Actions (sandbox không có Docker CLI/daemon).

@@ -57,4 +57,18 @@ aisdlc sync --result validation-result.json --idempotency-key "${GITHUB_RUN_ID}-
 
 `sync` retries transport failures, HTTP `429`, and 5xx responses with bounded exponential backoff and respects a bounded numeric `Retry-After` response. Validation failures other than those transient responses do not retry. HTTP `409` is reported as a likely idempotency conflict with the server response body to support operator diagnosis.
 
+## Upload Evidence Assets
+
+`upload` sends one file as a streaming multipart request to the project-scoped Evidence Repository. The command computes the SHA-256 locally, transmits it in `X-Content-SHA256`, and derives an idempotency key from the file digest and governance metadata when `--idempotency-key` is omitted. Consequently, a retry of the same content and classification cannot create a second asset or audit event.
+
+```bash
+aisdlc upload ./validation-result.json \
+  --project "<project-uuid>" \
+  --asset-type VALIDATION \
+  --access-level PROJECT \
+  --json
+```
+
+The supported asset types are `VALIDATION`, `SPECIFICATION`, `REVIEW`, `GOVERNANCE`, `DELIVERY`, and `OTHER`; access levels are `PROJECT`, `REVIEWERS`, and `OWNERS`. Pass `--validation-evidence <uuid>` only when linking to an existing validation evidence record in the same project. The CLI uses the same token resolution order as `sync`, retries transport failures/HTTP `429`/5xx with bounded exponential backoff, and never writes object-store credentials to `.aisdlc.yml` or logs.
+
 Use `aisdlc status --json` for a local, non-network diagnostic of config and the last JSON validation result.

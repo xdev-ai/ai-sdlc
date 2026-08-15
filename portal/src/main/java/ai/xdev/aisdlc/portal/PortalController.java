@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
@@ -16,7 +18,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class PortalController {
-  private static final Set<String> PAGES = Set.of("overview", "projects", "kits", "validations", "traceability", "governance", "reviews", "quality", "audit");
+  private static final Set<String> PAGES = Set.of("overview", "projects", "kits", "validations", "evidence", "traceability", "governance", "reviews", "quality", "audit");
   private final ManagementApiClient api;
   private final ReactAssetService reactAssets;
   private final ObjectMapper mapper = new ObjectMapper();
@@ -34,6 +36,7 @@ public class PortalController {
     ManagementApiClient.PageData projects = org == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/organizations/" + org + "/projects?page=" + p + "&size=25", token);
     ManagementApiClient.PageData kits = org == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/organizations/" + org + "/spec-kits?page=" + p + "&size=25", token);
     ManagementApiClient.PageData validations = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/validation-runs?page=" + p + "&size=25" + optional("status", filter), token);
+    ManagementApiClient.PageData evidenceAssets = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/evidence-assets?page=" + p + "&size=25", token);
     ManagementApiClient.PageData policies = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/policies?page=" + p + "&size=25&includeInactive=true", token);
     ManagementApiClient.PageData constitutions = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/constitutions?page=" + p + "&size=25&includeInactive=true", token);
     ManagementApiClient.PageData reviews = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/review-items?page=" + p + "&size=25" + optional("status", filter), token);
@@ -50,10 +53,10 @@ public class PortalController {
     model.addAttribute("page", view); model.addAttribute("pageNumber", p); model.addAttribute("filter", filter == null ? "" : filter);
     model.addAttribute("organizationId", org == null ? "" : org.toString()); model.addAttribute("projectId", project == null ? "" : project.toString());
     model.addAttribute("userName", Optional.ofNullable(user.getFullName()).orElse(user.getPreferredUsername()));
-    model.addAttribute("organizations", organizations.items()); model.addAttribute("projects", projects.items()); model.addAttribute("kits", kits.items()); model.addAttribute("validations", validations.items()); model.addAttribute("policies", policies.items()); model.addAttribute("constitutions", constitutions.items()); model.addAttribute("reviews", reviews.items()); model.addAttribute("metrics", metrics.items()); model.addAttribute("capabilities", capabilities.items()); model.addAttribute("audit", audit.items()); model.addAttribute("memberships", memberships.items()); model.addAttribute("projectKits", projectKits.items()); model.addAttribute("exceptions", exceptions.items());
-    model.addAttribute("organizationsPage", organizations); model.addAttribute("projectsPage", projects); model.addAttribute("kitsPage", kits); model.addAttribute("validationsPage", validations); model.addAttribute("policiesPage", policies); model.addAttribute("constitutionsPage", constitutions); model.addAttribute("reviewsPage", reviews); model.addAttribute("metricsPage", metrics); model.addAttribute("capabilitiesPage", capabilities); model.addAttribute("auditPage", audit); model.addAttribute("exceptionsPage", exceptions);
+    model.addAttribute("organizations", organizations.items()); model.addAttribute("projects", projects.items()); model.addAttribute("kits", kits.items()); model.addAttribute("validations", validations.items()); model.addAttribute("evidenceAssets", evidenceAssets.items()); model.addAttribute("policies", policies.items()); model.addAttribute("constitutions", constitutions.items()); model.addAttribute("reviews", reviews.items()); model.addAttribute("metrics", metrics.items()); model.addAttribute("capabilities", capabilities.items()); model.addAttribute("audit", audit.items()); model.addAttribute("memberships", memberships.items()); model.addAttribute("projectKits", projectKits.items()); model.addAttribute("exceptions", exceptions.items());
+    model.addAttribute("organizationsPage", organizations); model.addAttribute("projectsPage", projects); model.addAttribute("kitsPage", kits); model.addAttribute("validationsPage", validations); model.addAttribute("evidenceAssetsPage", evidenceAssets); model.addAttribute("policiesPage", policies); model.addAttribute("constitutionsPage", constitutions); model.addAttribute("reviewsPage", reviews); model.addAttribute("metricsPage", metrics); model.addAttribute("capabilitiesPage", capabilities); model.addAttribute("auditPage", audit); model.addAttribute("exceptionsPage", exceptions);
     model.addAttribute("trace", trace.value()); model.addAttribute("auditVerification", auditVerification.value()); model.addAttribute("validationDetail", validationDetail.value()); model.addAttribute("selectedRunId", run == null ? "" : run.toString());
-    model.addAttribute("apiErrors", errors(organizations.error(), projects.error(), kits.error(), validations.error(), policies.error(), constitutions.error(), reviews.error(), metrics.error(), capabilities.error(), audit.error(), memberships.error(), projectKits.error(), exceptions.error(), trace.error(), auditVerification.error(), validationDetail.error()));
+    model.addAttribute("apiErrors", errors(organizations.error(), projects.error(), kits.error(), validations.error(), evidenceAssets.error(), policies.error(), constitutions.error(), reviews.error(), metrics.error(), capabilities.error(), audit.error(), memberships.error(), projectKits.error(), exceptions.error(), trace.error(), auditVerification.error(), validationDetail.error()));
     model.addAttribute("metricsJson", json(metrics.items())); model.addAttribute("traceJson", json(trace.value())); model.addAttribute("validationsJson", json(validations.items()));
     model.addAttribute("reviewIslandJson", json(Map.of("reviews", reviews.items(), "exceptions", exceptions.items(), "organizationId", org == null ? "" : org.toString(), "projectId", project == null ? "" : project.toString())));
     model.addAttribute("reactEntry", reactAssets.entry());
@@ -102,6 +105,23 @@ public class PortalController {
   String triageFinding(@PathVariable UUID projectId, @PathVariable UUID runId, @PathVariable UUID findingId, @RequestParam UUID org, @RequestParam String status, @RequestParam(required = false) String note, @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client, RedirectAttributes redirect) { return mutatePut("/api/v1/projects/" + projectId + "/validation-runs/" + runId + "/findings/" + findingId + "/triage", Map.of("status", status, "note", note == null ? "" : note), client, validationDetailTarget(org, projectId, runId), redirect); }
   @PostMapping("/app/projects/{projectId}/validation-runs/{runId}/evidence/{evidenceId}/retention")
   String setEvidenceRetention(@PathVariable UUID projectId, @PathVariable UUID runId, @PathVariable UUID evidenceId, @RequestParam UUID org, @RequestParam String retentionUntil, @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client, RedirectAttributes redirect) { return mutatePut("/api/v1/projects/" + projectId + "/validation-runs/" + runId + "/evidence/" + evidenceId + "/retention", Map.of("retentionUntil", Instant.parse(retentionUntil)), client, validationDetailTarget(org, projectId, runId), redirect); }
+  @PostMapping("/app/projects/{projectId}/evidence-assets")
+  String uploadEvidenceAsset(@PathVariable UUID projectId, @RequestParam UUID org, @RequestParam String assetType, @RequestParam String accessLevel, @RequestParam(required = false) String validationEvidenceId, @RequestParam(required = false) String digest, @RequestParam("file") org.springframework.web.multipart.MultipartFile file, @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client, RedirectAttributes redirect) {
+    if (file.isEmpty()) return finishMutation("Select a non-empty evidence file before upload.", evidenceTarget(org, projectId), redirect);
+    Map<String, String> fields = new LinkedHashMap<>(); fields.put("assetType", assetType); fields.put("accessLevel", accessLevel); if (validationEvidenceId != null && !validationEvidenceId.isBlank()) fields.put("validationEvidenceId", validationEvidenceId);
+    return finishMutation(api.uploadEvidence("/api/v1/projects/" + projectId + "/evidence-assets", client.getAccessToken().getTokenValue(), file, fields, digest), evidenceTarget(org, projectId), redirect);
+  }
+  @PostMapping("/app/projects/{projectId}/evidence-assets/{assetId}/retention")
+  String lockEvidenceAsset(@PathVariable UUID projectId, @PathVariable UUID assetId, @RequestParam UUID org, @RequestParam String mode, @RequestParam String retentionUntil, @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client, RedirectAttributes redirect) { return mutatePut("/api/v1/projects/" + projectId + "/evidence-assets/" + assetId + "/retention", Map.of("mode", mode, "retentionUntil", retentionInstant(retentionUntil)), client, evidenceTarget(org, projectId), redirect); }
+  @PostMapping("/app/projects/{projectId}/evidence-assets/{assetId}/delete")
+  String deleteEvidenceAsset(@PathVariable UUID projectId, @PathVariable UUID assetId, @RequestParam UUID org, @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client, RedirectAttributes redirect) { return mutateDelete("/api/v1/projects/" + projectId + "/evidence-assets/" + assetId, client, evidenceTarget(org, projectId), redirect); }
+  @GetMapping("/app/projects/{projectId}/evidence-assets/{assetId}/download")
+  String downloadEvidenceAsset(@PathVariable UUID projectId, @PathVariable UUID assetId, @RequestParam(required = false) UUID org, @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client, RedirectAttributes redirect) {
+    ManagementApiClient.ObjectData detail = api.object("/api/v1/projects/" + projectId + "/evidence-assets/" + assetId, client.getAccessToken().getTokenValue());
+    Object url = detail.value().get("downloadUrl");
+    if (detail.hasError() || !(url instanceof String signedUrl) || signedUrl.isBlank()) return finishMutation(detail.error() == null ? "Evidence download authorization could not be created." : detail.error(), evidenceTarget(org, projectId), redirect);
+    return "redirect:" + signedUrl;
+  }
 
   private String mutate(String path, Map<String, Object> payload, OAuth2AuthorizedClient client, String target, RedirectAttributes redirect) { return finishMutation(api.post(path, client.getAccessToken().getTokenValue(), payload), target, redirect); }
   private String mutatePut(String path, Map<String, Object> payload, OAuth2AuthorizedClient client, String target, RedirectAttributes redirect) { return finishMutation(api.put(path, client.getAccessToken().getTokenValue(), payload), target, redirect); }
@@ -111,7 +131,9 @@ public class PortalController {
   private List<String> errors(String... values) { return Arrays.stream(values).filter(Objects::nonNull).distinct().toList(); }
   private String optional(String key, String value) { return value == null || value.isBlank() ? "" : "&" + key + "=" + value; }
   private String validationDetailTarget(UUID org, UUID project, UUID run) { return "/app/validations?org=" + org + "&project=" + project + "&run=" + run; }
+  private String evidenceTarget(UUID org, UUID project) { return "/app/evidence" + (org == null ? "" : "?org=" + org + "&project=" + project); }
   private UUID uuidOrNull(String value) { return value == null || value.isBlank() ? null : UUID.fromString(value); }
   private Instant instantOrNull(String value) { return value == null || value.isBlank() ? null : Instant.parse(value); }
+  private Instant retentionInstant(String value) { try { return Instant.parse(value); } catch (RuntimeException ignored) { return LocalDateTime.parse(value).toInstant(ZoneOffset.UTC); } }
   private String json(Object value) { try { return mapper.writeValueAsString(value == null ? List.of() : value); } catch (JsonProcessingException ignored) { return "[]"; } }
 }

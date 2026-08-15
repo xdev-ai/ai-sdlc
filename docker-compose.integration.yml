@@ -2,3 +2,6 @@ services:
   management-server:
     ports:
       - "18081:8081"
+  minio:
+    ports:
+      - "19000:9000"
