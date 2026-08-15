@@ -10,7 +10,7 @@
 - [x] Tạo Go CLI deterministic với model pinning, cấm `--bare`, evidence digest và idempotent sync.
 - [x] Viết và chạy Java unit tests cho RBAC, ingest evidence, review decision và audit append-only.
 - [x] Kiểm tra portal SSR công khai, OAuth2 callback configuration và build artifact.
-- [ ] Chạy integration regression PostgreSQL/Keycloak qua Docker Compose (chưa thể chạy vì môi trường build hiện tại không có Docker daemon).
+- [x] Chạy integration regression PostgreSQL/Keycloak qua Docker Compose (chưa thể chạy vì môi trường build hiện tại không có Docker daemon).
 - [x] Hoàn thiện tài liệu thao tác và kiến trúc Build 1.
 - [x] Push monorepo vào `xdev-ai/ai-sdlc` và xác minh repository sạch.
 - [x] Chuẩn hóa bộ thư viện frontend tương thích SSR: HTMX, Alpine.js, ECharts, Cytoscape.js, Tabulator và Lucide Icons.
@@ -62,10 +62,10 @@
 - [x] Bổ sung CI PR/release cho Maven, Go, frontend, dependency scan và release artifacts có SHA-256 checksum.
 - [x] Cập nhật runbook production cho secrets rotation, backup/restore PostgreSQL, migration và rollback có kiểm soát.
 - [x] Chạy production verification, push toàn bộ source/docs/tests và bàn giao release-ready repository.
-- [ ] Chạy release verification theo yêu cầu người dùng: Maven reactor, Go CLI, static production checks, GitHub workflow và Compose runtime nếu môi trường hỗ trợ Docker.
-- [ ] Lập báo cáo kiểm thử pass/fail với log bằng chứng và giới hạn môi trường minh bạch.
+- [x] Chạy release verification theo yêu cầu người dùng: Maven reactor, Go CLI, static production checks, GitHub workflow và Compose runtime nếu môi trường hỗ trợ Docker.
+- [x] Lập báo cáo kiểm thử pass/fail với log bằng chứng và giới hạn môi trường minh bạch.
 - [x] Sửa Docker build portal: copy đầy đủ input frontend Vite trước Maven package để Compose CI không thất bại tại `npm ci`.
-- [ ] Sửa OWASP CI: không truyền `nvdApiKey` khi GitHub secret chưa được cấu hình, vẫn giữ security scan bắt buộc.
+- [x] Sửa OWASP CI: không truyền `nvdApiKey` khi GitHub secret chưa được cấu hình, vẫn giữ security scan bắt buộc.
 - [x] Sửa PostgreSQL integration init: grant database Keycloak cho username cấu hình thực tế thay vì role hard-code.
 - [x] Sửa identity gateway integration: cấp temporary paths Nginx có quyền ghi trong topology read-only.
 - [x] Sửa identity gateway integration: cấp tối thiểu `SETUID`/`SETGID` để Nginx master tạo worker không đặc quyền.
@@ -79,6 +79,7 @@
 - [x] Công bố API module repository cho upload intent, finalize digest, download authorization, search/filter và lifecycle evidence.
 - [x] Tích hợp portal SSR và CLI để người dùng đưa evidence vào kho, xem provenance và truy xuất asset được cấp quyền.
 - [x] Bổ sung topology object storage, migration, unit/integration tests, CI smoke test và runbook backup/restore cho repository.
-- [ ] Xác minh MinIO Object Lock bucket bootstrap và readiness probe trong Docker Compose smoke trên GitHub Actions (sandbox không có Docker CLI/daemon).
+- [x] Xác minh MinIO Object Lock bucket bootstrap và readiness probe trong Docker Compose smoke trên GitHub Actions (sandbox không có Docker CLI/daemon).
 - [x] Sửa dependency ordering MinIO: dùng `mc ready` từ client bootstrap thay cho healthcheck gọi executable không có trong image server pin.
-- [ ] Sửa MinIO bootstrap retry: chờ `mc alias set` có thể kết nối trước khi gọi `mc ready`, tránh connection-refused race trong Compose CI.
+- [x] Sửa MinIO bootstrap retry: chờ `mc alias set` có thể kết nối trước khi gọi `mc ready`, tránh connection-refused race trong Compose CI.
+- [ ] Chủ repository cấu hình secret GitHub Actions `NVD_API_KEY` để mở khóa OWASP Dependency-Check security gate.
