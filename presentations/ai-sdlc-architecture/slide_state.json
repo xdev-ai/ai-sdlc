@@ -1,0 +1,144 @@
+{
+  "project_info": {
+    "title": "AI-SDLC",
+    "created": 1786807659.447,
+    "last_updated": 1786807852.243,
+    "total_slides": 12
+  },
+  "slides": [
+    {
+      "id": "cover",
+      "state": "edited",
+      "pageNum": 1
+    },
+    {
+      "id": "governance_case",
+      "state": "edited",
+      "pageNum": 2
+    },
+    {
+      "id": "four_planes",
+      "state": "edited",
+      "pageNum": 3
+    },
+    {
+      "id": "delivery_flow",
+      "state": "edited",
+      "pageNum": 4
+    },
+    {
+      "id": "system_architecture",
+      "state": "edited",
+      "pageNum": 5
+    },
+    {
+      "id": "security",
+      "state": "edited",
+      "pageNum": 6
+    },
+    {
+      "id": "control_plane",
+      "state": "edited",
+      "pageNum": 7
+    },
+    {
+      "id": "audit_evidence",
+      "state": "edited",
+      "pageNum": 8
+    },
+    {
+      "id": "portal",
+      "state": "edited",
+      "pageNum": 9
+    },
+    {
+      "id": "technology_stack",
+      "state": "edited",
+      "pageNum": 10
+    },
+    {
+      "id": "deployment_roadmap",
+      "state": "edited",
+      "pageNum": 11
+    },
+    {
+      "id": "closing",
+      "state": "edited",
+      "pageNum": 12
+    }
+  ],
+  "outline": [
+    {
+      "id": "cover",
+      "title": "AI-SDLC",
+      "summary": "Trang mở đầu với định vị nền tảng quản trị delivery AI và bằng chứng chất lượng.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "governance_case",
+      "title": "AI tăng tốc delivery — governance giữ trách nhiệm",
+      "summary": "Nêu vai trò của governance, deterministic validation, model pinning và human approval.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "four_planes",
+      "title": "Bốn plane, một chuẩn vận hành",
+      "summary": "Trình bày Execution, Control, Evidence, Experience và thành phần cốt lõi của từng plane.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "delivery_flow",
+      "title": "Từ requirement đến evidence liên tục",
+      "summary": "Mô tả chuỗi author, validate, sync và human review xuyên suốt delivery lifecycle.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "system_architecture",
+      "title": "Local speed, centralized governance",
+      "summary": "Sơ đồ luồng giữa Portal, Keycloak, Spring Boot API, Go CLI, PostgreSQL và audit ledger.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "security",
+      "title": "Quyền được áp dụng ở nhiều lớp",
+      "summary": "Giải thích realm roles, endpoint/service authorization, project membership, confidential OIDC client.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "control_plane",
+      "title": "Management Server là control plane thống nhất",
+      "summary": "Nhóm năng lực project/kit registry, governance, validation, review và quality metrics.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "audit_evidence",
+      "title": "Audit ledger biến sự kiện thành bằng chứng",
+      "summary": "Trình bày hash chain, immutability trigger và idempotent evidence synchronization.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "portal",
+      "title": "SSR cho tin cậy, React cho khám phá",
+      "summary": "Tổng quan portal hybrid SSR và React Islands cùng visualization/progressive enhancement libraries.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "technology_stack",
+      "title": "Stack được pin để tái lập",
+      "summary": "Tóm tắt Java, Spring Boot, PostgreSQL, Keycloak, React/Vite, Go CLI và Docker Compose.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "deployment_roadmap",
+      "title": "Bảo vệ surface area, mở rộng có kiểm soát",
+      "summary": "Trình bày deployment topology bảo mật và các hạng mục roadmap kế tiếp.",
+      "image_plan": "Use a suitable image if needed"
+    },
+    {
+      "id": "closing",
+      "title": "Faster delivery. Stronger evidence.",
+      "summary": "Kết luận về delivery system tăng tốc với AI và chịu trách nhiệm trước con người.",
+      "image_plan": "Use a suitable image if needed"
+    }
+  ]
+}

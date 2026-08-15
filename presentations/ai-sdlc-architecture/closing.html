@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600,700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; background: #F3F4F6; color: #1F2937; position: relative; overflow: hidden; }
+    .topline { width: 196px; height: 13px; background: #DC2626; }
+    .meta { position: absolute; top: 61px; left: 83px; font: 500 12px 'DM Mono', monospace; color: #DC2626; letter-spacing: 2.1px; text-transform: uppercase; }
+    .headline { position: absolute; top: 138px; left: 78px; width: 760px; font: 800 82px/.9 'Playfair Display', serif; letter-spacing: -4.6px; }
+    .headline em { color: #DC2626; font-style: normal; }
+    .rule { position: absolute; top: 454px; left: 82px; width: 84px; height: 7px; background: #059669; }
+    .closing-line { position: absolute; top: 488px; left: 82px; width: 610px; font: 500 22px/1.35 'DM Sans', sans-serif; color: #4B5563; letter-spacing: -.4px; }
+    .footer { position: absolute; left: 82px; bottom: 41px; font: 500 12px 'DM Mono', monospace; color: #6B7280; letter-spacing: 1.15px; }
+    .fine { position: absolute; left: 82px; bottom: 22px; font: 400 10px 'DM Mono', monospace; color: #9CA3AF; letter-spacing: 1px; }
+    .right-field { position: absolute; right: 0; top: 13px; width: 401px; height: 707px; border-left: 1px solid #D1D5DB; }
+    .triangle-dark { position: absolute; right: 63px; bottom: 72px; width: 0; height: 0; border-left: 155px solid transparent; border-right: 155px solid transparent; border-bottom: 270px solid #1F2937; }
+    .triangle-red { position: absolute; right: 143px; bottom: 108px; width: 0; height: 0; border-left: 93px solid transparent; border-right: 93px solid transparent; border-bottom: 162px solid #DC2626; transform: rotate(180deg); }
+    .triangle-green { position: absolute; right: 45px; bottom: 50px; width: 0; height: 0; border-left: 50px solid transparent; border-right: 50px solid transparent; border-bottom: 87px solid #059669; }
+    .connector { position: absolute; right: 250px; bottom: 291px; width: 13px; height: 13px; border-radius: 50%; background: #F3F4F6; border: 3px solid #DC2626; }
+    .connector.two { right: 188px; bottom: 176px; border-color: #059669; }
+    .connector.three { right: 305px; bottom: 145px; border-color: #F3F4F6; background: #1F2937; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div class="topline"></div>
+    <div class="meta">xDev AI · Build 1</div>
+    <div class="headline">Faster delivery.<br/><em>Stronger evidence.</em><br/>Clearer decisions.</div>
+    <div class="rule"></div>
+    <div class="closing-line">AI-SDLC tạo một delivery system có thể tăng tốc cùng AI — và vẫn chịu trách nhiệm trước con người.</div>
+    <div class="footer">AI-SDLC · SYSTEM ARCHITECTURE &amp; TECHNOLOGY STACK</div>
+    <div class="fine">2026 · INTERNAL ARCHITECTURE BRIEFING</div>
+    <div class="right-field" aria-hidden="true">
+      <div class="triangle-dark"></div>
+      <div class="triangle-red"></div>
+      <div class="triangle-green"></div>
+      <div class="connector"></div><div class="connector two"></div><div class="connector three"></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; background: #F3F4F6; color: #1F2937; position: relative; }
+    .edge { position: absolute; top: 0; right: 0; width: 230px; height: 12px; background: #DC2626; }
+    .header { height: 157px; padding-top: 48px; padding-left: 78px; padding-right: 78px; display: flex; justify-content: space-between; }
+    .kicker { font: 500 12px 'DM Mono', monospace; color: #DC2626; letter-spacing: 2px; text-transform: uppercase; }
+    h1 { margin-top: 13px; font: 800 50px/.98 'Playfair Display', serif; letter-spacing: -2.5px; }
+    .header-code { margin-top: 20px; font: 500 11px/1.5 'DM Mono', monospace; color: #6B7280; text-align: right; letter-spacing: .7px; text-transform: uppercase; }
+    .main { display: grid; grid-template-columns: 700px 1fr; margin-left: 78px; margin-right: 78px; height: 520px; border-top: 2px solid #1F2937; }
+    .stack { padding-top: 15px; padding-right: 48px; }
+    .stack-row { height: 76px; border-bottom: 1px solid #C5CAD1; display: grid; grid-template-columns: 108px 260px 1fr; align-items: center; }
+    .layer { font: 500 11px 'DM Mono', monospace; color: #DC2626; letter-spacing: 1.3px; text-transform: uppercase; }
+    .tech { font: 700 20px 'DM Sans', sans-serif; letter-spacing: -.6px; }
+    .detail { font: 400 13px/1.35 'DM Sans', sans-serif; color: #4B5563; }
+    .version { display: inline-block; color: #059669; font: 500 12px 'DM Mono', monospace; margin-left: 8px; letter-spacing: .1px; }
+    .principles { border-left: 1px solid #9CA3AF; padding-top: 43px; padding-left: 44px; position: relative; }
+    .principles h2 { width: 340px; font: 800 34px/.99 'Playfair Display', serif; letter-spacing: -1.4px; }
+    .principles h2 em { color: #DC2626; font-style: normal; }
+    .principles > p { width: 340px; margin-top: 18px; font: 400 15px/1.43 'DM Sans', sans-serif; color: #4B5563; }
+    .principle { width: 337px; border-top: 1px solid #9CA3AF; padding-top: 13px; margin-top: 19px; display: grid; grid-template-columns: 30px 1fr; column-gap: 10px; }
+    .tri { width: 0; height: 0; margin-top: 2px; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 12px solid #059669; }
+    .principle:nth-of-type(3) .tri { border-bottom-color: #DC2626; }
+    .principle h3 { font: 700 15px 'DM Sans', sans-serif; margin-bottom: 3px; }
+    .principle p { font: 400 12px/1.38 'DM Sans', sans-serif; color: #6B7280; }
+    .signal { position: absolute; right: 35px; bottom: 23px; width: 0; height: 0; border-left: 55px solid transparent; border-right: 55px solid transparent; border-bottom: 95px solid #059669; opacity: .9; }
+    .foot { position: absolute; left: 78px; bottom: 24px; font: 500 10px 'DM Mono', monospace; color: #6B7280; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div class="edge"></div>
+    <header class="header">
+      <div>
+        <div class="kicker">09 / Technology stack</div>
+        <h1>Stack được pin để tái lập.</h1>
+      </div>
+      <div class="header-code">BUILD 1 / VERSION-PINNED<br/>REPRODUCIBLE BY DESIGN</div>
+    </header>
+    <main class="main">
+      <section class="stack" aria-label="Build 1 technology stack">
+        <div class="stack-row"><div class="layer">Runtime</div><div class="tech">Java <span class="version">25.0.3 LTS</span></div><div class="detail">Spring Boot <strong>4.1.0</strong> cho control plane và portal.</div></div>
+        <div class="stack-row"><div class="layer">Identity</div><div class="tech">Keycloak <span class="version">26.7.1</span></div><div class="detail">Realm roles, OIDC confidential client và identity gateway.</div></div>
+        <div class="stack-row"><div class="layer">Data</div><div class="tech">PostgreSQL <span class="version">18.6</span></div><div class="detail">Transactional store, Flyway migrations, audit trigger.</div></div>
+        <div class="stack-row"><div class="layer">Client</div><div class="tech">SSR + React <span class="version">19.2</span></div><div class="detail">Thymeleaf SSR; React Islands build bằng Vite 8.2.</div></div>
+        <div class="stack-row"><div class="layer">Execution</div><div class="tech">Go CLI</div><div class="detail">Validator deterministic, evidence digest, OAuth2 sync.</div></div>
+        <div class="stack-row"><div class="layer">Topology</div><div class="tech">Docker Compose</div><div class="detail">Portal, API, Keycloak, PostgreSQL và gateway local.</div></div>
+      </section>
+      <section class="principles">
+        <h2>Version pinning là một <em>control</em>, không chỉ là setup.</h2>
+        <p>Stack được chuẩn hóa để local development, CI và môi trường vận hành có cùng contract kỹ thuật.</p>
+        <div class="principle"><div class="tri"></div><div><h3>Build deterministically</h3><p>Source, lockfile, image tag và migration cùng tạo một build surface rõ ràng.</p></div></div>
+        <div class="principle"><div class="tri"></div><div><h3>Separate concerns</h3><p>Identity data, governance data và client assets được phân tầng theo trách nhiệm.</p></div></div>
+        <div class="principle"><div class="tri"></div><div><h3>Upgrade intentionally</h3><p>Thay version là một quyết định kiến trúc có kiểm thử, không phải một implicit drift.</p></div></div>
+        <div class="signal" aria-hidden="true"></div>
+      </section>
+    </main>
+    <div class="foot">JAVA · SPRING BOOT · KEYCLOAK · POSTGRESQL · REACT · VITE · GO · DOCKER COMPOSE</div>
+  </div>
+</body>
+</html>

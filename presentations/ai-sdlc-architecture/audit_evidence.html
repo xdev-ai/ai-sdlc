@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; background: #F3F4F6; color: #1F2937; position: relative; }
+    .topline { width: 100%; height: 12px; background: #DC2626; }
+    .header { padding-top: 43px; padding-left: 78px; display: flex; align-items: flex-start; justify-content: space-between; width: 1124px; }
+    .kicker { font: 500 12px 'DM Mono', monospace; color: #DC2626; letter-spacing: 2px; text-transform: uppercase; }
+    h1 { font: 800 51px/.98 'Playfair Display', serif; letter-spacing: -2.8px; margin-top: 12px; }
+    .header-note { width: 248px; margin-top: 9px; font: 500 12px/1.5 'DM Mono', monospace; color: #6B7280; letter-spacing: .5px; text-transform: uppercase; }
+    .layout { display: grid; grid-template-columns: 390px 1fr; column-gap: 48px; margin-top: 34px; margin-left: 78px; width: 1124px; }
+    .lead { font: 600 23px/1.24 'DM Sans', sans-serif; letter-spacing: -.7px; width: 360px; }
+    .lead strong { color: #DC2626; }
+    .rule { width: 82px; height: 6px; background: #059669; margin-top: 24px; }
+    .guarantee { border-top: 1px solid #9CA3AF; width: 360px; padding-top: 14px; margin-top: 18px; display: grid; grid-template-columns: 40px 1fr; column-gap: 12px; }
+    .guarantee-number { font: 500 12px 'DM Mono', monospace; color: #DC2626; letter-spacing: 1px; }
+    .guarantee h2 { font: 700 16px 'DM Sans', sans-serif; margin-bottom: 4px; }
+    .guarantee p { font: 400 13px/1.38 'DM Sans', sans-serif; color: #4B5563; width: 290px; }
+    .chain-zone { position: relative; height: 456px; border-left: 1px solid #D1D5DB; padding-top: 3px; padding-left: 44px; }
+    .chain-caption { font: 500 11px 'DM Mono', monospace; color: #6B7280; letter-spacing: 1.5px; text-transform: uppercase; }
+    .chain-line { position: absolute; top: 220px; left: 50px; width: 605px; height: 2px; background: #1F2937; }
+    .chain-line:after { content: ''; position: absolute; right: -4px; top: -4px; width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 8px solid #1F2937; }
+    .event-row { position: absolute; top: 106px; left: 44px; display: grid; grid-template-columns: 128px 128px 128px 128px; column-gap: 29px; }
+    .event { width: 128px; position: relative; }
+    .dot { width: 20px; height: 20px; background: #F3F4F6; border: 5px solid #DC2626; border-radius: 50%; margin-top: 104px; position: relative; z-index: 2; }
+    .event:nth-child(2) .dot, .event:nth-child(4) .dot { border-color: #059669; }
+    .event-label { min-height: 62px; font: 700 17px/1.06 'DM Sans', sans-serif; letter-spacing: -.5px; }
+    .event-type { font: 500 10px 'DM Mono', monospace; color: #DC2626; letter-spacing: 1px; text-transform: uppercase; margin-top: 9px; }
+    .event:nth-child(2) .event-type, .event:nth-child(4) .event-type { color: #059669; }
+    .hash { border-top: 1px solid #9CA3AF; margin-top: 28px; padding-top: 9px; font: 400 9px/1.55 'DM Mono', monospace; color: #6B7280; overflow-wrap: anywhere; }
+    .lower-note { position: absolute; left: 44px; bottom: 30px; width: 628px; border-top: 1px solid #D1D5DB; padding-top: 13px; display: flex; align-items: center; gap: 13px; }
+    .triangle { width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; border-bottom: 16px solid #059669; }
+    .lower-note span { font: 500 12px/1.35 'DM Sans', sans-serif; color: #4B5563; }
+    .foot { position: absolute; left: 78px; bottom: 22px; font: 500 10px 'DM Mono', monospace; color: #6B7280; letter-spacing: 1.2px; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div class="topline"></div>
+    <header class="header">
+      <div>
+        <div class="kicker">07 / Evidence plane</div>
+        <h1>Audit ledger biến sự kiện<br/>thành bằng chứng.</h1>
+      </div>
+      <div class="header-note">TAMper-evident chronology<br/>for governed delivery</div>
+    </header>
+    <main class="layout">
+      <section>
+        <p class="lead">Mỗi quyết định quan trọng được ghi thành <strong>một event có thể kiểm tra.</strong></p>
+        <div class="rule"></div>
+        <div class="guarantee"><div class="guarantee-number">01</div><div><h2>Sequential hash chain</h2><p>Mỗi event nhận sequence, previous_hash và event_hash theo đúng chronology.</p></div></div>
+        <div class="guarantee"><div class="guarantee-number">02</div><div><h2>Database immutability</h2><p>PostgreSQL trigger chặn cả UPDATE lẫn DELETE trên audit_events.</p></div></div>
+        <div class="guarantee"><div class="guarantee-number">03</div><div><h2>Retry-safe ingestion</h2><p>Idempotency key giúp CI retry mà không nhân đôi evidence hoặc audit event.</p></div></div>
+      </section>
+      <section class="chain-zone">
+        <div class="chain-caption">Immutable event chain / illustrative flow</div>
+        <div class="chain-line"></div>
+        <div class="event-row">
+          <article class="event"><div class="event-label">Validation<br/>run</div><div class="event-type">Event 001</div><div class="dot"></div><div class="hash">event_hash<br/>8f2a...91c4</div></article>
+          <article class="event"><div class="event-label">Evidence<br/>accepted</div><div class="event-type">Event 002</div><div class="dot"></div><div class="hash">previous_hash<br/>8f2a...91c4<br/>event_hash 42d1...ee03</div></article>
+          <article class="event"><div class="event-label">Review<br/>decision</div><div class="event-type">Event 003</div><div class="dot"></div><div class="hash">previous_hash<br/>42d1...ee03<br/>event_hash 109b...7af8</div></article>
+          <article class="event"><div class="event-label">Phase gate<br/>closed</div><div class="event-type">Event 004</div><div class="dot"></div><div class="hash">previous_hash<br/>109b...7af8<br/>event_hash 6ce5...b210</div></article>
+        </div>
+        <div class="lower-note"><div class="triangle"></div><span>Evidence và human decision cùng tồn tại trong một ledger có continuity kiểm chứng được.</span></div>
+      </section>
+    </main>
+    <div class="foot">AI-SDLC · APPEND-ONLY AUDIT LEDGER</div>
+  </div>
+</body>
+</html>

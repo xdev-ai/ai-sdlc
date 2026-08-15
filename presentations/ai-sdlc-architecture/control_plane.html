@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    * { box-sizing: border-box; margin: 0; }
+    .slide-container { width: 1280px; min-height: 720px; background: #F3F4F6; color: #1F2937; position: relative; overflow: hidden; }
+    .top-rule { width: 184px; height: 12px; background: #DC2626; }
+    .header { height: 174px; padding: 48px 80px 0; display: flex; justify-content: space-between; align-items: flex-start; }
+    .eyebrow { font: 500 12px 'DM Mono', monospace; color: #DC2626; letter-spacing: 2px; text-transform: uppercase; }
+    h1 { margin-top: 13px; max-width: 800px; font: 800 47px/1 'Playfair Display', serif; letter-spacing: -2px; }
+    .header-note { width: 245px; margin-top: 23px; font: 500 13px/1.45 'DM Sans', sans-serif; color: #6B7280; }
+    .body { height: 488px; display: grid; grid-template-columns: 390px 1fr; margin: 0 80px; border-top: 2px solid #1F2937; }
+    .core { position: relative; border-right: 1px solid #9CA3AF; padding: 42px 38px 0 0; }
+    .core-label { font: 500 11px 'DM Mono', monospace; color: #059669; letter-spacing: 1.8px; text-transform: uppercase; }
+    .core-name { margin-top: 15px; font: 800 36px/.98 'DM Sans', sans-serif; letter-spacing: -1.8px; }
+    .core-copy { margin-top: 19px; max-width: 295px; font: 400 16px/1.45 'DM Sans', sans-serif; color: #4B5563; }
+    .spine { position: absolute; width: 3px; height: 151px; background: #DC2626; left: 0; top: 245px; }
+    .core-triangle { position: absolute; left: -12px; top: 223px; width: 0; height: 0; border-left: 13px solid transparent; border-right: 13px solid transparent; border-bottom: 22px solid #059669; }
+    .capabilities { padding-left: 47px; }
+    .capability { height: 94px; display: grid; grid-template-columns: 178px 1fr; align-items: center; border-bottom: 1px solid #C4C9D0; }
+    .capability:first-child { border-top: 0; }
+    .capability h2 { font: 700 18px 'DM Sans', sans-serif; letter-spacing: -.5px; }
+    .capability p { max-width: 470px; font: 400 15px/1.36 'DM Sans', sans-serif; color: #4B5563; }
+    .tag { font: 500 11px 'DM Mono', monospace; color: #DC2626; letter-spacing: 1px; text-transform: uppercase; display: block; margin-bottom: 5px; }
+    .foot { position: absolute; left: 80px; bottom: 24px; font: 500 11px 'DM Mono', monospace; color: #6B7280; letter-spacing: 1px; }
+  </style>
+</head>
+<body>
+  <div class="slide-container">
+    <div class="top-rule"></div>
+    <header class="header">
+      <div>
+        <div class="eyebrow">06 / Control plane</div>
+        <h1>Management Server là control plane thống nhất.</h1>
+      </div>
+      <p class="header-note">Mọi shared state và policy-protected decision được tập trung tại một backend có phân quyền.</p>
+    </header>
+    <main class="body">
+      <section class="core">
+        <div class="core-label">Central authority</div>
+        <div class="core-name">Spring Boot<br />Management<br />Server</div>
+        <p class="core-copy">Control plane ghép nối governance, evidence và human approval — thay vì phân tán quyết định giữa CLI, CI và UI.</p>
+        <div class="core-triangle"></div>
+        <div class="spine"></div>
+      </section>
+      <section class="capabilities">
+        <article class="capability"><div><span class="tag">01</span><h2>Project &amp; Kit Registry</h2></div><p>Project settings, core kit, extension, preset, override và version pin.</p></article>
+        <article class="capability"><div><span class="tag">02</span><h2>Governance</h2></div><p>Constitution, policy, capability grant và exception request theo scope.</p></article>
+        <article class="capability"><div><span class="tag">03</span><h2>Validation</h2></div><p>Validation run, finding severity, evidence digest và trace links.</p></article>
+        <article class="capability"><div><span class="tag">04</span><h2>Review</h2></div><p>Merge request, phase gate và quyết định APPROVED / REJECTED của con người.</p></article>
+        <article class="capability"><div><span class="tag">05</span><h2>Quality</h2></div><p>DORA counter-metrics, review health, rework rate và spec alignment.</p></article>
+      </section>
+    </main>
+    <div class="foot">SHARED STATE · AUTHORIZED DECISIONS · TRACEABLE EVIDENCE</div>
+  </div>
+</body>
+</html>

@@ -27,3 +27,22 @@
 - [x] Xây React Traceability Explorer island với Cytoscape.js và fallback graph table SSR có thể điều hướng bằng bàn phím.
 - [x] Xây React Data Workspace/Review Decision island, dùng cùng các API có phân quyền và không bỏ qua human approval.
 - [ ] Push kiến trúc hybrid lên GitHub và kiểm tra trạng thái repository sau commit.
+- [ ] Chuẩn bị deck tổng quan kiến trúc AI-SDLC và stack công nghệ với sơ đồ 4 plane, security flow và deployment topology.
+- [ ] Tạo slide deck chuyên nghiệp, kiểm tra nội dung và bàn giao file trình bày.
+- [ ] Kiểm toán toàn bộ implementation hiện có so với feature inventory F-001 đến F-915, ghi nhận gap bằng tài liệu production backlog.
+- [ ] Hoàn thiện organization/project administration, membership management và RBAC theo scope tổ chức/dự án.
+- [ ] Hoàn thiện Spec Kit registry với core, extension, preset, override, pinning, compatibility và lifecycle version.
+- [ ] Hoàn thiện governance-as-data: policy/constitution versioning, capability grants, exception request và decision workflow.
+- [ ] Hoàn thiện validation/evidence lifecycle, severity triage, evidence retention và traceability graph requirement → spec → task → test → evidence.
+- [ ] Hoàn thiện review queue, phase gates, MR approval workflow và immutable audit coverage cho mọi human decision.
+- [ ] Hoàn thiện quality/DORA metrics, dashboard data contracts, counter-metrics và spec alignment score không dùng dữ liệu giả.
+- [ ] Hoàn thiện portal production workflows, responsive mobile/tablet layouts, empty/error/loading states và administrative forms.
+- [ ] Hoàn thiện React Islands cho charts, graph, evidence/review, data workspaces và SSR fallback accessible.
+- [ ] Hoàn thiện Go CLI: config, auth, validation rules, model pin enforcement, output formats, sync retry và CI adapters.
+- [ ] Bổ sung OpenAPI/REST contracts, idempotency, pagination/filtering, error model, rate limiting và API security hardening.
+- [ ] Bổ sung production observability: structured logs, health/readiness, metrics, audit verification và operational runbooks.
+- [ ] Hoàn thiện Docker topology, secrets model, non-root images, backup/restore procedure, migration safeguards và security headers.
+- [ ] Bổ sung Java, React, Go, integration, end-to-end, authorization, accessibility và regression test coverage.
+- [ ] Bổ sung GitHub Actions CI, dependency/security scanning, release artifact workflow và quality gates.
+- [ ] Viết/cập nhật feature documentation, API reference, architecture, admin/developer/user guides và changelog cho từng tính năng mới.
+- [ ] Chạy production verification, push toàn bộ source/docs/tests và bàn giao release-ready repository.
