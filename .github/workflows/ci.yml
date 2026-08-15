@@ -115,6 +115,11 @@ jobs:
         env:
           OWASP_NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
+          if [ -z "${OWASP_NVD_API_KEY:-}" ]; then
+            echo "::error::NVD_API_KEY GitHub Actions secret is required for the mandatory OWASP Dependency-Check security gate."
+            echo "::error::Create an NVD API key, add it as the repository Actions secret NVD_API_KEY, then rerun this workflow."
+            exit 1
+          fi
           args=(
             --batch-mode
             --no-transfer-progress
@@ -124,12 +129,7 @@ jobs:
             -Dformat=JSON
             org.owasp:dependency-check-maven:13.0.0:check
           )
-          if [ -n "${OWASP_NVD_API_KEY:-}" ]; then
-            args+=("-DnvdApiKeyEnvironmentVariable=OWASP_NVD_API_KEY")
-          else
-            args+=("-DnvdApiKeyEnvironmentVariable=AISDLC_NVD_API_KEY_UNSET")
-          fi
-          env -u NVD_API_KEY -u AISDLC_NVD_API_KEY_UNSET mvn "${args[@]}"
+          env -u NVD_API_KEY mvn -DnvdApiKeyEnvironmentVariable=OWASP_NVD_API_KEY "${args[@]}"
       - name: Publish OWASP reports
         if: always()
         uses: actions/upload-artifact@v4

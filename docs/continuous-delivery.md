@@ -7,7 +7,7 @@ The repository contains two independent GitHub Actions workflows. They execute o
 | `CI` | Push to `main`, pull request to `main`, or manual dispatch | Maven verification on Java 25, Go 1.24 test/build and format, Vite production build, PR dependency review, OWASP dependency scan | Maven/OWASP reports when applicable |
 | `Release` | Signed release-tag push (`v*`) or manual dispatch of an existing tag | Maven verification and static Go cross-compilation | Management server JAR, portal JAR, Linux/Darwin CLI binaries and `SHA256SUMS` |
 
-The dependency scan invokes OWASP Dependency-Check’s Maven integration. Configure `NVD_API_KEY` as a repository secret to improve NVD data access reliability; the workflow intentionally never echoes the secret. Dependency-Check is a software composition analysis tool that identifies known vulnerable components using dependency evidence and associated CVE data.[1]
+The dependency scan invokes OWASP Dependency-Check’s Maven integration. Configure `NVD_API_KEY` as a repository secret; this is a required security-gate prerequisite, not an optional optimization. The workflow fails before scanning with an explicit remediation message when the secret is absent and never echoes the secret. Dependency-Check is a software composition analysis tool that identifies known vulnerable components using dependency evidence and associated CVE data.[1]
 
 Release artifacts contain SHA-256 checksums. Before an artifact is introduced to any deployment registry, operators must verify its checksum against the `SHA256SUMS` file published with the GitHub release.
 
