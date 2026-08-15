@@ -28,7 +28,7 @@ require portal/Dockerfile 'COPY portal/frontend/src portal/frontend/src' 'portal
 
 require docker-compose.yml 'read_only: true' 'application topology must mount runtime filesystems read-only'
 require docker-compose.yml 'no-new-privileges:true' 'application topology must block privilege escalation'
-require docker-compose.yml 'cap_add: \[SETUID, SETGID\]' 'identity gateway must retain only the capabilities required to drop Nginx workers to the non-root user'
+require docker-compose.yml 'cap_add: \[CHOWN, SETUID, SETGID\]' 'identity gateway must retain only the capabilities required to initialize Nginx temporary paths and drop workers to the non-root user'
 require infra/nginx/keycloak.conf 'X-Content-Type-Options' 'identity gateway must emit content-type protection'
 require infra/nginx/keycloak.conf 'Content-Security-Policy' 'identity gateway must restrict framing'
 require infra/nginx/keycloak.conf 'limit_req zone=identity_per_ip' 'identity gateway must rate-limit requests'
