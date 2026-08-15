@@ -12,4 +12,4 @@
 - [x] Kiểm tra portal SSR công khai, OAuth2 callback configuration và build artifact.
 - [ ] Chạy integration regression PostgreSQL/Keycloak qua Docker Compose (chưa thể chạy vì môi trường build hiện tại không có Docker daemon).
 - [x] Hoàn thiện tài liệu thao tác và kiến trúc Build 1.
-- [ ] Push monorepo vào `xdev-ai/ai-sdlc` và xác minh repository sạch.
+- [x] Push monorepo vào `xdev-ai/ai-sdlc` và xác minh repository sạch.
