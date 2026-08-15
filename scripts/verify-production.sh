@@ -31,6 +31,8 @@ require docker-compose.yml 'no-new-privileges:true' 'application topology must b
 require infra/nginx/keycloak.conf 'X-Content-Type-Options' 'identity gateway must emit content-type protection'
 require infra/nginx/keycloak.conf 'Content-Security-Policy' 'identity gateway must restrict framing'
 require infra/nginx/keycloak.conf 'limit_req zone=identity_per_ip' 'identity gateway must rate-limit requests'
+require infra/nginx/keycloak.conf 'client_body_temp_path /tmp/nginx/client_body_temp;' 'identity gateway must redirect request temp files to writable tmpfs'
+require docker-compose.yml '/tmp:uid=101,gid=101,mode=1777' 'identity gateway must expose writable tmpfs for Nginx temporary paths'
 require infra/postgres/init-keycloak-db.sql '^CREATE DATABASE keycloak;$' 'PostgreSQL init must create the Keycloak database'
 forbid infra/postgres/init-keycloak-db.sql 'GRANT .* TO aisdlc' 'PostgreSQL init must not assume a hard-coded database role'
 

@@ -50,6 +50,7 @@ services:
     tmpfs:
       - /var/cache/nginx:uid=101,gid=101,mode=0755
       - /var/run:uid=101,gid=101,mode=0755
+      - /tmp:uid=101,gid=101,mode=1777
     security_opt:
       - no-new-privileges:true
     cap_drop: [ALL]
