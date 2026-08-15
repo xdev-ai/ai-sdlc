@@ -114,14 +114,20 @@ jobs:
       - name: Build and scan JVM dependencies
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: >-
-          mvn --batch-mode --no-transfer-progress
-          -DskipTests
-          -DnvdApiKey="$NVD_API_KEY"
-          -DfailBuildOnCVSS=9
-          -Dformat=HTML
-          -Dformat=JSON
-          org.owasp:dependency-check-maven:13.0.0:check
+        run: |
+          args=(
+            --batch-mode
+            --no-transfer-progress
+            -DskipTests
+            -DfailBuildOnCVSS=9
+            -Dformat=HTML
+            -Dformat=JSON
+            org.owasp:dependency-check-maven:13.0.0:check
+          )
+          if [ -n "${NVD_API_KEY:-}" ]; then
+            args+=("-DnvdApiKey=${NVD_API_KEY}")
+          fi
+          mvn "${args[@]}"
       - name: Publish OWASP reports
         if: always()
         uses: actions/upload-artifact@v4

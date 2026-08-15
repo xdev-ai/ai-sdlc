@@ -62,3 +62,7 @@
 - [x] Bổ sung CI PR/release cho Maven, Go, frontend, dependency scan và release artifacts có SHA-256 checksum.
 - [x] Cập nhật runbook production cho secrets rotation, backup/restore PostgreSQL, migration và rollback có kiểm soát.
 - [x] Chạy production verification, push toàn bộ source/docs/tests và bàn giao release-ready repository.
+- [ ] Chạy release verification theo yêu cầu người dùng: Maven reactor, Go CLI, static production checks, GitHub workflow và Compose runtime nếu môi trường hỗ trợ Docker.
+- [ ] Lập báo cáo kiểm thử pass/fail với log bằng chứng và giới hạn môi trường minh bạch.
+- [ ] Sửa Docker build portal: copy đầy đủ input frontend Vite trước Maven package để Compose CI không thất bại tại `npm ci`.
+- [ ] Sửa OWASP CI: không truyền `nvdApiKey` khi GitHub secret chưa được cấu hình, vẫn giữ security scan bắt buộc.

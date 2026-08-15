@@ -15,6 +15,9 @@ for dockerfile in management-server/Dockerfile portal/Dockerfile; do
   require "$dockerfile" 'COPY --chown=aisdlc:aisdlc' "$dockerfile must transfer the application artifact with non-root ownership"
 done
 
+require portal/Dockerfile 'COPY portal/frontend/package\.json portal/frontend/package-lock\.json portal/frontend/vite\.config\.mjs portal/frontend/' 'portal build must copy Vite package metadata before Maven invokes npm'
+require portal/Dockerfile 'COPY portal/frontend/src portal/frontend/src' 'portal build must copy React source before Maven invokes Vite'
+
 require docker-compose.yml 'read_only: true' 'application topology must mount runtime filesystems read-only'
 require docker-compose.yml 'no-new-privileges:true' 'application topology must block privilege escalation'
 require infra/nginx/keycloak.conf 'X-Content-Type-Options' 'identity gateway must emit content-type protection'
