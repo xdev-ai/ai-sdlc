@@ -126,8 +126,10 @@ jobs:
           )
           if [ -n "${NVD_API_KEY:-}" ]; then
             args+=("-DnvdApiKey=${NVD_API_KEY}")
+            mvn "${args[@]}"
+          else
+            env -u NVD_API_KEY mvn "${args[@]}"
           fi
-          mvn "${args[@]}"
       - name: Publish OWASP reports
         if: always()
         uses: actions/upload-artifact@v4
