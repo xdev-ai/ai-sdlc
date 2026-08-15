@@ -111,25 +111,27 @@ jobs:
           path: ~/.m2/repository/org/owasp/dependency-check-data
           key: owasp-${{ runner.os }}-${{ github.run_id }}
           restore-keys: owasp-${{ runner.os }}-
-      - name: Build and scan JVM dependencies
+      - name: Build and scan JVM dependencies with NVD API key
+        if: secrets.NVD_API_KEY != ''
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: |
-          args=(
-            --batch-mode
-            --no-transfer-progress
-            -DskipTests
-            -DfailBuildOnCVSS=9
-            -Dformat=HTML
-            -Dformat=JSON
-            org.owasp:dependency-check-maven:13.0.0:check
-          )
-          if [ -n "${NVD_API_KEY:-}" ]; then
-            args+=("-DnvdApiKey=${NVD_API_KEY}")
-            mvn "${args[@]}"
-          else
-            env -u NVD_API_KEY mvn "${args[@]}"
-          fi
+        run: >-
+          mvn --batch-mode --no-transfer-progress
+          -DskipTests
+          -DnvdApiKey="$NVD_API_KEY"
+          -DfailBuildOnCVSS=9
+          -Dformat=HTML
+          -Dformat=JSON
+          org.owasp:dependency-check-maven:13.0.0:check
+      - name: Build and scan JVM dependencies without NVD API key
+        if: secrets.NVD_API_KEY == ''
+        run: >-
+          mvn --batch-mode --no-transfer-progress
+          -DskipTests
+          -DfailBuildOnCVSS=9
+          -Dformat=HTML
+          -Dformat=JSON
+          org.owasp:dependency-check-maven:13.0.0:check
       - name: Publish OWASP reports
         if: always()
         uses: actions/upload-artifact@v4
