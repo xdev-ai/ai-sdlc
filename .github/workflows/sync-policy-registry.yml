@@ -1,0 +1,54 @@
+name: Sync Policy Registry
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "spec-kit/validators/rules/**/*.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: policy-registry-sync-main
+  cancel-in-progress: true
+
+jobs:
+  publish-registry-snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { path: core, fetch-depth: 1 }
+      - uses: actions/checkout@v4
+        with:
+          repository: xdev-ai/ai.xdev.asia
+          ref: main
+          path: portal
+          token: ${{ secrets.PORTAL_REGISTRY_SYNC_TOKEN }}
+          fetch-depth: 1
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.4.1 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: portal/pnpm-lock.yaml
+      - name: Install portal dependencies
+        working-directory: portal
+        run: corepack enable && pnpm install --frozen-lockfile
+      - name: Generate policy snapshot from source YAML
+        working-directory: portal
+        run: pnpm policy:sync -- --source ../core/spec-kit/validators/rules --repository xdev-ai/ai-sdlc --revision "${{ github.sha }}"
+      - name: Verify portal contract
+        working-directory: portal
+        run: pnpm check && pnpm build
+      - name: Commit changed snapshot
+        working-directory: portal
+        run: |
+          if git diff --quiet -- client/src/data/policyPacks.generated.ts; then exit 0; fi
+          git config user.name "xDev AI Policy Registry Bot"
+          git config user.email "policy-registry-bot@users.noreply.github.com"
+          git add client/src/data/policyPacks.generated.ts
+          git commit -m "chore(registry): sync policy YAML from ${{ github.sha }}"
+          git push origin HEAD:main
