@@ -10,7 +10,7 @@
   <name>AI-SDLC Java SDK</name>
   <description>Generated Java client for the versioned AI-SDLC public integration contract.</description>
   <properties>
-    <openapi-generator.version>7.18.0</openapi-generator.version>
+    <openapi-generator.version>7.24.0</openapi-generator.version>
   </properties>
   <dependencies>
     <dependency>
