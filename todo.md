@@ -82,17 +82,17 @@
 - [x] Verify MinIO Object Lock bucket bootstrap and readiness probe in Docker Compose smoke on GitHub Actions (the sandbox has no Docker CLI/daemon).
 - [x] Fix MinIO dependency ordering by using `mc ready` from the client bootstrap instead of a health check that calls an unavailable server-image executable.
 - [x] Fix MinIO bootstrap retry by waiting for `mc alias set` connectivity before calling `mc ready`, avoiding a connection-refused race in Compose CI.
-- [ ] Remove the NVD-dependent OWASP Dependency-Check gate and the obsolete `NVD_API_KEY` repository-secret requirement.
-- [ ] Add OSV-Scanner and Trivy security gates for dependency, SBOM, container, repository, secret, and IaC scanning without NVD API access.
-- [ ] Add GitHub CodeQL configuration and Dependabot coverage for Maven, npm, Go modules, GitHub Actions, and Docker.
-- [ ] Document security sources, severity policy, remediation workflow, false-positive handling, and CI evidence retention.
-- [ ] Verify OSV, Trivy, CodeQL, Dependabot configuration, SARIF upload, and release dependency gates on GitHub Actions.
-- [ ] Remediate OSV findings in Jackson, Log4j, and PostgreSQL dependencies before enabling the new fail-closed gate.
-- [ ] Assign unique categories to all Trivy SARIF uploads so GitHub code scanning accepts source and both image reports in one job.
-- [ ] Upgrade pinned Eclipse Temurin runtime images to a release containing Pebble built with Go 1.26.6 or later, then verify both production-image scans are clean.
-- [ ] Apply verified Alpine security package upgrades for libexpat and p11-kit in both runtime images, then re-run fail-closed Trivy scans.
-- [ ] Enforce the Trivy HIGH/CRITICAL policy from generated SARIF results rather than scanner step outcomes, preserving scanner-operation failures as CI failures.
-- [ ] Add a regression test proving Trivy SARIF warnings do not block CI while error-level findings do.
+- [x] Remove the NVD-dependent OWASP Dependency-Check gate and the obsolete `NVD_API_KEY` repository-secret requirement.
+- [x] Add OSV-Scanner and Trivy security gates for dependency, SBOM, container, repository, secret, and IaC scanning without NVD API access.
+- [x] Add GitHub CodeQL configuration and Dependabot coverage for Maven, npm, Go modules, GitHub Actions, and Docker.
+- [x] Document security sources, severity policy, remediation workflow, false-positive handling, and CI evidence retention.
+- [x] Verify OSV, Trivy, CodeQL, Dependabot configuration, SARIF upload, and release dependency gates on GitHub Actions.
+- [x] Remediate OSV findings in Jackson, Log4j, and PostgreSQL dependencies before enabling the new fail-closed gate.
+- [x] Assign unique categories to all Trivy SARIF uploads so GitHub code scanning accepts source and both image reports in one job.
+- [x] Upgrade pinned Eclipse Temurin runtime images to a release containing Pebble built with Go 1.26.6 or later, then verify both production-image scans are clean.
+- [x] Apply verified Alpine security package upgrades for libexpat and p11-kit in both runtime images, then re-run fail-closed Trivy scans.
+- [x] Enforce the Trivy HIGH/CRITICAL policy from generated SARIF results rather than scanner step outcomes, preserving scanner-operation failures as CI failures.
+- [x] Add a regression test proving Trivy SARIF warnings do not block CI while error-level findings do.
 - [x] Standardize all GitHub-facing source metadata, documentation, and developer-facing copy in English.
 - [x] Add English/Vietnamese localization to the SSR portal, including language selection, persisted preference, and English fallback.
 - [x] Add localization to React Islands and test SSR fallback, accessibility, and URL/cookie language preference.
