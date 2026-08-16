@@ -1,6 +1,8 @@
 package ai.xdev.aisdlc.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -10,7 +12,7 @@ public class EDiscoveryExport {
   @Id @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
   @Column(name = "tenant_id", nullable = false) private UUID tenantId;
   @Column(name = "requested_by", nullable = false, length = 200) private String requestedBy;
-  @Column(name = "scope_json", nullable = false, columnDefinition = "jsonb") private String scopeJson;
+  @JdbcTypeCode(SqlTypes.JSON) @Column(name = "scope_json", nullable = false, columnDefinition = "jsonb") private String scopeJson;
   @Enumerated(EnumType.STRING) @Column(name = "export_status", nullable = false) private DomainTypes.EDiscoveryExportStatus exportStatus = DomainTypes.EDiscoveryExportStatus.REQUESTED;
   @Column(name = "object_bucket", length = 160) private String objectBucket;
   @Column(name = "object_key", length = 500) private String objectKey;

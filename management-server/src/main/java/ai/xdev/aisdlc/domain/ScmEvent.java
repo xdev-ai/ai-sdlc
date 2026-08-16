@@ -1,6 +1,8 @@
 package ai.xdev.aisdlc.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -24,7 +26,7 @@ public class ScmEvent {
   @Column(name = "validation_run_id") private UUID validationRunId;
   @Column(name = "policy_check_run_id") private Long policyCheckRunId;
   @Column(name = "payload_sha256", nullable = false, length = 64) private String payloadSha256;
-  @Column(columnDefinition = "jsonb", nullable = false) private String payload;
+  @JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition = "jsonb", nullable = false) private String payload;
   @Enumerated(EnumType.STRING) @Column(name = "processing_status", nullable = false, length = 20) private DomainTypes.ScmProcessingStatus processingStatus = DomainTypes.ScmProcessingStatus.RECEIVED;
   @Column(name = "failure_reason", columnDefinition = "text") private String failureReason;
   @Column(name = "received_at", nullable = false) private Instant receivedAt = Instant.now();

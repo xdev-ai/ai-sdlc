@@ -1,6 +1,8 @@
 package ai.xdev.aisdlc.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,7 +15,7 @@ public class TenantAuditEvent {
   @Column(nullable = false, length = 160) private String action;
   @Column(name = "entity_type", nullable = false, length = 100) private String entityType;
   @Column(name = "entity_id", length = 160) private String entityId;
-  @Column(columnDefinition = "jsonb") private String payload;
+  @JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition = "jsonb") private String payload;
   @Column(name = "occurred_at", nullable = false) private Instant occurredAt = Instant.now();
   protected TenantAuditEvent() {}
   public TenantAuditEvent(UUID tenantId, String actorSubject, String action, String entityType, String entityId, String payload) { this.tenantId = tenantId; this.actorSubject = actorSubject; this.action = action; this.entityType = entityType; this.entityId = entityId; this.payload = payload; }

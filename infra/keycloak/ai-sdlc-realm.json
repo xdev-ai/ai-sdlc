@@ -5,11 +5,26 @@
   "registrationAllowed": false,
   "roles": {
     "realm": [
-      { "name": "admin", "description": "Organization and policy administrator" },
-      { "name": "developer", "description": "Developer and validation contributor" },
-      { "name": "reviewer", "description": "Human reviewer and gate approver" },
-      { "name": "viewer", "description": "Read-only project governance and evidence observer" },
-      { "name": "agent_runtime", "description": "Non-human agent workload; never combined with a human role and never a human authority" }
+      {
+        "name": "admin",
+        "description": "Organization and policy administrator"
+      },
+      {
+        "name": "developer",
+        "description": "Developer and validation contributor"
+      },
+      {
+        "name": "reviewer",
+        "description": "Human reviewer and gate approver"
+      },
+      {
+        "name": "viewer",
+        "description": "Read-only project governance and evidence observer"
+      },
+      {
+        "name": "agent_runtime",
+        "description": "Non-human agent workload; never combined with a human role and never a human authority"
+      }
     ]
   },
   "clients": [
@@ -20,12 +35,36 @@
       "publicClient": false,
       "standardFlowEnabled": true,
       "serviceAccountsEnabled": false,
-      "redirectUris": ["http://localhost:8080/login/oauth2/code/keycloak"],
-      "webOrigins": ["http://localhost:8080"],
+      "redirectUris": [
+        "http://localhost:8080/login/oauth2/code/keycloak"
+      ],
+      "webOrigins": [
+        "http://localhost:8080"
+      ],
       "protocolMappers": [
-        { "name": "realm roles", "protocol": "openid-connect", "protocolMapper": "oidc-usermodel-realm-role-mapper", "config": { "claim.name": "roles", "multivalued": "true", "access.token.claim": "true", "id.token.claim": "true", "userinfo.token.claim": "true" } },
-        { "name": "control plane audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": { "included.custom.audience": "aisdlc-management", "access.token.claim": "true" } }
-      ]
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "control plane audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "aisdlc-management",
+            "access.token.claim": "true"
+          }
+        }
+      ],
+      "secret": "${PORTAL_CLIENT_SECRET}"
     },
     {
       "clientId": "aisdlc-cli",
@@ -36,9 +75,27 @@
       "serviceAccountsEnabled": true,
       "directAccessGrantsEnabled": false,
       "protocolMappers": [
-        { "name": "realm roles", "protocol": "openid-connect", "protocolMapper": "oidc-usermodel-realm-role-mapper", "config": { "claim.name": "roles", "multivalued": "true", "access.token.claim": "true" } },
-        { "name": "control plane audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": { "included.custom.audience": "aisdlc-management", "access.token.claim": "true" } }
-      ]
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "control plane audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "aisdlc-management",
+            "access.token.claim": "true"
+          }
+        }
+      ],
+      "secret": "${CLI_CLIENT_SECRET}"
     },
     {
       "clientId": "aisdlc-agent-runtime",
@@ -50,8 +107,62 @@
       "serviceAccountsEnabled": true,
       "directAccessGrantsEnabled": false,
       "protocolMappers": [
-        { "name": "realm roles", "protocol": "openid-connect", "protocolMapper": "oidc-usermodel-realm-role-mapper", "config": { "claim.name": "roles", "multivalued": "true", "access.token.claim": "true" } },
-        { "name": "runtime audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": { "included.custom.audience": "aisdlc-runtime", "access.token.claim": "true" } }
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "claim.name": "roles",
+            "multivalued": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "runtime audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "aisdlc-runtime",
+            "access.token.claim": "true"
+          }
+        }
+      ],
+      "secret": "${AGENT_RUNTIME_CLIENT_SECRET}"
+    }
+  ],
+  "users": [
+    {
+      "username": "platform-admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "platform-admin@localhost",
+      "firstName": "Platform",
+      "lastName": "Administrator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${LOCAL_ADMIN_PASSWORD}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin"
+      ]
+    },
+    {
+      "username": "service-account-aisdlc-cli",
+      "enabled": true,
+      "serviceAccountClientId": "aisdlc-cli",
+      "realmRoles": [
+        "developer"
+      ]
+    },
+    {
+      "username": "service-account-aisdlc-agent-runtime",
+      "enabled": true,
+      "serviceAccountClientId": "aisdlc-agent-runtime",
+      "realmRoles": [
+        "agent_runtime"
       ]
     }
   ]

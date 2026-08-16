@@ -8,6 +8,10 @@ export POSTGRES_DB="aisdlc"
 export KEYCLOAK_ADMIN="admin"
 export KEYCLOAK_ADMIN_PASSWORD="aisdlc_ci_ephemeral_admin"
 export PORTAL_CLIENT_SECRET="ci-placeholder-not-a-production-secret"
+# The realm import binds these; without them Keycloak generates random secrets and nothing can authenticate.
+export CLI_CLIENT_SECRET="ci-placeholder-cli-not-a-production-secret"
+export AGENT_RUNTIME_CLIENT_SECRET="ci-placeholder-agent-not-a-production-secret"
+export LOCAL_ADMIN_PASSWORD="aisdlc_ci_ephemeral_portal_admin"
 export AISDLC_EVIDENCE_S3_ACCESS_KEY="aisdlc_ci_minio"
 export AISDLC_EVIDENCE_S3_SECRET_KEY="aisdlc_ci_minio_ephemeral_password"
 export AISDLC_EVIDENCE_S3_BUCKET="aisdlc-evidence-ci"
@@ -31,3 +35,9 @@ curl --fail --silent --show-error --connect-timeout 5 --max-time 10 --retry 12 -
   http://localhost:8080/ >/dev/null
 
 echo "Compose integration smoke test passed: identity, object storage, readiness and SSR landing are reachable."
+
+# Reachable health surfaces are not a working platform. Drive one project through the governed flow and verify the
+# audit chain over it before the topology is torn down.
+AISDLC_ACCEPTANCE_NETWORK="aisdlc-ci_platform" \
+AISDLC_ACCEPTANCE_KEYCLOAK_URL="http://localhost:8180" \
+  bash "$(dirname -- "$0")/end-to-end-acceptance.sh"

@@ -1,6 +1,8 @@
 package ai.xdev.aisdlc.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -12,8 +14,8 @@ public class RiskScore {
   @Column(nullable = false) private int score;
   @Column(name = "risk_band", nullable = false, length = 20) private String riskBand;
   @Column(name = "formula_version", nullable = false, length = 40) private String formulaVersion;
-  @Column(nullable = false, columnDefinition = "jsonb") private String components;
-  @Column(name = "source_summary", nullable = false, columnDefinition = "jsonb") private String sourceSummary;
+  @JdbcTypeCode(SqlTypes.JSON) @Column(nullable = false, columnDefinition = "jsonb") private String components;
+  @JdbcTypeCode(SqlTypes.JSON) @Column(name = "source_summary", nullable = false, columnDefinition = "jsonb") private String sourceSummary;
   @Column(name = "calculated_by", nullable = false, length = 200) private String calculatedBy;
   @Column(name = "calculated_at", nullable = false) private Instant calculatedAt = Instant.now();
 

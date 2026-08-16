@@ -1,6 +1,8 @@
 package ai.xdev.aisdlc.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -11,7 +13,7 @@ public class TenantPermissionSet {
   @Column(name = "tenant_id", nullable = false) private UUID tenantId;
   @Column(name = "permission_key", nullable = false, length = 100) private String permissionKey;
   @Column(name = "display_name", nullable = false, length = 160) private String displayName;
-  @Column(name = "permissions_json", nullable = false, columnDefinition = "jsonb") private String permissionsJson;
+  @JdbcTypeCode(SqlTypes.JSON) @Column(name = "permissions_json", nullable = false, columnDefinition = "jsonb") private String permissionsJson;
   @Column(name = "created_at", nullable = false) private Instant createdAt = Instant.now();
   protected TenantPermissionSet() {}
   public TenantPermissionSet(UUID tenantId, String permissionKey, String displayName, String permissionsJson) { this.tenantId = tenantId; this.permissionKey = permissionKey; this.displayName = displayName; this.permissionsJson = permissionsJson; }

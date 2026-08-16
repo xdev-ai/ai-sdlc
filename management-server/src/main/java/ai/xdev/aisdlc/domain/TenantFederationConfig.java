@@ -1,6 +1,8 @@
 package ai.xdev.aisdlc.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -14,7 +16,7 @@ public class TenantFederationConfig {
   @Column(name = "client_id", length = 300) private String clientId;
   @Column(name = "client_secret_ciphertext") private String clientSecretCiphertext;
   @Column(name = "metadata_uri", length = 500) private String metadataUri;
-  @Column(name = "claim_mapping_json", nullable = false, columnDefinition = "jsonb") private String claimMappingJson;
+  @JdbcTypeCode(SqlTypes.JSON) @Column(name = "claim_mapping_json", nullable = false, columnDefinition = "jsonb") private String claimMappingJson;
   @Column(nullable = false) private boolean enabled;
   @Column(name = "created_by", nullable = false, length = 200) private String createdBy;
   @Column(name = "created_at", nullable = false) private Instant createdAt = Instant.now();

@@ -1,6 +1,8 @@
 package ai.xdev.aisdlc.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -14,7 +16,7 @@ public class ScimUser {
   @Column(name = "user_name", nullable = false, length = 300) private String userName;
   @Column(name = "display_name", length = 300) private String displayName;
   @Column(nullable = false) private boolean active = true;
-  @Column(name = "attributes_json", nullable = false, columnDefinition = "jsonb") private String attributesJson;
+  @JdbcTypeCode(SqlTypes.JSON) @Column(name = "attributes_json", nullable = false, columnDefinition = "jsonb") private String attributesJson;
   @Column(name = "created_at", nullable = false) private Instant createdAt = Instant.now();
   @Column(name = "updated_at", nullable = false) private Instant updatedAt = Instant.now();
   protected ScimUser() {}

@@ -37,12 +37,12 @@ public class AuditService {
   }
 
   private AuditEvent appendChained(UUID organizationId, UUID projectId, String actor, String action, String entityType, String entityId, String payload) {
-    organizations.lockById(organizationId).orElseThrow(() -> new IllegalArgumentException("Organization not found"));
+    var organization = organizations.lockById(organizationId).orElseThrow(() -> new IllegalArgumentException("Organization not found"));
     AuditEvent previous = events.findTopByOrganizationIdOrderBySequenceDesc(organizationId).orElse(null);
     long sequence = previous == null ? 1 : previous.getSequence() + 1;
     String previousHash = previous == null ? GENESIS_HASH : previous.getEventHash();
-    String canonical = String.join("|", organizationId.toString(), String.valueOf(projectId), actor, action, entityType, String.valueOf(entityId), payload == null ? "{}" : payload, String.valueOf(sequence), previousHash);
-    return events.save(new AuditEvent(organizationId, projectId, actor, action, entityType, entityId, payload, sequence, previousHash, sha256(canonical)));
+    String canonical = String.join("|", organizationId.toString(), String.valueOf(projectId), actor, action, entityType, String.valueOf(entityId), AuditPayloadCanonicalizer.canonical(payload), String.valueOf(sequence), previousHash);
+    return events.save(new AuditEvent(organization.getTenantId(), organizationId, projectId, actor, action, entityType, entityId, payload, sequence, previousHash, sha256(canonical)));
   }
 
   private String sha256(String input) {

@@ -1,6 +1,8 @@
 package ai.xdev.aisdlc.domain;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -12,7 +14,7 @@ public class ValidationEvidence {
   @Column(name = "evidence_type", nullable = false, length = 80) private String evidenceType;
   @Column(name = "digest_sha256", nullable = false, length = 64) private String digestSha256;
   @Column(length = 1000) private String uri;
-  @Column(columnDefinition = "jsonb") private String metadata = "{}";
+  @JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition = "jsonb") private String metadata = "{}";
   @Column(name = "created_at", nullable = false) private Instant createdAt = Instant.now();
   @Column(name = "retention_until") private Instant retentionUntil;
   protected ValidationEvidence() {}

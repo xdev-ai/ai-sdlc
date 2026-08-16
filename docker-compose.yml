@@ -28,6 +28,12 @@ services:
       KC_DB_USERNAME: ${POSTGRES_USER:?set POSTGRES_USER}
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       KC_HEALTH_ENABLED: "true"
+      # Consumed by $(env:...) placeholders in the realm import so Keycloak and its clients agree on one
+      # secret. Without these the import generates a random secret and no client can authenticate.
+      PORTAL_CLIENT_SECRET: ${PORTAL_CLIENT_SECRET:?set PORTAL_CLIENT_SECRET}
+      CLI_CLIENT_SECRET: ${CLI_CLIENT_SECRET:?set CLI_CLIENT_SECRET}
+      AGENT_RUNTIME_CLIENT_SECRET: ${AGENT_RUNTIME_CLIENT_SECRET:-unset-agent-runtime-secret}
+      LOCAL_ADMIN_PASSWORD: ${LOCAL_ADMIN_PASSWORD:?set LOCAL_ADMIN_PASSWORD}
     healthcheck:
       test:
         - CMD-SHELL

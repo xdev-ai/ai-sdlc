@@ -33,7 +33,7 @@ public class AuditVerificationService {
     long expectedSequence = 1;
     long verified = 0;
     for (AuditEvent event : events.findByOrganizationIdOrderBySequenceAsc(organizationId)) {
-      String canonical = String.join("|", organizationId.toString(), String.valueOf(event.getProjectId()), event.getActorSubject(), event.getAction(), event.getEntityType(), String.valueOf(event.getEntityId()), event.getPayload() == null ? "{}" : event.getPayload(), String.valueOf(event.getSequence()), event.getPreviousHash());
+      String canonical = String.join("|", organizationId.toString(), String.valueOf(event.getProjectId()), event.getActorSubject(), event.getAction(), event.getEntityType(), String.valueOf(event.getEntityId()), AuditPayloadCanonicalizer.canonical(event.getPayload()), String.valueOf(event.getSequence()), event.getPreviousHash());
       String actual = sha256(canonical);
       if (event.getSequence() != expectedSequence || !expectedPrevious.equals(event.getPreviousHash()) || !actual.equals(event.getEventHash())) {
         telemetry.recordAuditIntegrityFailure();
