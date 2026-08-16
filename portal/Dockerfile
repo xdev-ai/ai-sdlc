@@ -9,7 +9,8 @@ COPY portal/frontend/package.json portal/frontend/package-lock.json portal/front
 COPY portal/frontend/src portal/frontend/src
 RUN mvn -q -pl portal -am -DskipTests package
 
-FROM eclipse-temurin:25.0.3_9-jre
+# Digest pin preserves Java 25 while taking the current Temurin runtime security rebuild.
+FROM eclipse-temurin:25-jre@sha256:a214efa3200af4b657e41935799aa12d7aee3336fdb42eb505a0948f6ecdd983
 RUN groupadd --system --gid 10001 aisdlc && useradd --system --uid 10001 --gid 10001 --create-home --home-dir /home/aisdlc aisdlc
 WORKDIR /app
 COPY --chown=aisdlc:aisdlc --from=build /workspace/portal/target/portal-*.jar app.jar

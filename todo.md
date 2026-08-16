@@ -89,6 +89,7 @@
 - [ ] Verify OSV, Trivy, CodeQL, Dependabot configuration, SARIF upload, and release dependency gates on GitHub Actions.
 - [ ] Remediate OSV findings in Jackson, Log4j, and PostgreSQL dependencies before enabling the new fail-closed gate.
 - [ ] Assign unique categories to all Trivy SARIF uploads so GitHub code scanning accepts source and both image reports in one job.
+- [ ] Upgrade pinned Eclipse Temurin runtime images to a release containing Pebble built with Go 1.26.6 or later, then verify both production-image scans are clean.
 - [x] Standardize all GitHub-facing source metadata, documentation, and developer-facing copy in English.
 - [x] Add English/Vietnamese localization to the SSR portal, including language selection, persisted preference, and English fallback.
 - [x] Add localization to React Islands and test SSR fallback, accessibility, and URL/cookie language preference.
