@@ -123,3 +123,11 @@
 - [x] Update English-only architecture, API, operations, security, administrator, developer, integration, and changelog documentation for every P0–P2 capability.
 - [x] Commit and publish every verified P0–P2 increment to `xdev-ai/ai-sdlc` on the `main` branch.
 - [x] Remediate remaining OSV dependency resolution and Hibernate fixed-digest schema validation failures, then re-run CI.
+- [ ] Post-P2 P3: establish OpenTelemetry-based observability, SLOs, alert routing, and immutable operational audit dashboards.
+- [ ] Post-P2 P3: implement repeatable backup, restore, disaster-recovery runbooks, and recovery verification for PostgreSQL and object evidence storage.
+- [ ] Post-P2 P3: add an enterprise deployment package with Helm, GitOps reference configuration, hardened default policies, and upgrade/rollback guidance.
+- [ ] Post-P2 P3: build a signed, versioned policy-pack catalog with lifecycle governance, compatibility metadata, and promotion workflows.
+- [ ] Post-P2 P3: extend SCM/work-management integrations to GitLab, Bitbucket, Azure DevOps, and Jira using the existing versioned connector contract.
+- [ ] Post-P2 P3: implement policy-aware AI gateway enforcement for approved agent identities, model allowlists, prompt/data classification, and decision evidence.
+- [ ] Post-P2 P4: introduce tenant isolation verification, capacity/performance testing, and compliance evidence packs for enterprise assurance.
+- [ ] Post-P2 P4: publish a stable integration marketplace and extension certification process for independently deployable SDK and connector modules.
