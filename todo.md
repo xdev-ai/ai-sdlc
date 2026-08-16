@@ -176,7 +176,8 @@
 - [x] P3 Foundation: add the chaos-profile fault registry and deterministic regression test; no chaos bean is available outside the explicit isolated profile.
 - [x] P3.2 Budget enforcement: add tenant-scoped budget policies, immutable budget decisions, deterministic threshold evaluation, and human-approved exceptions without autonomous spending or routing changes.
 - [x] P3.2 Budget enforcement: add usage-to-budget integration, advisory/hold decision modes, notification linkage, reconciliation-safe idempotency, and regression tests.
-- [ ] P3.3 Provider proxy: add a provider-neutral request contract with model/provider allowlist verification, workload identity binding, timeouts, bounded retries, and fail-closed decision evidence.
+- [x] P3.3 Provider proxy: add a provider-neutral request contract with model/provider allowlist verification, workload identity binding, HTTPS endpoint profile, mTLS requirement, bounded retries, idempotency-key propagation, digest-only audit evidence, and fail-closed default credential resolution.
+- [ ] P3.3 Provider proxy rollout: bind `ProviderCredentialResolver` to the approved secret manager and expose an internal agent-runtime-only endpoint after Keycloak audience/authority enforcement is deployed.
 - [ ] P3.3 Tool broker: add tenant-scoped tool capability grants, argument fingerprinting, explicit approval linkage for high-impact tools, and no raw prompt/output persistence.
 - [x] P3.3 Runtime integration: add controlled integration tests for policy-engine chaos timeout and confirm profile isolation when `chaos` is not active.
 - [x] Release verification: inventory every independently buildable AI-SDLC artifact, run its documented build/test/security contract, and remediate any failing artifact.

@@ -39,4 +39,13 @@ class AuditMigrationTest {
     assertTrue(migration.contains("inference_budget_decisions_usage_event_unique"));
     assertTrue(migration.contains("where usage_event_id is not null"));
   }
+
+  @Test
+  void declaresProviderProxyProfileAndDispatchGuards() throws Exception {
+    String migration = Files.readString(Path.of("src/main/resources/db/migration/V17__runtime_provider_proxy_execution.sql"));
+    assertTrue(migration.contains("add column endpoint_uri varchar(2048)"));
+    assertTrue(migration.contains("runtime_ai_provider_profiles_mtls_reference_ck"));
+    assertTrue(migration.contains("runtime_ai_provider_dispatches"));
+    assertTrue(migration.contains("unique(project_id, idempotency_key)"));
+  }
 }
