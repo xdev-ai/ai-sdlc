@@ -29,8 +29,15 @@ public class ScmIntegrationService {
   private final AuditService audit;
   private final GitHubPolicyGateService policyGate;
   private final ObjectMapper objectMapper;
+  private final org.springframework.beans.factory.ObjectProvider<ChaosFaultRegistry> chaosFaults;
 
   public ScmIntegrationService(ProjectAccessService access, ScmRepositoryLinkRepository repositoryLinks, ScmEventRepository events, ValidationRunRepository validations, AuditService audit, GitHubPolicyGateService policyGate, ObjectMapper objectMapper) {
+    this(access, repositoryLinks, events, validations, audit, policyGate, objectMapper, null);
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  public ScmIntegrationService(ProjectAccessService access, ScmRepositoryLinkRepository repositoryLinks, ScmEventRepository events, ValidationRunRepository validations, AuditService audit, GitHubPolicyGateService policyGate, ObjectMapper objectMapper, org.springframework.beans.factory.ObjectProvider<ChaosFaultRegistry> chaosFaults) {
+    this.chaosFaults = chaosFaults;
     this.access = access;
     this.repositoryLinks = repositoryLinks;
     this.events = events;
@@ -63,6 +70,8 @@ public class ScmIntegrationService {
       String fullName = payload.path("repository").path("full_name").asText();
       ScmRepositoryLink link = repositoryLinks.findByProviderAndRepositoryFullName(ScmProvider.GITHUB, fullName).orElse(null);
       if (link == null) return new WebhookIngestResult(null, false, false, "repository_not_linked");
+      // Interrupt before the idempotency marker commits: the sender retries and the duplicate check makes it safe.
+      if (chaosFaults != null) chaosFaults.ifAvailable(registry -> registry.check(ChaosFaultRegistry.Component.SCM_INGRESS));
       ScmEvent event = events.save(new ScmEvent(link.getProjectId(), link.getId(), ScmProvider.GITHUB, deliveryId, eventType, nullableText(payload, "action"), fullName,
           nullableLong(payload.path("installation").path("id")), extractRef(payload, eventType), extractCommitSha(payload, eventType), extractPullRequestNumber(payload),
           nullableLong(payload.path("workflow_run").path("id")), nullableText(payload.path("release"), "tag_name"), sha256(rawPayload), new String(rawPayload, StandardCharsets.UTF_8)));

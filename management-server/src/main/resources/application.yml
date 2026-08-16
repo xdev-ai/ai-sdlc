@@ -59,6 +59,15 @@ aisdlc:
     refill-period: ${AISDLC_RATE_LIMIT_REFILL_PERIOD:PT1M}
   security:
     allowed-origins: ${AISDLC_ALLOWED_ORIGINS:http://localhost:8080}
+    audience:
+      control-plane: ${AISDLC_CONTROL_PLANE_AUDIENCE:}
+      runtime: ${AISDLC_RUNTIME_AUDIENCE:}
+      runtime-authorized-party: ${AISDLC_RUNTIME_AUTHORIZED_PARTY:}
+  runtime-ai:
+    provider-proxy-enabled: ${AISDLC_RUNTIME_AI_PROVIDER_PROXY_ENABLED:false}
+    tool-broker-enabled: ${AISDLC_RUNTIME_AI_TOOL_BROKER_ENABLED:false}
+    credentials:
+      mount-path: ${AISDLC_RUNTIME_AI_CREDENTIAL_MOUNT_PATH:}
   evidence-storage:
     endpoint: ${AISDLC_EVIDENCE_S3_ENDPOINT:http://localhost:9000}
     region: ${AISDLC_EVIDENCE_S3_REGION:us-east-1}
@@ -77,6 +86,18 @@ aisdlc:
     check-name: ${AISDLC_GITHUB_CHECK_NAME:AI-SDLC Governance}
     details-url-template: ${AISDLC_GITHUB_CHECK_DETAILS_URL_TEMPLATE:}
     request-timeout: ${AISDLC_GITHUB_REQUEST_TIMEOUT:PT10S}
+  telemetry:
+    enabled: ${AISDLC_TELEMETRY_ENABLED:false}
+    contract-version: telemetry.v1
+    service-name: ${AISDLC_TELEMETRY_SERVICE_NAME:ai-sdlc-management-server}
+    service-namespace: ${AISDLC_TELEMETRY_SERVICE_NAMESPACE:ai-sdlc}
+    service-version: ${AISDLC_TELEMETRY_SERVICE_VERSION:}
+    service-instance-id: ${AISDLC_TELEMETRY_SERVICE_INSTANCE_ID:}
+    environment: ${DEPLOYMENT_ENVIRONMENT:development}
+    exporter-endpoint: ${AISDLC_TELEMETRY_EXPORTER_ENDPOINT:}
+    exporter-timeout: ${AISDLC_TELEMETRY_EXPORTER_TIMEOUT:PT10S}
+    trace-sample-ratio: ${AISDLC_TELEMETRY_TRACE_SAMPLE_RATIO:0.1}
+    accept-remote-trace-context: ${AISDLC_TELEMETRY_ACCEPT_REMOTE_TRACE_CONTEXT:true}
   notifications:
     encryption-key: ${AISDLC_NOTIFICATION_ENCRYPTION_KEY:}
     from-address: ${AISDLC_NOTIFICATION_FROM_ADDRESS:}

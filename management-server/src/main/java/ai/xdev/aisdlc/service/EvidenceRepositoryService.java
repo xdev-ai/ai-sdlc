@@ -32,9 +32,15 @@ public class EvidenceRepositoryService {
   private final ObjectStoragePort storage;
   private final EvidenceStorageProperties properties;
   private final AuditService audit;
+  private final org.springframework.beans.factory.ObjectProvider<ChaosFaultRegistry> chaosFaults;
 
   public EvidenceRepositoryService(ProjectAccessService access, EvidenceAssetRepository assets, ValidationEvidenceRepository validationEvidences, ValidationRunRepository validationRuns, ObjectStoragePort storage, EvidenceStorageProperties properties, AuditService audit) {
-    this.access = access; this.assets = assets; this.validationEvidences = validationEvidences; this.validationRuns = validationRuns; this.storage = storage; this.properties = properties; this.audit = audit;
+    this(access, assets, validationEvidences, validationRuns, storage, properties, audit, null);
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  public EvidenceRepositoryService(ProjectAccessService access, EvidenceAssetRepository assets, ValidationEvidenceRepository validationEvidences, ValidationRunRepository validationRuns, ObjectStoragePort storage, EvidenceStorageProperties properties, AuditService audit, org.springframework.beans.factory.ObjectProvider<ChaosFaultRegistry> chaosFaults) {
+    this.access = access; this.assets = assets; this.validationEvidences = validationEvidences; this.validationRuns = validationRuns; this.storage = storage; this.properties = properties; this.audit = audit; this.chaosFaults = chaosFaults;
   }
 
   @Transactional
@@ -55,6 +61,8 @@ public class EvidenceRepositoryService {
     }
     String safeFilename = safeFilename(filename);
     String key = "projects/" + projectId + "/evidence-assets/" + UUID.randomUUID() + "/" + safeFilename;
+    // Fail closed before the object write: an evidence-dependent action must not proceed on unverified storage.
+    if (chaosFaults != null) chaosFaults.ifAvailable(registry -> registry.check(ChaosFaultRegistry.Component.EVIDENCE_STORAGE));
     ObjectStoragePort.StoredObject stored = storage.store(new ObjectStoragePort.Upload(key, contentType, bytes, digest, Map.of("sha256", digest, "project-id", projectId.toString(), "uploaded-by", subject)));
     if (TransactionSynchronizationManager.isSynchronizationActive()) {
       TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {

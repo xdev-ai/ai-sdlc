@@ -6,6 +6,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -19,11 +20,13 @@ public class RuntimeAiBrokerController {
   record ToolInput(@NotBlank @Size(max=160) String toolName, @NotNull UUID policyBundleId, @Pattern(regexp="READ_ONLY|MUTATING|HIGH_IMPACT") String impactLevel, boolean requiresApproval, boolean active) {}
   record ProviderRequest(@NotNull UUID agentSessionId,@NotBlank @Size(max=160) String provider,@NotBlank @Size(max=240) String model,@NotBlank @Pattern(regexp="^[a-fA-F0-9]{64}$") String requestFingerprint,@NotNull JsonNode policyContext,boolean dryRun) {}
   record ToolRequest(@NotNull UUID agentSessionId,@NotBlank @Size(max=160) String toolName,@NotBlank @Pattern(regexp="^[a-fA-F0-9]{64}$") String requestFingerprint,@NotNull JsonNode policyContext,UUID approvalRequestId,boolean dryRun) {}
-  private final RuntimeAiBrokerService broker;
-  public RuntimeAiBrokerController(RuntimeAiBrokerService broker){this.broker=broker;}
+  private final RuntimeAiBrokerService broker; private final ai.xdev.aisdlc.service.RuntimeAiToolBrokerService toolGrants;
+  public RuntimeAiBrokerController(RuntimeAiBrokerService broker, ai.xdev.aisdlc.service.RuntimeAiToolBrokerService toolGrants){this.broker=broker;this.toolGrants=toolGrants;}
   @PutMapping("/workloads") @ResponseStatus(HttpStatus.NO_CONTENT) public void configureWorkload(@PathVariable UUID projectId,@RequestBody @Valid WorkloadInput input,@AuthenticationPrincipal Jwt jwt){broker.registerWorkload(projectId,jwt.getSubject(),input.workloadSubject(),input.active());}
   @PutMapping("/providers") @ResponseStatus(HttpStatus.NO_CONTENT) public void configureProvider(@PathVariable UUID projectId,@RequestBody @Valid ProviderInput input,@AuthenticationPrincipal Jwt jwt){broker.configureProvider(projectId,jwt.getSubject(),input.provider(),input.model(),input.policyBundleId(),input.endpointUri(),input.credentialReference(),input.mtlsReference(),input.requireMtls(),input.timeoutMs(),input.maxAttempts(),input.active());}
   @PutMapping("/tools") @ResponseStatus(HttpStatus.NO_CONTENT) public void configureTool(@PathVariable UUID projectId,@RequestBody @Valid ToolInput input,@AuthenticationPrincipal Jwt jwt){broker.configureTool(projectId,jwt.getSubject(),input.toolName(),input.policyBundleId(),input.impactLevel(),input.requiresApproval(),input.active());}
   @PostMapping("/provider-authorizations") public RuntimeAiBrokerService.AuthorizationView authorizeProvider(@PathVariable UUID projectId,@RequestBody @Valid ProviderRequest input,@AuthenticationPrincipal Jwt jwt){return broker.preflight(projectId,jwt.getSubject(),input.agentSessionId(),input.provider(),input.model(),input.requestFingerprint(),input.policyContext(),input.dryRun());}
+  /** Human revocation of an unredeemed capability grant; a redeemed grant stays as history. */
+  @PostMapping("/tool-grants/{grantId}/revocations") public ResponseEntity<Void> revokeToolGrant(@PathVariable UUID projectId,@PathVariable UUID grantId,@AuthenticationPrincipal Jwt jwt){return toolGrants.revoke(projectId,jwt.getSubject(),grantId)?ResponseEntity.noContent().build():ResponseEntity.status(HttpStatus.CONFLICT).build();}
   @PostMapping("/tool-authorizations") public RuntimeAiBrokerService.AuthorizationView authorizeTool(@PathVariable UUID projectId,@RequestBody @Valid ToolRequest input,@AuthenticationPrincipal Jwt jwt){return broker.authorizeTool(projectId,jwt.getSubject(),input.agentSessionId(),input.toolName(),input.requestFingerprint(),input.policyContext(),input.approvalRequestId(),input.dryRun());}
 }

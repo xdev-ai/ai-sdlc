@@ -10,6 +10,7 @@ This directory contains a **reference** OpenTelemetry Collector gateway configur
 | `p3-slo-burn-rate-rules.yaml` | Prometheus recording and initial multi-window, multi-burn-rate alert rules for 30-day SLOs. |
 | `../../scripts/validate-observability-config.sh` | CI/local validator that runs the Collector `validate` command and `promtool check rules` with reviewed digest-pinned images. |
 | `../../scripts/test-validate-observability-config.sh` | Deterministic script contract test; it verifies pinning, isolation flags, command shape, and mutable-image rejection without contacting a registry. |
+| `../../docs/telemetry-configuration-and-trace-context.md` | Application-side contract: `aisdlc.telemetry` configuration model, resource/metric allowlists, and W3C trace-context propagation implemented in the management server. |
 
 ## Collector Operational Contract
 

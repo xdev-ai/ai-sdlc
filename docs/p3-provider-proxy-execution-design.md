@@ -55,6 +55,8 @@ The adapter is feature-gated and ships with no real provider profile, no provide
 
 An authenticated runtime API is not exposed until the Keycloak service-account audience and `agent_runtime` authority checks are enforced at the resource boundary. The initial operational rollout is restricted to one internal project with a fake or isolated read-only provider. No production deploy, merge, destructive tool, or provider credential is included in the repository or test environment.
 
+Those preconditions are now implemented. The `agent_runtime` realm identity, the runtime-audience and authorized-party validation, the feature-gated internal endpoint, and the secret-manager mount binding for `ProviderCredentialResolver` are described in [`runtime-ai-workload-identity.md`](runtime-ai-workload-identity.md). Each control ships disabled: the runtime audience has no default, so no runtime token validates, and the endpoint bean is not created unless a deployment enables it.
+
 ## References
 
 [1] [OpenTelemetry, Semantic Conventions](https://opentelemetry.io/docs/concepts/semantic-conventions/)

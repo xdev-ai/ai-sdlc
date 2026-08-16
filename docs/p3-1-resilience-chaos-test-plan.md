@@ -44,6 +44,8 @@ Each test uses the same synthetic fixture: one tenant, one organization, one pro
 | `RES-CAP-11` | Apply bounded CPU/memory pressure to the Collector and management server containers. | Load shedding and memory limits activate without corrupting decisions or allowing unsafe work. | p99 governed-action latency and error rate are measured; no OOM restart loop; policy/approval integrity checks pass after pressure is removed. |
 | `RES-AI-12` | For a future P3.3 gateway adapter, inject provider timeout, malformed usage report, model mismatch, and quota exhaustion. | Request is not silently rerouted to an unapproved model; provider failure does not remove human approval or policy checks. | Model/provider allowlist remains enforced; billing record is marked unreconciled rather than fabricated; recovery retry is idempotent. |
 
+The unit and service tiers of this plan are implemented; see [`resilience-fault-injection.md`](resilience-fault-injection.md) for the seam placement, the automated case coverage, and the cases that remain approval-gated.
+
 ## 4. Game-Day Procedure
 
 | Stage | Operator action | Exit criterion |

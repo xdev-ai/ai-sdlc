@@ -144,7 +144,7 @@
 - [ ] P3.3.5: add fail-closed resilience controls: provider timeout/budget management, idempotency, circuit breaking, rate limiting, safe fallback, and operator override governance.
 - [ ] P3.3.6: create runtime AI governance APIs, portal workflows, deterministic conformance/security tests, rollout controls, and English operational documentation.
 - [x] Publish the implementation design for P3.1 OpenTelemetry/SLO and P3.3 Runtime AI Governance, including architecture, acceptance criteria, and cited control rationale.
-- [ ] P3.1 Sprint 1: add a versioned telemetry configuration model, safe resource attributes, W3C trace propagation, and telemetry privacy/cardinality contract tests.
+- [x] P3.1 Sprint 1: add a versioned telemetry configuration model, safe resource attributes, W3C trace propagation, and telemetry privacy/cardinality contract tests.
 - [ ] P3.1 Sprint 1: package a production OpenTelemetry Java agent deployment profile without changing default local behavior when telemetry is disabled.
 - [ ] P3.1 Sprint 1: deploy and validate a hardened OpenTelemetry Collector gateway with OTLP/mTLS, memory limits, redaction, bounded queues, and exporter routing.
 - [ ] P3.1 Sprint 2: instrument policy evaluation, approval orchestration, evidence repository, SCM ingestion, notification delivery, audit ledger, and health dependencies.
@@ -156,7 +156,7 @@
 - [ ] P3.1 Resilience: publish a component-by-component fault-injection matrix covering Collector, telemetry backend, PostgreSQL/audit, evidence storage, policy engine, notification provider, SCM ingress, Keycloak, and runtime AI dependencies.
 - [ ] P3.1 Resilience: implement deterministic integration tests for fail-open telemetry and fail-closed governance evidence, policy, approval, and integrity paths.
 - [ ] P3.1 Resilience: define controlled chaos game days, blast-radius guardrails, abort criteria, evidence capture, recovery SLOs, and operator runbooks.
-- [ ] P3.1 Resilience: introduce fault-injection adapters and CI profiles that never execute destructive chaos actions against shared or production environments.
+- [ ] P3.1 Resilience: introduce fault-injection adapters and CI profiles that never execute destructive chaos actions against shared or production environments. (Adapters are implemented for all six components; the CI profile that runs the chaos tier is still outstanding.)
 - [ ] P3.2: define a tenant-safe inference usage ledger, canonical price catalog, currency normalization, data-retention model, and cost attribution dimensions.
 - [ ] P3.2: implement a deterministic forecasting pipeline with explainable baseline, seasonality handling, confidence intervals, back-testing, and insufficient-data behavior.
 - [ ] P3.2: define budget policies, anomaly detection, threshold notifications, human-approved exception workflow, and cost-control audit evidence.
@@ -164,8 +164,8 @@
 - [x] Observability CI: add a digest-pinned Collector and Prometheus rule validation script, workflow gate, deterministic failure tests, and documentation for local reproduction.
 - [x] Publish the detailed P3.1 resilience/chaos test plan and P3.2 Cost Optimization/inference forecasting design with cited governance rationale.
 - [x] P3.1 Implementation: add a test-profile-only chaos fault registry with explicit component scopes, deterministic delays/errors, bounded resource pressure, and a hard production startup guard.
-- [ ] P3.1 Implementation: add resilience integration tests that verify telemetry degrades without blocking requests while governance policy, approval, and audit evidence remain fail-closed.
-- [ ] P3.1 Implementation: add controlled scenario tests for policy-engine timeout, notification outage, evidence storage failure, authentication dependency loss, SCM ingress retry, and runtime provider timeout.
+- [x] P3.1 Implementation: add resilience integration tests that verify telemetry degrades without blocking requests while governance policy, approval, and audit evidence remain fail-closed.
+- [x] P3.1 Implementation: add controlled scenario tests for policy-engine timeout, notification outage, evidence storage failure, authentication dependency loss, SCM ingress retry, and runtime provider timeout.
 - [x] P3.2 Implementation: add Flyway schema for provider-neutral inference usage ledger, price catalog, allocation records, forecast snapshots, and cost-governance audit events.
 - [x] P3.2 Implementation: implement tenant-scoped usage ingestion with idempotency, immutable source claims, deterministic allocation, currency-safe minor units, and audit linkage.
 - [x] P3.2 Implementation: implement an explainable baseline forecast prototype with insufficient-data behavior, confidence bounds, back-testing evidence, and no autonomous model-routing action.
@@ -177,8 +177,8 @@
 - [x] P3.2 Budget enforcement: add tenant-scoped budget policies, immutable budget decisions, deterministic threshold evaluation, and human-approved exceptions without autonomous spending or routing changes.
 - [x] P3.2 Budget enforcement: add usage-to-budget integration, advisory/hold decision modes, notification linkage, reconciliation-safe idempotency, and regression tests.
 - [x] P3.3 Provider proxy: add a provider-neutral request contract with model/provider allowlist verification, workload identity binding, HTTPS endpoint profile, mTLS requirement, bounded retries, idempotency-key propagation, digest-only audit evidence, and fail-closed default credential resolution.
-- [ ] P3.3 Provider proxy rollout: bind `ProviderCredentialResolver` to the approved secret manager and expose an internal agent-runtime-only endpoint after Keycloak audience/authority enforcement is deployed.
-- [ ] P3.3 Tool broker: add tenant-scoped tool capability grants, argument fingerprinting, explicit approval linkage for high-impact tools, and no raw prompt/output persistence.
+- [x] P3.3 Provider proxy rollout: bind `ProviderCredentialResolver` to the approved secret manager and expose an internal agent-runtime-only endpoint after Keycloak audience/authority enforcement is deployed.
+- [x] P3.3 Tool broker: add tenant-scoped tool capability grants, argument fingerprinting, explicit approval linkage for high-impact tools, and no raw prompt/output persistence.
 - [x] P3.3 Runtime integration: add controlled integration tests for policy-engine chaos timeout and confirm profile isolation when `chaos` is not active.
 - [x] Release verification: inventory every independently buildable AI-SDLC artifact, run its documented build/test/security contract, and remediate any failing artifact.
 - [x] Release documentation: publish or refresh English getting-started, configuration, usage, and verification guidance for every independently usable module.

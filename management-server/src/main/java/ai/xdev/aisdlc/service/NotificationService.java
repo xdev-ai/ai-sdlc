@@ -30,7 +30,9 @@ public class NotificationService {
   record Attempt(boolean delivered, boolean retryable, Integer httpStatus, String code) {}
   record DispatchCandidate(UUID deliveryId, UUID channelId, NotificationChannelType channelType, String destination, String secret, String subject, String body, String eventType, String payloadSha256, int attempt) {}
   private final ProjectAccessService access; private final NotificationChannelRepository channels; private final NotificationDeliveryRepository deliveries; private final NotificationDeliveryReceiptRepository receipts; private final AuditService audit; private final NotificationSecretCipher cipher; private final NotificationProperties properties; private final ObjectMapper mapper; private final ObjectProvider<JavaMailSender> mailSender; private final TransactionTemplate transactions; private final RestClient http = RestClient.create();
-  public NotificationService(ProjectAccessService access, NotificationChannelRepository channels, NotificationDeliveryRepository deliveries, NotificationDeliveryReceiptRepository receipts, AuditService audit, NotificationSecretCipher cipher, NotificationProperties properties, ObjectMapper mapper, ObjectProvider<JavaMailSender> mailSender, PlatformTransactionManager transactionManager) { this.access = access; this.channels = channels; this.deliveries = deliveries; this.receipts = receipts; this.audit = audit; this.cipher = cipher; this.properties = properties; this.mapper = mapper; this.mailSender = mailSender; this.transactions = new TransactionTemplate(transactionManager); }
+  private final ObjectProvider<ChaosFaultRegistry> chaosFaults;
+  public NotificationService(ProjectAccessService access, NotificationChannelRepository channels, NotificationDeliveryRepository deliveries, NotificationDeliveryReceiptRepository receipts, AuditService audit, NotificationSecretCipher cipher, NotificationProperties properties, ObjectMapper mapper, ObjectProvider<JavaMailSender> mailSender, PlatformTransactionManager transactionManager) { this(access, channels, deliveries, receipts, audit, cipher, properties, mapper, mailSender, transactionManager, null); }
+  @org.springframework.beans.factory.annotation.Autowired public NotificationService(ProjectAccessService access, NotificationChannelRepository channels, NotificationDeliveryRepository deliveries, NotificationDeliveryReceiptRepository receipts, AuditService audit, NotificationSecretCipher cipher, NotificationProperties properties, ObjectMapper mapper, ObjectProvider<JavaMailSender> mailSender, PlatformTransactionManager transactionManager, ObjectProvider<ChaosFaultRegistry> chaosFaults) { this.access = access; this.channels = channels; this.deliveries = deliveries; this.receipts = receipts; this.audit = audit; this.cipher = cipher; this.properties = properties; this.mapper = mapper; this.mailSender = mailSender; this.transactions = new TransactionTemplate(transactionManager); this.chaosFaults = chaosFaults; }
 
   @Transactional
   public UUID createChannel(UUID projectId, String actor, NotificationChannelType type, String name, String destination, String sharedSecret) {
@@ -99,9 +101,12 @@ public class NotificationService {
   }
   private Attempt send(DispatchCandidate candidate) {
     try {
+      if (chaosFaults != null) chaosFaults.ifAvailable(registry -> registry.check(ChaosFaultRegistry.Component.NOTIFICATION_PROVIDER));
       if (candidate.channelType() == NotificationChannelType.EMAIL) return sendEmail(candidate.destination(), candidate);
       return sendWebhook(candidate);
-    } catch (ResourceAccessException error) { return new Attempt(false, true, null, "NETWORK_ERROR"); }
+    // A provider outage is retryable transport, not a configuration error: the approval outcome must stay unchanged.
+    } catch (ChaosFaultRegistry.ChaosFaultException injected) { return new Attempt(false, true, null, "NETWORK_ERROR"); }
+      catch (ResourceAccessException error) { return new Attempt(false, true, null, "NETWORK_ERROR"); }
       catch (RestClientResponseException error) { int status = error.getStatusCode().value(); return new Attempt(false, status == 429 || status >= 500, status, "HTTP_" + status); }
       catch (Exception error) { return new Attempt(false, false, null, "DELIVERY_CONFIGURATION_ERROR"); }
   }

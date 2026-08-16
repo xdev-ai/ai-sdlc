@@ -19,7 +19,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /** In-memory edge guard. Production replicas should use a distributed Bucket4j backend. */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE + 1)
+@Order(Ordered.HIGHEST_PRECEDENCE + 2)
 public class RateLimitFilter extends OncePerRequestFilter {
   private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
   private final long capacity;

@@ -1,9 +1,12 @@
 package ai.xdev.aisdlc.config;
 
+import ai.xdev.aisdlc.service.ChaosFaultRegistry;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,7 +16,12 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
+import org.springframework.security.oauth2.jwt.JwtValidators;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
 import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
@@ -27,6 +35,13 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+  /** Realm roles that identify a human control-plane caller. */
+  public static final Set<String> HUMAN_ROLES = Set.of("admin", "developer", "reviewer", "viewer");
+  /** Realm role of a non-human agent workload; it never grants a human authority. */
+  public static final String AGENT_RUNTIME_ROLE = "agent_runtime";
+  /** Internal surface reachable only by an authenticated agent workload. */
+  public static final String RUNTIME_PATH_PREFIX = "/internal/runtime-ai";
+
   private final List<String> allowedOrigins;
 
   public SecurityConfig(@Value("${aisdlc.security.allowed-origins:http://localhost:8080}") List<String> allowedOrigins) {
@@ -51,7 +66,10 @@ public class SecurityConfig {
             .requestMatchers("/api/v1/cli/**").hasAnyAuthority("ROLE_admin", "ROLE_developer")
             .requestMatchers("/api/v1/reviews/**").hasAnyAuthority("ROLE_admin", "ROLE_reviewer")
             .requestMatchers("/api/v1/policies/**", "/api/v1/constitutions/**").hasAuthority("ROLE_admin")
-            .requestMatchers("/api/**").authenticated()
+            .requestMatchers(RUNTIME_PATH_PREFIX + "/**").hasAuthority("ROLE_" + AGENT_RUNTIME_ROLE)
+            // A workload token carries only ROLE_agent_runtime, so naming the human roles keeps agents off the
+            // human control plane instead of admitting every authenticated principal.
+            .requestMatchers("/api/**").hasAnyAuthority("ROLE_admin", "ROLE_developer", "ROLE_reviewer", "ROLE_viewer")
             .anyRequest().denyAll())
         .oauth2ResourceServer(oauth -> oauth.bearerTokenResolver(scimAwareBearerTokenResolver()).jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
     return http.build();
@@ -71,6 +89,34 @@ public class SecurityConfig {
     return source;
   }
 
+  /** Replaces the auto-configured decoder so audience and authorized-party checks run before authorization. */
+  @Bean
+  JwtDecoder jwtDecoder(@Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri}") String jwkSetUri,
+                        @Value("${spring.security.oauth2.resourceserver.jwt.issuer-uri}") String issuerUri,
+                        RuntimeAudienceProperties audiences,
+                        ObjectProvider<ChaosFaultRegistry> chaosFaults) {
+    NimbusJwtDecoder decoder = NimbusJwtDecoder.withJwkSetUri(jwkSetUri).build();
+    decoder.setJwtValidator(new DelegatingOAuth2TokenValidator<>(
+        JwtValidators.createDefaultWithIssuer(issuerUri), new RuntimeTokenValidator(audiences)));
+    return chaosAwareDecoder(decoder, chaosFaults);
+  }
+
+  /**
+   * Losing the identity dependency rejects a new authorization; it never falls back to a cached or alternative
+   * principal. The seam is inert unless the isolated {@code chaos} profile registered the registry.
+   */
+  public static JwtDecoder chaosAwareDecoder(JwtDecoder delegate, ObjectProvider<ChaosFaultRegistry> chaosFaults) {
+    if (chaosFaults == null) return delegate;
+    return token -> {
+      try {
+        chaosFaults.ifAvailable(registry -> registry.check(ChaosFaultRegistry.Component.AUTHENTICATION));
+      } catch (ChaosFaultRegistry.ChaosFaultException injected) {
+        throw new JwtException("The identity dependency is unavailable");
+      }
+      return delegate.decode(token);
+    };
+  }
+
   @Bean
   JwtAuthenticationConverter jwtAuthenticationConverter() {
     JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
@@ -87,15 +133,29 @@ public class SecurityConfig {
   static final class RealmRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {
     @Override
     public Collection<GrantedAuthority> convert(Jwt jwt) {
+      List<String> roles = realmRoles(jwt);
+      boolean runtimeWorkload = roles.contains(AGENT_RUNTIME_ROLE);
+      boolean humanRole = roles.stream().anyMatch(HUMAN_ROLES::contains);
+      // A token claiming both identities is an impersonation attempt, not a superset of privileges.
+      if (runtimeWorkload && humanRole) return List.of();
+      if (runtimeWorkload) return List.of(new SimpleGrantedAuthority("ROLE_" + AGENT_RUNTIME_ROLE));
+      return roles.stream()
+          .filter(HUMAN_ROLES::contains)
+          .distinct()
+          .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
+          .map(GrantedAuthority.class::cast)
+          .toList();
+    }
+
+    /** Reads the supported realm roles from either the flat {@code roles} claim or Keycloak's {@code realm_access}. */
+    static List<String> realmRoles(Jwt jwt) {
       List<String> explicitRoles = jwt.getClaimAsStringList("roles");
       Map<String, Object> realmAccess = jwt.getClaimAsMap("realm_access");
       List<String> nestedRoles = realmAccess == null ? List.of() :
           ((List<?>) realmAccess.getOrDefault("roles", List.of())).stream().map(String::valueOf).toList();
       return Stream.concat(explicitRoles == null ? Stream.empty() : explicitRoles.stream(), nestedRoles.stream())
-          .filter(role -> role.equals("admin") || role.equals("developer") || role.equals("reviewer") || role.equals("viewer"))
+          .filter(role -> HUMAN_ROLES.contains(role) || AGENT_RUNTIME_ROLE.equals(role))
           .distinct()
-          .map(role -> new SimpleGrantedAuthority("ROLE_" + role))
-          .map(GrantedAuthority.class::cast)
           .toList();
     }
   }

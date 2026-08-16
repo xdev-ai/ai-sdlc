@@ -8,7 +8,8 @@
       { "name": "admin", "description": "Organization and policy administrator" },
       { "name": "developer", "description": "Developer and validation contributor" },
       { "name": "reviewer", "description": "Human reviewer and gate approver" },
-      { "name": "viewer", "description": "Read-only project governance and evidence observer" }
+      { "name": "viewer", "description": "Read-only project governance and evidence observer" },
+      { "name": "agent_runtime", "description": "Non-human agent workload; never combined with a human role and never a human authority" }
     ]
   },
   "clients": [
@@ -22,7 +23,8 @@
       "redirectUris": ["http://localhost:8080/login/oauth2/code/keycloak"],
       "webOrigins": ["http://localhost:8080"],
       "protocolMappers": [
-        { "name": "realm roles", "protocol": "openid-connect", "protocolMapper": "oidc-usermodel-realm-role-mapper", "config": { "claim.name": "roles", "multivalued": "true", "access.token.claim": "true", "id.token.claim": "true", "userinfo.token.claim": "true" } }
+        { "name": "realm roles", "protocol": "openid-connect", "protocolMapper": "oidc-usermodel-realm-role-mapper", "config": { "claim.name": "roles", "multivalued": "true", "access.token.claim": "true", "id.token.claim": "true", "userinfo.token.claim": "true" } },
+        { "name": "control plane audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": { "included.custom.audience": "aisdlc-management", "access.token.claim": "true" } }
       ]
     },
     {
@@ -34,7 +36,22 @@
       "serviceAccountsEnabled": true,
       "directAccessGrantsEnabled": false,
       "protocolMappers": [
-        { "name": "realm roles", "protocol": "openid-connect", "protocolMapper": "oidc-usermodel-realm-role-mapper", "config": { "claim.name": "roles", "multivalued": "true", "access.token.claim": "true" } }
+        { "name": "realm roles", "protocol": "openid-connect", "protocolMapper": "oidc-usermodel-realm-role-mapper", "config": { "claim.name": "roles", "multivalued": "true", "access.token.claim": "true" } },
+        { "name": "control plane audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": { "included.custom.audience": "aisdlc-management", "access.token.claim": "true" } }
+      ]
+    },
+    {
+      "clientId": "aisdlc-agent-runtime",
+      "name": "AI-SDLC Agent Runtime Workload",
+      "description": "Service-account client for governed agent workloads. It must hold only the agent_runtime realm role.",
+      "enabled": true,
+      "publicClient": false,
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "protocolMappers": [
+        { "name": "realm roles", "protocol": "openid-connect", "protocolMapper": "oidc-usermodel-realm-role-mapper", "config": { "claim.name": "roles", "multivalued": "true", "access.token.claim": "true" } },
+        { "name": "runtime audience", "protocol": "openid-connect", "protocolMapper": "oidc-audience-mapper", "config": { "included.custom.audience": "aisdlc-runtime", "access.token.claim": "true" } }
       ]
     }
   ]

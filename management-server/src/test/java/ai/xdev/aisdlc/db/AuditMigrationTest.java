@@ -48,4 +48,14 @@ class AuditMigrationTest {
     assertTrue(migration.contains("runtime_ai_provider_dispatches"));
     assertTrue(migration.contains("unique(project_id, idempotency_key)"));
   }
+
+  @Test
+  void declaresSingleUseTenantScopedToolGrantGuards() throws Exception {
+    String migration = Files.readString(Path.of("src/main/resources/db/migration/V18__runtime_ai_tool_grants.sql"));
+    assertTrue(migration.contains("tenant_id uuid not null references tenants(id)"));
+    assertTrue(migration.contains("runtime_ai_tool_grants_nonce_unique unique (grant_nonce_sha256)"));
+    assertTrue(migration.contains("runtime_ai_tool_grants_high_impact_approval_ck"));
+    assertTrue(migration.contains("runtime_ai_tool_grants_redeemed_ck"));
+    assertTrue(migration.contains("argument_fingerprint varchar(64) not null"));
+  }
 }
