@@ -71,6 +71,16 @@ jobs:
           npm ci --ignore-scripts
           npm run build
 
+  observability-config:
+    name: Observability configuration · Collector and Prometheus validation
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: Verify observability validation script contract
+        run: sh scripts/test-validate-observability-config.sh
+      - name: Validate Collector configuration and SLO burn-rate rules
+        run: sh scripts/validate-observability-config.sh
+
   typescript-sdk:
     name: TypeScript SDK · build and test
     runs-on: ubuntu-24.04

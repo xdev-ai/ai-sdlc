@@ -8,6 +8,8 @@ This directory contains a **reference** OpenTelemetry Collector gateway configur
 |---|---|
 | `otelcol-gateway.yaml` | Private OTLP gateway with mTLS, allowlisted platform services, memory limiting, redaction, batching, bounded exporter queue, and retry controls. |
 | `p3-slo-burn-rate-rules.yaml` | Prometheus recording and initial multi-window, multi-burn-rate alert rules for 30-day SLOs. |
+| `../../scripts/validate-observability-config.sh` | CI/local validator that runs the Collector `validate` command and `promtool check rules` with reviewed digest-pinned images. |
+| `../../scripts/test-validate-observability-config.sh` | Deterministic script contract test; it verifies pinning, isolation flags, command shape, and mutable-image rejection without contacting a registry. |
 
 ## Collector Operational Contract
 
@@ -27,6 +29,18 @@ The Collector health endpoint must bind on a private loopback or management netw
 | `OTEL_EXPORTER_CA_FILE`, `OTEL_EXPORTER_SERVER_NAME` | Exporter TLS validation | Private CA bundle and expected server identity |
 
 Run `otelcol-contrib validate --config=infra/observability/otelcol-gateway.yaml` using the **exact pinned distribution** selected for the deployment. Then use a test exporter to prove that `Authorization`, cookies, raw database statements, raw log bodies, user/tenant/project identifiers, prompts, model outputs, and tool arguments are absent. Do not interpret successful YAML parsing as a security test.
+
+## CI and Local Validation
+
+Run the following command from the repository root to execute the same Collector and Prometheus rule checks used by the CI job:
+
+```sh
+sh scripts/validate-observability-config.sh
+```
+
+The validator is intentionally fail-closed. It requires Docker, `openssl`, both configuration files, and `OTELCOL_IMAGE`/`PROMETHEUS_IMAGE` values containing an immutable `@sha256:` digest. It mounts only the target configuration and ephemeral one-day TLS material, disables container networking, uses a read-only container filesystem, and supplies non-secret validation-only environment values. The Collector command follows the documented `otelcol validate --config=...` form, while Prometheus validates alert and recording rules with `promtool check rules`.[1] [4]
+
+CI also runs the script contract test before the image-backed validation. The contract test does not replace the real tool checks; it ensures mutable image references, missing isolation flags, and command drift are detected deterministically even when an image registry is unavailable.
 
 ## SLI Metric and Burn-Rate Contract
 
@@ -48,3 +62,5 @@ The integrity alert is separate from availability budgeting. A single audit-chai
 [2] [OpenTelemetry: Transforming Telemetry](https://opentelemetry.io/docs/collector/transforming-telemetry/)
 
 [3] [Google SRE Workbook: Alerting on SLOs](https://sre.google/workbook/alerting-on-slos/)
+
+[4] [Prometheus: promtool command-line reference](https://prometheus.io/docs/prometheus/latest/command-line/promtool/)

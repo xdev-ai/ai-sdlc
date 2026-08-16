@@ -11,6 +11,7 @@ The next investment should strengthen production operability, make AI governance
 | Workstream | Primary outcome | Dependencies | Exit criteria |
 |---|---|---|---|
 | Observability and reliability | OpenTelemetry telemetry, SLO/error-budget definitions, alert routing, and immutable operational audit dashboards | Existing structured logs, health endpoints, and risk data | Service, delivery, governance-gate, and evidence-storage SLIs have documented SLOs; alerts are routed and tested; dashboards are tenant-safe |
+| Cost optimization and inference forecasting | Tenant-safe usage attribution, reproducible model pricing, explainable p50/p90 cost forecasts, budgets, and human-approved recommendations | Agent/session provenance, tenant authorization, notification/approval orchestration, and P3.3 runtime metering | Every reported amount is traceable to a usage entry and price version; sparse data is explicit; budgets and anomalies create evidence-linked human decisions only |
 | Resilience and recovery | Repeatable PostgreSQL and evidence-object backup, restore, disaster-recovery runbooks, and recovery drills | Object-lock evidence repository and retention model | Encrypted backups, restore verification, RPO/RTO targets, and signed drill evidence are available |
 | Enterprise deployment | Helm chart, GitOps reference implementation, hardened defaults, upgrade/rollback guides | Container images, migration safety checks, Keycloak topology | A clean cluster deployment is reproducible; upgrades and rollbacks are validated against a supported version matrix |
 | Policy-pack lifecycle | Signed and versioned policy-pack catalog with compatibility and promotion controls | CEL engine, policy bundle evidence, approval orchestration | Packs are tested, signed, promoted across environments, reversible, and associated with evaluation evidence |
@@ -19,7 +20,7 @@ The next investment should strengthen production operability, make AI governance
 
 The P3 AI gateway work is the highest product-risk reduction item because it moves governance from post-hoc recording to enforceable runtime controls. It should align agent controls to the NIST AI RMF functions **Govern, Map, Measure, and Manage**, while keeping the platform’s existing invariant that deterministic validators never call AI.[1]
 
-The implementation-ready design for **P3.1 Reliability** and **P3.3 Runtime AI Governance** is maintained in [`p3-reliability-and-runtime-ai-governance-design.md`](p3-reliability-and-runtime-ai-governance-design.md). It defines the OpenTelemetry contract, proposed initial SLIs/SLOs, Collector controls, safe runtime AI decision lifecycle, workload identity model, provider/tool controls, data-minimization rules, rollout gates, and acceptance criteria.
+The implementation-ready design for **P3.1 Reliability** and **P3.3 Runtime AI Governance** is maintained in [`p3-reliability-and-runtime-ai-governance-design.md`](p3-reliability-and-runtime-ai-governance-design.md). The associated [P3.1 resilience/chaos plan](p3-1-resilience-chaos-test-plan.md) defines isolated fault-injection test cases, game-day safety controls, and evidence requirements. [`p3-2-cost-optimization-and-inference-forecasting-design.md`](p3-2-cost-optimization-and-inference-forecasting-design.md) defines the provider-neutral P3.2 ledger, price catalog, forecast, budget, and approval architecture.
 
 The policy-pack catalog should be implemented before broad connector expansion. A shared, signed policy distribution model ensures that every CI/SCM connector consumes the same reviewed controls rather than embedding vendor-specific policy logic. The supply-chain work should add consumer-side provenance verification and progressively measure its coverage against SLSA requirements; SLSA frames provenance and progressively stronger integrity controls as a practical path for hardening software supply chains.[2]
 
@@ -37,9 +38,10 @@ P4 starts only after P3 produces operational baselines. Capacity targets should 
 | Milestone | Scope | Rationale |
 |---|---|---|
 | P3.1 | Observability and recovery | Establish measurable reliability and a safe operational fallback before increasing platform adoption |
-| P3.2 | Helm/GitOps deployment package and policy-pack catalog | Make the platform repeatably deployable and its governance controls consistently distributable |
+| P3.2 | Cost optimization and inference forecasting | Make AI operating cost attributable, explainable, and human-governed before scaling agent usage |
 | P3.3 | AI execution gateway | Enforce existing agent-governance rules where AI actions occur |
-| P3.4 | SCM/work-management connector expansion | Reuse the stable deployment, policy, and contract foundations across more customer toolchains |
+| P3.4 | Helm/GitOps deployment package and policy-pack catalog | Make the platform repeatably deployable and its governance controls consistently distributable |
+| P3.5 | SCM/work-management connector expansion | Reuse the stable deployment, policy, and contract foundations across more customer toolchains |
 | P4.1 | Assurance and scale verification | Produce evidence that the multi-tenant platform behaves correctly under isolation, load, and recovery scenarios |
 | P4.2 | Marketplace and certification | Open extension delivery only after module contracts and assurance criteria are stable |
 

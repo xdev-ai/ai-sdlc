@@ -153,3 +153,13 @@
 - [ ] P3.1 Sprint 3: add collector resilience, telemetry privacy/cardinality, instrumentation contract, and burn-alert rule validation tests.
 - [ ] P3.1 Sprint 4: collect a 28-day observe-only baseline, review SLO targets and exclusions, then approve production alert enforcement with signed operational evidence.
 - [x] Publish P3.1 Collector/burn-rate reference configuration and P3.3 CEL policy samples with fixture regression coverage.
+- [ ] P3.1 Resilience: publish a component-by-component fault-injection matrix covering Collector, telemetry backend, PostgreSQL/audit, evidence storage, policy engine, notification provider, SCM ingress, Keycloak, and runtime AI dependencies.
+- [ ] P3.1 Resilience: implement deterministic integration tests for fail-open telemetry and fail-closed governance evidence, policy, approval, and integrity paths.
+- [ ] P3.1 Resilience: define controlled chaos game days, blast-radius guardrails, abort criteria, evidence capture, recovery SLOs, and operator runbooks.
+- [ ] P3.1 Resilience: introduce fault-injection adapters and CI profiles that never execute destructive chaos actions against shared or production environments.
+- [ ] P3.2: define a tenant-safe inference usage ledger, canonical price catalog, currency normalization, data-retention model, and cost attribution dimensions.
+- [ ] P3.2: implement a deterministic forecasting pipeline with explainable baseline, seasonality handling, confidence intervals, back-testing, and insufficient-data behavior.
+- [ ] P3.2: define budget policies, anomaly detection, threshold notifications, human-approved exception workflow, and cost-control audit evidence.
+- [ ] P3.2: design provider adapters for usage reconciliation and model-routing recommendations that remain advisory until an explicit human decision.
+- [x] Observability CI: add a digest-pinned Collector and Prometheus rule validation script, workflow gate, deterministic failure tests, and documentation for local reproduction.
+- [x] Publish the detailed P3.1 resilience/chaos test plan and P3.2 Cost Optimization/inference forecasting design with cited governance rationale.
