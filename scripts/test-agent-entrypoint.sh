@@ -1,8 +1,9 @@
 #!/bin/sh
 # Deterministic contract test for infra/observability/entrypoint-with-optional-agent.sh.
 #
-# It replaces `java` and `exec` with a recording stub, so the test proves which JVM arguments the entrypoint would use
-# without starting a JVM, downloading an agent, or contacting a network.
+# A stub `java` placed earlier on PATH records the arguments the entrypoint would pass, so the test proves which JVM
+# configuration each case produces without starting a JVM, downloading an agent, or contacting a network. `exec` is a
+# shell builtin and is not replaced; it simply hands off to the stub.
 set -eu
 
 ROOT="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"

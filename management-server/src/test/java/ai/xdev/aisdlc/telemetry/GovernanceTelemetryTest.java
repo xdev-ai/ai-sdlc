@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -68,9 +69,34 @@ class GovernanceTelemetryTest {
     @Override public synchronized Throwable getCause() { return this; }
   }
 
+  /** A cycle longer than self-causation: A causes B, B causes A. Only a bounded walk terminates on this. */
+  private static final class CyclicCauseException extends RuntimeException {
+    private Throwable other;
+    CyclicCauseException(String message) { super(message); }
+    void linkTo(Throwable other) { this.other = other; }
+    @Override public synchronized Throwable getCause() { return other; }
+  }
+
   @Test
   void terminatesOnASelfReferencingExceptionChain() {
     assertEquals("failed", GovernanceTelemetry.outcomeFor(new SelfCausingException()));
+  }
+
+  @Test
+  void terminatesOnALongerCauseCycle() {
+    CyclicCauseException first = new CyclicCauseException("a");
+    CyclicCauseException second = new CyclicCauseException("b");
+    first.linkTo(second);
+    second.linkTo(first);
+    assertTimeoutPreemptively(java.time.Duration.ofSeconds(2),
+        () -> assertEquals("failed", GovernanceTelemetry.outcomeFor(first)));
+  }
+
+  @Test
+  void endsTheSpanAndRecordsTheEventWhenTheOperationThrowsAnError() {
+    StackOverflowError error = new StackOverflowError("deep recursion");
+    assertSame(error, assertThrows(StackOverflowError.class,
+        () -> telemetry.record("aisdlc.audit.append", "audit-correctness", () -> { throw error; })));
   }
 
   @Test

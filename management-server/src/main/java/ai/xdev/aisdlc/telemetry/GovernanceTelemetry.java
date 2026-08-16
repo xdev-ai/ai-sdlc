@@ -31,6 +31,7 @@ public class GovernanceTelemetry {
 
   static final String SLI_EVENTS = "aisdlc.sli.events";
   static final String OPERATION_DURATION = "aisdlc.operation.duration";
+  static final int MAX_CAUSE_DEPTH = 32;
 
   private static final AttributeKey<String> OPERATION = AttributeKey.stringKey("aisdlc.operation");
   private static final AttributeKey<String> OUTCOME = AttributeKey.stringKey("aisdlc.outcome");
@@ -61,7 +62,7 @@ public class GovernanceTelemetry {
   public GovernanceTelemetry(TelemetryProperties properties) {
     this.properties = properties;
     this.tracer = GlobalOpenTelemetry.getTracer(SCOPE, TelemetryAttributeContract.CONTRACT_VERSION);
-    Meter meter = GlobalOpenTelemetry.getMeter(SCOPE);
+    Meter meter = GlobalOpenTelemetry.meterBuilder(SCOPE).setInstrumentationVersion(TelemetryAttributeContract.CONTRACT_VERSION).build();
     this.sliEvents = meter.counterBuilder(SLI_EVENTS)
         .setDescription("Service-level indicator events for a governance journey")
         .setUnit("{event}")
@@ -84,13 +85,18 @@ public class GovernanceTelemetry {
   public <T> T record(String operation, String journey, Operation<T> work) throws Exception {
     long startedAt = System.nanoTime();
     Span span = startSpan(operation);
+    String outcome = "failed";
+    // The recording runs in a finally block so an Error — not only an Exception — still ends the span and emits its
+    // event. An unended span would leak in an agent-attached deployment and lose the failure from the SLI entirely.
     try (Scope ignored = span == null ? null : span.makeCurrent()) {
       T result = work.run();
-      complete(span, operation, journey, "success", startedAt);
+      outcome = "success";
       return result;
-    } catch (Exception failure) {
-      complete(span, operation, journey, outcomeFor(failure), startedAt);
+    } catch (Throwable failure) {
+      outcome = outcomeFor(failure);
       throw failure;
+    } finally {
+      complete(span, operation, journey, outcome, startedAt);
     }
   }
 
@@ -148,22 +154,29 @@ public class GovernanceTelemetry {
         ENVIRONMENT, properties.getEnvironment(),
         JOURNEY, journey,
         SLI_OUTCOME, sliOutcome);
-    TelemetryAttributeContract.requireSliEventLabels(
-        java.util.Set.of(SERVICE.getKey(), ENVIRONMENT.getKey(), JOURNEY.getKey(), SLI_OUTCOME.getKey()), sliOutcome);
+    // The label keys are a compile-time constant; asserting against the shared set avoids allocating one per call.
+    TelemetryAttributeContract.requireSliEventLabels(TelemetryAttributeContract.SLI_EVENT_LABELS, sliOutcome);
     sliEvents.add(1, sli);
     operationDuration.record(
         TimeUnit.NANOSECONDS.toMillis(elapsedNanos),
         Attributes.of(OPERATION, operation, OUTCOME, outcome));
   }
 
-  /** Maps a failure to the bounded outcome vocabulary without exposing the exception message. */
+  /**
+   * Maps a failure to the bounded outcome vocabulary without exposing the exception message.
+   *
+   * <p>The walk is depth-bounded rather than cycle-detecting. {@code getCause} can be overridden to return any
+   * cycle, not only self-causation, and this runs on the failure path before the fail-open guard — an unbounded walk
+   * would hang the governed operation rather than degrade telemetry.
+   */
   static String outcomeFor(Throwable failure) {
     Throwable cause = failure;
-    while (cause != null) {
+    for (int depth = 0; cause != null && depth < MAX_CAUSE_DEPTH; depth++) {
       String type = cause.getClass().getSimpleName();
       if (type.contains("Timeout") || cause instanceof java.util.concurrent.TimeoutException) return "timeout";
       if (cause instanceof SecurityException || cause instanceof IllegalArgumentException) return "rejected";
-      cause = cause.getCause() == cause ? null : cause.getCause();
+      Throwable next = cause.getCause();
+      cause = next == cause ? null : next;
     }
     return "failed";
   }
