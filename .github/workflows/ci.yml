@@ -93,47 +93,122 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/dependency-review-action@v5
 
-  dependency-check:
-    name: OWASP dependency scan
+  osv-pr:
+    name: OSV dependency scan · new pull request findings
+    if: github.event_name == 'pull_request'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable-pr.yml@v2.5.0
+
+  osv-full:
+    name: OSV dependency scan · full repository
+    if: github.event_name != 'pull_request'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.5.0
+
+  trivy:
+    name: Trivy repository and production-image scan
     runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+
+      - name: Scan dependencies, secrets, and infrastructure as code
+        id: filesystem
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
-          distribution: temurin
-          java-version: '25'
-          cache: maven
-      - name: Cache OWASP vulnerability data
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: owasp-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: owasp-${{ runner.os }}-
-      - name: Build and scan JVM dependencies
-        env:
-          OWASP_NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-filesystem.sarif
+          exit-code: '1'
+          cache: true
+
+      - name: Build production images for image security scanning
         run: |
-          if [ -z "${OWASP_NVD_API_KEY:-}" ]; then
-            echo "::error::NVD_API_KEY GitHub Actions secret is required for the mandatory OWASP Dependency-Check security gate."
-            echo "::error::Create an NVD API key, add it as the repository Actions secret NVD_API_KEY, then rerun this workflow."
-            exit 1
-          fi
-          args=(
-            --batch-mode
-            --no-transfer-progress
-            -DskipTests
-            -DfailBuildOnCVSS=9
-            -Dformat=HTML
-            -Dformat=JSON
-            org.owasp:dependency-check-maven:13.0.0:check
-          )
-          env -u NVD_API_KEY mvn -DnvdApiKeyEnvironmentVariable=OWASP_NVD_API_KEY "${args[@]}"
-      - name: Publish OWASP reports
+          docker build --file management-server/Dockerfile --tag aisdlc-management-server:security .
+          docker build --file portal/Dockerfile --tag aisdlc-portal:security .
+
+      - name: Scan management server production image
+        id: management_image
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: aisdlc-management-server:security
+          scan-type: image
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-management-server.sarif
+          exit-code: '1'
+          cache: true
+
+      - name: Scan portal production image
+        id: portal_image
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: aisdlc-portal:security
+          scan-type: image
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-portal.sarif
+          exit-code: '1'
+          cache: true
+
+      - name: Upload Trivy filesystem findings to code scanning
+        if: always() && hashFiles('trivy-filesystem.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-filesystem.sarif
+
+      - name: Upload Trivy management server findings to code scanning
+        if: always() && hashFiles('trivy-management-server.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-management-server.sarif
+
+      - name: Upload Trivy portal findings to code scanning
+        if: always() && hashFiles('trivy-portal.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-portal.sarif
+
+      - name: Retain Trivy evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: owasp-dependency-check-report
-          path: '**/target/dependency-check-report.*'
+          name: trivy-security-reports
+          path: trivy-*.sarif
           if-no-files-found: warn
+
+      - name: Enforce Trivy security policy
+        if: always()
+        run: |
+          failed=0
+          for scan in filesystem management_image portal_image; do
+            outcome="${{ steps.filesystem.outcome }}"
+            if [ "$scan" = "management_image" ]; then outcome="${{ steps.management_image.outcome }}"; fi
+            if [ "$scan" = "portal_image" ]; then outcome="${{ steps.portal_image.outcome }}"; fi
+            if [ "$outcome" != "success" ]; then
+              echo "::error::Trivy $scan scan found HIGH/CRITICAL findings or could not complete."
+              failed=1
+            fi
+          done
+          exit "$failed"

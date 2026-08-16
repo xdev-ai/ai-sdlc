@@ -11,12 +11,58 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  osv:
+    name: OSV dependency scan
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.5.0
+
+  trivy:
+    name: Trivy release filesystem scan
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+      - name: Scan release source for vulnerabilities, secrets, and misconfiguration
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-release.sarif
+          exit-code: '1'
+          cache: true
+      - name: Upload Trivy findings to code scanning
+        if: always() && hashFiles('trivy-release.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-release.sarif
+      - name: Retain Trivy release evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-release-report
+          path: trivy-release.sarif
+          if-no-files-found: warn
+
   release:
     name: Assemble and publish signed-by-checksum release
+    needs: [osv, trivy]
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:

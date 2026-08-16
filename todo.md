@@ -82,7 +82,11 @@
 - [x] Verify MinIO Object Lock bucket bootstrap and readiness probe in Docker Compose smoke on GitHub Actions (the sandbox has no Docker CLI/daemon).
 - [x] Fix MinIO dependency ordering by using `mc ready` from the client bootstrap instead of a health check that calls an unavailable server-image executable.
 - [x] Fix MinIO bootstrap retry by waiting for `mc alias set` connectivity before calling `mc ready`, avoiding a connection-refused race in Compose CI.
-- [ ] Repository owner configures the GitHub Actions `NVD_API_KEY` secret to unblock the OWASP Dependency-Check security gate.
+- [ ] Remove the NVD-dependent OWASP Dependency-Check gate and the obsolete `NVD_API_KEY` repository-secret requirement.
+- [ ] Add OSV-Scanner and Trivy security gates for dependency, SBOM, container, repository, secret, and IaC scanning without NVD API access.
+- [ ] Add GitHub CodeQL configuration and Dependabot coverage for Maven, npm, Go modules, GitHub Actions, and Docker.
+- [ ] Document security sources, severity policy, remediation workflow, false-positive handling, and CI evidence retention.
+- [ ] Verify OSV, Trivy, CodeQL, Dependabot configuration, SARIF upload, and release dependency gates on GitHub Actions.
 - [x] Standardize all GitHub-facing source metadata, documentation, and developer-facing copy in English.
 - [x] Add English/Vietnamese localization to the SSR portal, including language selection, persisted preference, and English fallback.
 - [x] Add localization to React Islands and test SSR fallback, accessibility, and URL/cookie language preference.

@@ -34,14 +34,14 @@ After startup, check the management API readiness group, the portal OIDC redirec
 
 ## Secret Management and Rotation
 
-Secrets must enter containers only through the runtime secret manager or environment injection. `.env` is for local development only and must never be committed. At minimum, rotate `POSTGRES_PASSWORD`, `KEYCLOAK_ADMIN_PASSWORD`, `PORTAL_CLIENT_SECRET`, `CLI_CLIENT_SECRET`, `AISDLC_EVIDENCE_S3_ACCESS_KEY`, `AISDLC_EVIDENCE_S3_SECRET_KEY`, the JWT/identity signing material managed by Keycloak, and any NVD API key used by CI.
+Secrets must enter containers only through the runtime secret manager or environment injection. `.env` is for local development only and must never be committed. At minimum, rotate `POSTGRES_PASSWORD`, `KEYCLOAK_ADMIN_PASSWORD`, `PORTAL_CLIENT_SECRET`, `CLI_CLIENT_SECRET`, `AISDLC_EVIDENCE_S3_ACCESS_KEY`, `AISDLC_EVIDENCE_S3_SECRET_KEY`, and the JWT/identity signing material managed by Keycloak. The security pipeline does not require an NVD API key.
 
 | Rotation sequence | Safe procedure |
 |---|---|
 | Portal / CLI OAuth clients | Create a replacement credential in Keycloak, deploy consumers with the replacement, validate an authentication/sync flow, then revoke the old credential. |
 | Database password | Create a new database credential or rotate the role password during a maintenance window, update the secret injection source, restart dependent services one at a time, then validate readiness and a transactional write. |
 | Keycloak bootstrap administrator | Replace the bootstrap secret in the secret manager, use a separately managed administrator account for normal operations, and test a privileged realm operation before revoking old access. |
-| CI scan key | Replace `NVD_API_KEY` in GitHub repository secrets, dispatch the CI workflow, verify scan data download succeeds, then delete the old key. |
+| CI security data and remediation controls | No NVD API key is required. Review OSV, Trivy, and CodeQL alerts in GitHub Security; remediate vulnerable dependencies or code, then rerun CI. A Trivy suppression requires a reviewed, time-bounded `.trivyignore.yaml` entry with advisory ID, rationale, owner, and expiry. |
 | Object-storage access key | Create a replacement least-privilege service credential, update the runtime secret source and bootstrap configuration, restart management-server, perform an authorized upload/download test, then revoke the old credential. Never rotate a key by editing a committed `.env` file. |
 
 Never record secret values, bearer tokens, JDBC URLs with credentials, or OAuth client secrets in tickets, audit messages, CLI configuration, or application logs.
@@ -85,9 +85,9 @@ When investigating an incident, record the correlation ID, request timestamp, pr
 
 ## References
 
-[1] [OWASP Dependency-Check — official project documentation](https://owasp.org/www-project-dependency-check/)
+[1] [OSV-Scanner GitHub Action](https://google.github.io/osv-scanner/github-action/)
 
-[2] [OWASP Dependency-Check GitHub Actions cache guidance](https://dependency-check.github.io/DependencyCheck/data/cache-action.html)
+[2] [Trivy GitHub Actions integration](https://trivy.dev/docs/latest/tutorials/integrations/github-actions/)
 
 [3] [Keycloak — Tracking instance status with health checks](https://www.keycloak.org/observability/health)
 

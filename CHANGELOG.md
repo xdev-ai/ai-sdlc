@@ -10,6 +10,13 @@ All notable changes to the AI-SDLC platform are documented in this file. The rep
 - S3-compatible `ObjectStoragePort` and AWS SDK for Java 2.x adapter, with MinIO Object Lock topology, deterministic bucket bootstrap, retention extension controls and compensating cleanup on metadata rollback.
 - Upload idempotency at the database boundary, audit-backed evidence lifecycle events, SSR portal workflows, and `aisdlc upload` with streaming multipart, digest verification, deterministic retry key and bounded retry/backoff.
 - Module integration guide, storage configuration/backup guidance, API documentation and unit tests for evidence service, controller and CLI transport.
+- English/Vietnamese portal localization with an English default, persisted preference, allowed-locale validation, safe fallback, SSR coverage and React Islands locale synchronization.
+
+### Security
+
+- Replaced NVD-dependent OWASP Dependency-Check with OSV-Scanner, Trivy, CodeQL, Dependabot and GitHub dependency review.
+- Added fail-closed HIGH/CRITICAL Trivy scanning for repository dependencies, secrets, Docker/Compose configuration and production images, with SARIF evidence retention.
+- Added CodeQL security-and-quality analysis for Java, JavaScript/TypeScript, Go and GitHub Actions, plus a weekly advisory-refresh schedule.
 
 ## [0.1.0] — Production hardening baseline
 
