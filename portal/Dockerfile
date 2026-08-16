@@ -13,8 +13,8 @@ RUN mvn -q -pl portal -am -DskipTests package
 # Pinned OpenTelemetry Java agent. The digest is verified at build time so a compromised or truncated download
 # fails the build instead of shipping an unverified agent into a governed runtime.
 FROM alpine:3.23 AS otel-agent
-ARG OTEL_AGENT_VERSION=2.16.0
-ARG OTEL_AGENT_SHA256=1b0246d3e60b608b07836a9656e1a97bb7d084b088111ef34ecd47483acebcf5
+ARG OTEL_AGENT_VERSION=2.30.0
+ARG OTEL_AGENT_SHA256=9d6bc2ad8dd8fb7f730984988e57b8ac0a82d81c7b3b8ae795378718733a509d
 RUN apk add --no-cache curl \
     && curl -sSfLo /tmp/opentelemetry-javaagent.jar \
        "https://repo1.maven.org/maven2/io/opentelemetry/javaagent/opentelemetry-javaagent/${OTEL_AGENT_VERSION}/opentelemetry-javaagent-${OTEL_AGENT_VERSION}.jar" \

@@ -11,8 +11,8 @@ Both runtime images carry a pinned OpenTelemetry Java agent:
 
 | Property | Value |
 |---|---|
-| Version | `2.16.0` |
-| SHA-256 | `1b0246d3e60b608b07836a9656e1a97bb7d084b088111ef34ecd47483acebcf5` |
+| Version | `2.30.0` |
+| SHA-256 | `9d6bc2ad8dd8fb7f730984988e57b8ac0a82d81c7b3b8ae795378718733a509d` |
 | Location in image | `/opt/opentelemetry/opentelemetry-javaagent.jar`, root-owned, mode `0444` |
 
 The agent is downloaded in a separate build stage and verified with `sha256sum -c`, so a compromised or truncated download fails the image build rather than shipping an unverified agent into a governed runtime. Both values are build arguments, so an upgrade is a reviewable one-line change with a new digest.
