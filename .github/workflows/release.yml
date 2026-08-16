@@ -44,6 +44,7 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-release.sarif
+          ignorefile: .trivyignore.yaml
           # The SARIF policy step below evaluates HIGH/CRITICAL findings after evidence upload.
           exit-code: '0'
           cache: true

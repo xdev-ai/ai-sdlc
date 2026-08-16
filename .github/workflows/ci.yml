@@ -135,6 +135,7 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-filesystem.sarif
+          ignorefile: .trivyignore.yaml
           # Findings are evaluated from SARIF after all reports upload.
           # Operational scanner failures still make this step fail.
           exit-code: '0'
@@ -155,6 +156,7 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-management-server.sarif
+          ignorefile: .trivyignore.yaml
           exit-code: '0'
           cache: true
 
@@ -168,6 +170,7 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-portal.sarif
+          ignorefile: .trivyignore.yaml
           exit-code: '0'
           cache: true
 

@@ -1,0 +1,26 @@
+# AI-SDLC Trivy accepted-risk register
+#
+# This file is intentionally active in Trivy workflows but contains no accepted
+# risk entries by default. Do not add an entry without an approved, time-bounded
+# exception. The scanner accepts `id`, `paths`, `purls`, `expired_at`, and
+# `statement`; encode the remaining review metadata in `statement` exactly as
+# shown below.
+
+vulnerabilities: []
+misconfigurations: []
+secrets: []
+licenses: []
+
+# Approved vulnerability exception template (leave commented until approved):
+# vulnerabilities:
+#   - id: CVE-YYYY-NNNN
+#     paths:
+#       - path/to/affected/manifest-or-artifact
+#     purls:
+#       - pkg:maven/example/group/example-artifact@1.2.3
+#     expired_at: YYYY-MM-DD
+#     statement: "rationale=<specific accepted risk>; owner=<accountable team or role>; approver=<reviewer identity>; approved_at=YYYY-MM-DD; ticket=<governance record>"
+#
+# An exception must be reviewed before expiry and removed immediately once a
+# fix is available. Never add operational scanner failures, unbounded dates, or
+# placeholders as active exception entries.

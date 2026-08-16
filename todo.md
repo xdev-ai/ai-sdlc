@@ -94,6 +94,9 @@
 - [x] Enforce the Trivy HIGH/CRITICAL policy from generated SARIF results rather than scanner step outcomes, preserving scanner-operation failures as CI failures.
 - [x] Add a regression test proving Trivy SARIF warnings do not block CI while error-level findings do.
 - [x] Correct OSV scheduling language and define `.trivyignore.yaml` creation, review, expiry, and removal requirements in security operations documentation.
+- [x] Add a safe, non-active `.trivyignore.yaml` template that captures every mandatory accepted-risk metadata field.
+- [x] Add automated tests and run a local Trivy exception scan without introducing a live suppression into production CI.
+- [x] Audit Trivy and OSV workflow triggers, permissions, scanner options, policy gates, SARIF retention, and release coverage against security-scanning documentation.
 - [x] Standardize all GitHub-facing source metadata, documentation, and developer-facing copy in English.
 - [x] Add English/Vietnamese localization to the SSR portal, including language selection, persisted preference, and English fallback.
 - [x] Add localization to React Islands and test SSR fallback, accessibility, and URL/cookie language preference.
