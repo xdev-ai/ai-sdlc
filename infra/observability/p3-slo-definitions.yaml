@@ -1,0 +1,98 @@
+# Versioned P3.1 service-level objective definitions.
+#
+# These rules produce the aisdlc_slo_target_ratio series that p3-slo-burn-rate-rules.yaml divides by. Without this
+# file the burn-rate alerts have no denominator and never fire, so both files must be loaded together.
+#
+# Every objective is an INITIAL PROPOSED TARGET, not an observed level. The 28-day observe-only baseline described in
+# docs/p3-reliability-and-runtime-ai-governance-design.md section 4 must complete before paging is enabled, and any
+# change to a target is a governed change with a recorded rationale.
+#
+# budget_policy separates two kinds of objective:
+#   error-budget  a ratio below 1.0; burn-rate alerting applies.
+#   integrity     a ratio of exactly 1.0; there is no budget to burn, so burn-rate alerting is EXCLUDED by label and
+#                 the zero-tolerance AiSdlcAuditOrEvidenceIntegrityViolation alert covers it instead. Dividing by
+#                 (1 - 1.0) would otherwise produce +Inf and page on the first sample.
+#
+# environment is fixed to production here because a target is an environment-specific commitment. Copy this file per
+# environment rather than templating one series across all of them.
+
+groups:
+  - name: aisdlc.p3.slo-definitions
+    interval: 1m
+    rules:
+      # Valid authenticated API requests returning a non-5xx outcome.
+      - record: aisdlc_slo_target_ratio
+        expr: vector(0.999)
+        labels:
+          service: ai-sdlc-management-server
+          environment: production
+          journey: control-plane-availability
+          window: 30d
+          budget_policy: error-budget
+          runbook: control-plane-availability
+
+      # PASS/FAIL/WARN policy evaluations completing within the latency budget.
+      - record: aisdlc_slo_target_ratio
+        expr: vector(0.9995)
+        labels:
+          service: ai-sdlc-management-server
+          environment: production
+          journey: policy-decision-latency
+          window: 30d
+          budget_policy: error-budget
+          runbook: policy-decision-latency
+
+      # Approval transitions that complete without an orchestration failure.
+      - record: aisdlc_slo_target_ratio
+        expr: vector(0.999)
+        labels:
+          service: ai-sdlc-management-server
+          environment: production
+          journey: approval-orchestration
+          window: 30d
+          budget_policy: error-budget
+          runbook: approval-orchestration
+
+      # Eligible notifications delivered or terminally failed with an auditable receipt.
+      - record: aisdlc_slo_target_ratio
+        expr: vector(0.995)
+        labels:
+          service: ai-sdlc-management-server
+          environment: production
+          journey: notification-timeliness
+          window: 30d
+          budget_policy: error-budget
+          runbook: notification-timeliness
+
+      # Valid signed webhooks accepted and durably recorded.
+      - record: aisdlc_slo_target_ratio
+        expr: vector(0.999)
+        labels:
+          service: ai-sdlc-management-server
+          environment: production
+          journey: scm-ingestion-freshness
+          window: 30d
+          budget_policy: error-budget
+          runbook: scm-ingestion-freshness
+
+      # Integrity objective: every governance mutation has a linked, verified audit entry.
+      - record: aisdlc_slo_target_ratio
+        expr: vector(1)
+        labels:
+          service: ai-sdlc-management-server
+          environment: production
+          journey: audit-correctness
+          window: 30d
+          budget_policy: integrity
+          runbook: audit-correctness
+
+      # Integrity objective: accepted evidence writes remain retrievable with a matching SHA-256.
+      - record: aisdlc_slo_target_ratio
+        expr: vector(1)
+        labels:
+          service: ai-sdlc-management-server
+          environment: production
+          journey: evidence-durability
+          window: 30d
+          budget_policy: integrity
+          runbook: evidence-durability

@@ -1,0 +1,76 @@
+# Alert routing for the P3.1 service-level objectives.
+#
+# Receiver endpoints and credentials are injected at deployment time; no destination, token, or address is committed
+# here. Notification templates deliberately carry only the alert labels and the runbook link — never prompt content,
+# model output, evidence bodies, raw audit payloads, tenant or project identifiers, or credentials.
+#
+# Paging is disabled until the 28-day observe-only baseline completes. Until then, point AISDLC_PAGE_RECEIVER_URL at
+# the non-paging review destination so the routes can be exercised without waking anyone.
+
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: governance-tickets
+  group_by: [alertname, service, environment, journey]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 12h
+  routes:
+    # Zero-tolerance integrity violations bypass grouping delays and always page.
+    - matchers:
+        - alert_class = governance-integrity
+      receiver: governance-page
+      group_wait: 0s
+      group_interval: 1m
+      repeat_interval: 1h
+      continue: false
+
+    # Fast burn on an error-budget journey pages the primary on-call.
+    - matchers:
+        - alert_class = slo-burn
+        - severity = page
+      receiver: governance-page
+      group_wait: 30s
+      repeat_interval: 4h
+
+    # Sustained burn is a business-hours ticket.
+    - matchers:
+        - alert_class = slo-burn
+        - severity = ticket
+      receiver: governance-tickets
+
+    # A failing synthetic journey is an availability signal, not a governance incident.
+    - matchers:
+        - alert_class = synthetic
+      receiver: governance-tickets
+
+inhibit_rules:
+  # While an integrity incident is open for a service, its burn-rate noise adds nothing.
+  - source_matchers:
+      - alert_class = governance-integrity
+    target_matchers:
+      - alert_class = slo-burn
+    equal: [service, environment]
+
+  # A fast burn already pages; the slow burn on the same journey is redundant.
+  - source_matchers:
+      - severity = page
+      - alert_class = slo-burn
+    target_matchers:
+      - severity = ticket
+      - alert_class = slo-burn
+    equal: [service, environment, journey]
+
+receivers:
+  - name: governance-page
+    webhook_configs:
+      - url: ${AISDLC_PAGE_RECEIVER_URL}
+        send_resolved: true
+        max_alerts: 25
+
+  - name: governance-tickets
+    webhook_configs:
+      - url: ${AISDLC_TICKET_RECEIVER_URL}
+        send_resolved: true
+        max_alerts: 50

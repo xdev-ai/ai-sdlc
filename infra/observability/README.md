@@ -1,6 +1,6 @@
 # P3.1 Observability Reference Artefacts
 
-This directory contains a **reference** OpenTelemetry Collector gateway configuration and Prometheus recording/alert rules. It is intentionally not wired into Docker Compose or a production deployment yet. P3.1 implementation must pin a Collector Contrib distribution by digest, select an approved telemetry backend, supply the deployment environment variables, test the configuration in the selected distribution, and complete the observe-only baseline before enabling paging.
+This directory contains the OpenTelemetry Collector gateway configuration, Prometheus SLO definitions, recording and alert rules, and alert routing. The Collector is wired into Docker Compose behind an opt-in `observability` profile, so the default topology is unchanged and the gateway never starts implicitly. P3.1 implementation must pin a Collector Contrib distribution by digest, select an approved telemetry backend, supply the deployment environment variables, test the configuration in the selected distribution, and complete the observe-only baseline before enabling paging.
 
 ## Files
 
@@ -10,6 +10,13 @@ This directory contains a **reference** OpenTelemetry Collector gateway configur
 | `p3-slo-burn-rate-rules.yaml` | Prometheus recording and initial multi-window, multi-burn-rate alert rules for 30-day SLOs. |
 | `../../scripts/validate-observability-config.sh` | CI/local validator that runs the Collector `validate` command and `promtool check rules` with reviewed digest-pinned images. |
 | `../../scripts/test-validate-observability-config.sh` | Deterministic script contract test; it verifies pinning, isolation flags, command shape, and mutable-image rejection without contacting a registry. |
+| `p3-slo-definitions.yaml` | Versioned SLO target ratios per journey, split into error-budget and integrity policies. Burn-rate rules divide by these. |
+| `p3-slo-rule-tests.yaml` | promtool unit tests: burn alerts fire when they should, stay silent on integrity objectives, and keep their runbook links. |
+| `alertmanager-routes.yaml` | Severity and integrity routing, inhibition, and secret-free receivers. |
+| `entrypoint-with-optional-agent.sh` | Attaches the OpenTelemetry Java agent only when telemetry is explicitly enabled. |
+| `../../scripts/test-observability-contracts.sh` | Offline contract tests for Collector resilience, cardinality, privacy, runbook coverage, and Compose opt-in. |
+| `../../scripts/synthetic-health-journey.sh` | Authenticated synthetic journey emitting the availability SLI as a Prometheus textfile. |
+| `../../scripts/test-chaos-profile-isolation.sh` | Static guardrails proving the chaos seam is reachable only through the isolated profile. |
 | `../../docs/telemetry-configuration-and-trace-context.md` | Application-side contract: `aisdlc.telemetry` configuration model, resource/metric allowlists, and W3C trace-context propagation implemented in the management server. |
 
 ## Collector Operational Contract

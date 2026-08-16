@@ -57,7 +57,10 @@ public class EvidenceRepositoryService {
     if (contentType == null || contentType.isBlank() || contentType.length() > 255) throw new IllegalArgumentException("A valid content type is required");
     if (validationEvidenceId != null) requireValidationEvidenceInProject(projectId, validationEvidenceId);
     String digest = sha256(bytes);
-    if (expectedSha256 != null && !expectedSha256.isBlank() && !digest.equalsIgnoreCase(expectedSha256.trim())) throw new IllegalArgumentException("Evidence digest does not match X-Content-SHA256");
+    if (expectedSha256 != null && !expectedSha256.isBlank() && !digest.equalsIgnoreCase(expectedSha256.trim())) {
+      telemetry.recordEvidenceIntegrityFailure();
+      throw new IllegalArgumentException("Evidence digest does not match X-Content-SHA256");
+    }
     String requestKey = normalizeIdempotencyKey(idempotencyKey, projectId, assetType, accessLevel, validationEvidenceId, digest);
     var existing = assets.findByProjectIdAndIdempotencyKey(projectId, requestKey);
     if (existing.isPresent()) {

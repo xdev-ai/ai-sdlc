@@ -31,6 +31,8 @@ public class GovernanceTelemetry {
 
   static final String SLI_EVENTS = "aisdlc.sli.events";
   static final String OPERATION_DURATION = "aisdlc.operation.duration";
+  static final String AUDIT_INTEGRITY_FAILURES = "aisdlc.audit.integrity_failures";
+  static final String EVIDENCE_INTEGRITY_FAILURES = "aisdlc.evidence.integrity_failures";
   static final int MAX_CAUSE_DEPTH = 32;
 
   private static final AttributeKey<String> OPERATION = AttributeKey.stringKey("aisdlc.operation");
@@ -58,6 +60,8 @@ public class GovernanceTelemetry {
   private final Tracer tracer;
   private final LongCounter sliEvents;
   private final DoubleHistogram operationDuration;
+  private final LongCounter auditIntegrityFailures;
+  private final LongCounter evidenceIntegrityFailures;
 
   public GovernanceTelemetry(TelemetryProperties properties) {
     this.properties = properties;
@@ -71,6 +75,35 @@ public class GovernanceTelemetry {
         .setDescription("Duration of a governance operation")
         .setUnit("ms")
         .build();
+    this.auditIntegrityFailures = meter.counterBuilder(AUDIT_INTEGRITY_FAILURES)
+        .setDescription("Audit hash-chain verifications that found a break")
+        .setUnit("{failure}")
+        .build();
+    this.evidenceIntegrityFailures = meter.counterBuilder(EVIDENCE_INTEGRITY_FAILURES)
+        .setDescription("Evidence digest verifications that did not match")
+        .setUnit("{failure}")
+        .build();
+  }
+
+  /**
+   * Records an audit hash-chain break. This is a zero-tolerance integrity signal, not an error budget: the alert on
+   * it pages immediately. Only the service and environment are attached, never an organization or sequence number.
+   */
+  public void recordAuditIntegrityFailure() {
+    increment(auditIntegrityFailures);
+  }
+
+  /** Records an evidence digest mismatch under the same zero-tolerance rule. */
+  public void recordEvidenceIntegrityFailure() {
+    increment(evidenceIntegrityFailures);
+  }
+
+  private void increment(LongCounter counter) {
+    try {
+      counter.add(1, Attributes.of(SERVICE, properties.getServiceName(), ENVIRONMENT, properties.getEnvironment()));
+    } catch (RuntimeException telemetryFailure) {
+      // Fail open: the governance record of the failure is the audit ledger, not this counter.
+    }
   }
 
   /**

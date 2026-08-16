@@ -5,6 +5,14 @@
 # aisdlc_slo_target_ratio time series per service/environment/journey with the
 # 30-day target as its value (for example, 0.999 for 99.90%).
 #
+# The aisdlc_slo_target_ratio series is produced by p3-slo-definitions.yaml;
+# both files must be loaded together or these alerts have no denominator.
+#
+# Burn-rate alerting is restricted to budget_policy="error-budget". An integrity
+# objective has a target of exactly 1.0, so dividing by (1 - target) would yield
+# +Inf and page on the first sample; those journeys are covered by the
+# zero-tolerance integrity alert at the bottom of this file instead.
+#
 # Values are proposed initial targets. Enable paging only after the 28-day
 # observe-only baseline and runbook/route approval described in the roadmap.
 
@@ -70,14 +78,14 @@ groups:
             aisdlc:sli_error_ratio:rate5m
             /
             on (service, environment, journey)
-            (1 - aisdlc_slo_target_ratio{window="30d"})
+            (1 - aisdlc_slo_target_ratio{window="30d", budget_policy="error-budget"})
           ) > 14.4
           and
           (
             aisdlc:sli_error_ratio:rate1h
             /
             on (service, environment, journey)
-            (1 - aisdlc_slo_target_ratio{window="30d"})
+            (1 - aisdlc_slo_target_ratio{window="30d", budget_policy="error-budget"})
           ) > 14.4
         for: 2m
         labels:
@@ -86,7 +94,7 @@ groups:
           alert_class: slo-burn
         annotations:
           summary: "AI-SDLC {{ $labels.journey }} is rapidly exhausting its 30-day error budget"
-          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/production-operations.md"
+          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/slo-runbooks.md#{{ $labels.journey }}"
           description: "The 5m and 1h error-budget burn rates exceed 14.4. Inspect the authorized trace and audit links; do not paste raw prompt or evidence data into the incident."
 
       - alert: AiSdlcSloSlowBurn
@@ -95,14 +103,14 @@ groups:
             aisdlc:sli_error_ratio:rate30m
             /
             on (service, environment, journey)
-            (1 - aisdlc_slo_target_ratio{window="30d"})
+            (1 - aisdlc_slo_target_ratio{window="30d", budget_policy="error-budget"})
           ) > 6
           and
           (
             aisdlc:sli_error_ratio:rate6h
             /
             on (service, environment, journey)
-            (1 - aisdlc_slo_target_ratio{window="30d"})
+            (1 - aisdlc_slo_target_ratio{window="30d", budget_policy="error-budget"})
           ) > 6
         for: 15m
         labels:
@@ -111,7 +119,7 @@ groups:
           alert_class: slo-burn
         annotations:
           summary: "AI-SDLC {{ $labels.journey }} is consuming the 30-day error budget above the sustained threshold"
-          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/production-operations.md"
+          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/slo-runbooks.md#{{ $labels.journey }}"
           description: "The 30m and 6h error-budget burn rates exceed 6. Review trend, deployment changes, and approved operational evidence."
 
       - alert: AiSdlcAuditOrEvidenceIntegrityViolation
@@ -126,5 +134,5 @@ groups:
           alert_class: governance-integrity
         annotations:
           summary: "AI-SDLC detected an audit or evidence integrity violation"
-          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/production-operations.md"
+          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/slo-runbooks.md#governance-integrity"
           description: "Integrity objectives have zero tolerated failures. Preserve the affected audit identifiers and begin the evidence incident procedure."

@@ -25,6 +25,9 @@ public class AuditVerificationService {
     return PageResponse.from(result.map(this::view));
   }
 
+  private ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry = ai.xdev.aisdlc.telemetry.GovernanceTelemetry.inert();
+  @org.springframework.beans.factory.annotation.Autowired public void setTelemetry(ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry) { this.telemetry = telemetry; }
+
   public VerificationView verify(UUID organizationId) {
     String expectedPrevious = GENESIS_HASH;
     long expectedSequence = 1;
@@ -33,6 +36,7 @@ public class AuditVerificationService {
       String canonical = String.join("|", organizationId.toString(), String.valueOf(event.getProjectId()), event.getActorSubject(), event.getAction(), event.getEntityType(), String.valueOf(event.getEntityId()), event.getPayload() == null ? "{}" : event.getPayload(), String.valueOf(event.getSequence()), event.getPreviousHash());
       String actual = sha256(canonical);
       if (event.getSequence() != expectedSequence || !expectedPrevious.equals(event.getPreviousHash()) || !actual.equals(event.getEventHash())) {
+        telemetry.recordAuditIntegrityFailure();
         return new VerificationView(false, verified, event.getSequence(), "Hash chain mismatch at sequence " + event.getSequence());
       }
       expectedPrevious = event.getEventHash();

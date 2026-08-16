@@ -71,6 +71,28 @@ jobs:
           npm ci --ignore-scripts
           npm run build
 
+  chaos-tier:
+    name: Chaos tier · isolated fault injection
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify chaos profile isolation
+        run: sh scripts/test-chaos-profile-isolation.sh
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+      - name: Run the isolated chaos and resilience scenarios
+        env:
+          # The tier runs only in this ephemeral runner. It never targets a shared or production environment, and
+          # the scenarios use in-process seams rather than infrastructure faults.
+          SPRING_PROFILES_ACTIVE: chaos
+        run: >-
+          mvn -B -pl management-server test
+          -Dtest='ChaosFaultRegistryTest,ChaosFaultRegistryProfileIntegrationTest,ResilienceScenarioTest'
+          -DfailIfNoSpecifiedTests=false
+
   observability-config:
     name: Observability configuration · Collector and Prometheus validation
     runs-on: ubuntu-24.04
@@ -80,6 +102,8 @@ jobs:
         run: sh scripts/test-validate-observability-config.sh
       - name: Verify telemetry agent entrypoint contract
         run: sh scripts/test-agent-entrypoint.sh
+      - name: Verify observability configuration contracts
+        run: sh scripts/test-observability-contracts.sh
       - name: Validate Collector configuration and SLO burn-rate rules
         run: sh scripts/validate-observability-config.sh
 

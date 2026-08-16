@@ -94,6 +94,40 @@ services:
     restart: "no"
     networks: [platform]
 
+  # Observability gateway. Opt-in only: `docker compose --profile observability up`. The default topology is
+  # unchanged, and the Collector never joins it implicitly.
+  otel-collector:
+    profiles: [observability]
+    image: otel/opentelemetry-collector-contrib@sha256:45392d534c1edcc809c2d112394029246bc679d2ae5ea7081414a1fc74f2c621
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./infra/observability/otelcol-gateway.yaml:/etc/otelcol/config.yaml:ro
+      - ${AISDLC_OTEL_TLS_DIR:-./infra/observability/tls}:/etc/otelcol/tls:ro
+    environment:
+      OTEL_OTLP_GRPC_ENDPOINT: 0.0.0.0:4317
+      OTEL_OTLP_HTTP_ENDPOINT: 0.0.0.0:4318
+      OTEL_TLS_CERT_FILE: /etc/otelcol/tls/collector.crt
+      OTEL_TLS_KEY_FILE: /etc/otelcol/tls/collector.key
+      OTEL_TLS_CLIENT_CA_FILE: /etc/otelcol/tls/client-ca.crt
+      OTEL_MEMORY_LIMIT_MIB: ${OTEL_MEMORY_LIMIT_MIB:-384}
+      OTEL_MEMORY_SPIKE_LIMIT_MIB: ${OTEL_MEMORY_SPIKE_LIMIT_MIB:-96}
+      DEPLOYMENT_ENVIRONMENT: ${DEPLOYMENT_ENVIRONMENT:-development}
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:?set OTEL_EXPORTER_OTLP_ENDPOINT}
+      OTEL_EXPORTER_AUTH_TOKEN: ${OTEL_EXPORTER_AUTH_TOKEN:?set OTEL_EXPORTER_AUTH_TOKEN}
+      OTEL_EXPORTER_CA_FILE: /etc/otelcol/tls/backend-ca.crt
+      OTEL_EXPORTER_SERVER_NAME: ${OTEL_EXPORTER_SERVER_NAME:?set OTEL_EXPORTER_SERVER_NAME}
+    expose:
+      - "4317"
+      - "4318"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    user: "10001:10001"
+    restart: unless-stopped
+
   management-server:
     build:
       context: .

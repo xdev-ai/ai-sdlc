@@ -53,7 +53,17 @@ docker run --rm --network none --read-only \
 printf '%s\n' 'Validating Prometheus recording and alert rules with a digest-pinned image...'
 docker run --rm --network none --read-only \
   --entrypoint /bin/promtool \
-  --mount "type=bind,src=$repo_root/$rules_file,dst=/rules/p3-slo-burn-rate-rules.yaml,readonly" \
-  "$prometheus_image" check rules /rules/p3-slo-burn-rate-rules.yaml
+  --mount "type=bind,src=$repo_root/infra/observability,dst=/rules,readonly" \
+  "$prometheus_image" check rules /rules/p3-slo-definitions.yaml /rules/p3-slo-burn-rate-rules.yaml
+
+# The unit tests are the real check: `check rules` only proves the syntax parses, not that a burn-rate alert fires
+# when it should, stays silent on an integrity objective, or keeps its runbook link. promtool needs a writable
+# scratch directory for its test storage, supplied as a bounded tmpfs.
+printf '%s\n' 'Running Prometheus rule unit tests with a digest-pinned image...'
+docker run --rm --network none --read-only \
+  --tmpfs /tmp:rw,noexec,nosuid,size=64m \
+  --entrypoint /bin/promtool \
+  --mount "type=bind,src=$repo_root/infra/observability,dst=/rules,readonly" \
+  "$prometheus_image" test rules /rules/p3-slo-rule-tests.yaml
 
 printf '%s\n' 'Observability configuration validation passed.'
