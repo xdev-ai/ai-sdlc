@@ -17,10 +17,11 @@
 | 5 | CEL policy bundle activated only after its fixtures pass; evaluates true, false, and does not pass on a missing input; evaluation evidence retained |
 | 6 | Approval requested with quorum, decided to `APPROVED`, and a second decision refused |
 | 7 | HMAC-signed webhook accepted and correlated; a replayed delivery de-duplicated; a forged signature refused |
-| 8 | **Audit hash chain verifies over the events this run produced**, and the ledger recorded them |
-| 9 | The management API is **not** reachable from the host — it stays on the private network |
+| 8 | Release provenance recorded, starts `DECLARED`, and only a human decision moves it to `VERIFIED` while still pinning the artifact digest |
+| 9 | **Audit hash chain verifies over the events this run produced**, and the ledger recorded them |
+| 10 | The management API is **not** reachable from the host — it stays on the private network |
 
-Step 8 is the one that matters. Verifying an empty ledger proves nothing; verifying a chain built by a real sequence of governed mutations is the platform's core guarantee.
+Step 9 is the one that matters. Verifying an empty ledger proves nothing; verifying a chain built by a real sequence of governed mutations is the platform's core guarantee.
 
 ## The three defects it found
 
@@ -85,6 +86,8 @@ Recording this because it is the same lesson: the acceptance run caught a regres
 
 This runs against Docker Compose, not a Kubernetes cluster, and against no external provider tenant. The webhook stage signs its own delivery, which exercises verification, correlation, and de-duplication but not a real GitHub App installation.
 
-Still not covered: evidence upload to object storage, SBOM ingestion, and signed release provenance. The file is structured so each is an added step, not a new harness.
+Still not covered: evidence upload to object storage and SBOM ingestion. The file is structured so each is an added step, not a new harness.
+
+The policy-pack catalog has a genuinely signed release: `v0.1.0` of `xdev-ai/ai-sdlc-policies` carries a keyless Cosign signature over its checksum manifest, and `cosign verify-blob` against the downloaded assets reports `Verified OK` — verified with a cosign binary outside the workflow that produced it, not merely a green job.
 
 Step 0 grants the CLI service account the `admin` role through the Keycloak admin API. That is a test-environment convenience and must never be pointed at a shared or production realm. The committed realm still grants that account only `developer`.

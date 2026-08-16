@@ -139,13 +139,27 @@ else
   [ "$FORGED" = "202" ] && bad "a forged signature was accepted" || ok "a forged signature is refused (HTTP $FORGED)"
 fi
 
-step "8  Verify the audit chain over everything above"
+step "8  Record and humanly verify release provenance"
+ART_DIGEST="sha256:$(printf 'acceptance-artifact-%s' "$SUFFIX" | shasum -a 256 2>/dev/null | awk '{print $1}')"
+[ "$ART_DIGEST" = "sha256:" ] && ART_DIGEST="sha256:$(printf 'acceptance-artifact-%s' "$SUFFIX" | sha256sum | awk '{print $1}')"
+PROV_BODY="{\"artifactName\":\"acceptance-artifact\",\"artifactDigest\":\"$ART_DIGEST\",\"sourceRepository\":\"xdev-ai/acc-$SUFFIX\",\"sourceRevision\":\"1111111111111111111111111111111111111111\",\"buildSystem\":\"acceptance\",\"buildUrl\":\"https://example.invalid/run/1\",\"signerIdentity\":\"https://github.com/xdev-ai/acc-$SUFFIX/.github/workflows/release.yml@refs/tags/v0.0.1\",\"signatureMethod\":\"SIGSTORE_KEYLESS\"}"
+PROV="$(authpost "/api/v1/projects/$PROJECT/supply-chain/provenance" "$PROV_BODY" | jq_ "d.get('id','')")"
+[ -n "$PROV" ] && ok "release provenance recorded ($PROV)" || bad "provenance record refused"
+if [ -n "$PROV" ]; then
+  LISTED="$(authget "/api/v1/projects/$PROJECT/supply-chain/provenance?page=0&size=10")"
+  printf '%s' "$LISTED" | grep -q 'DECLARED' && ok "provenance starts DECLARED, not trusted on arrival" || bad "provenance did not start DECLARED: $LISTED"
+  VERIFIED="$(authpost "/api/v1/projects/$PROJECT/supply-chain/provenance/$PROV/verification" '{"status":"VERIFIED","note":"acceptance run verified the signer identity"}')"
+  printf '%s' "$VERIFIED" | grep -q 'VERIFIED' && ok "a human decision moved provenance to VERIFIED" || bad "verification did not apply: $VERIFIED"
+  printf '%s' "$VERIFIED" | grep -q "$ART_DIGEST" && ok "the verified record still pins the artifact digest" || bad "artifact digest missing from the verified record"
+fi
+
+step "9  Verify the audit chain over everything above"
 VERIFY="$(authget "/api/v1/organizations/$ORG/audit-events/verify")"
 printf '%s' "$VERIFY" | grep -q '"intact":true' && ok "audit hash chain intact" || bad "audit chain not intact: $VERIFY"
 COUNT="$(authget "/api/v1/organizations/$ORG/audit-events?page=0&size=50" | jq_ "d.get('totalItems', 0)")"
-[ "${COUNT:-0}" -ge 6 ] && ok "audit ledger recorded ${COUNT} events for this run" || bad "expected at least 6 audit events across the full flow, saw ${COUNT:-0}"
+[ "${COUNT:-0}" -ge 10 ] && ok "audit ledger recorded ${COUNT} events for this run" || bad "expected at least 10 audit events across the full flow, saw ${COUNT:-0}"
 
-step "9  Confirm the management API stays off the host network"
+step "10  Confirm the management API stays off the host network"
 if curl -s -m 5 -o /dev/null http://localhost:8081/actuator/health 2>/dev/null; then
   bad "the management API answered on the host; it must stay on the private network"
 else
