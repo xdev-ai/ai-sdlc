@@ -62,10 +62,15 @@ public class RuntimeAiProviderProxyController {
     var view = new InvocationView(result.outcome(), result.reasonCode(), result.httpStatus(), result.attempts(),
         result.requestSha256(), result.responseSha256(), result.runtimeDecisionId(),
         "COMPLETE".equals(result.outcome()) ? result.responseBody() : null);
-    return ResponseEntity.status(statusFor(result.outcome())).body(view);
+    return ResponseEntity.status(statusFor(result.outcome(), result.reasonCode())).body(view);
   }
 
-  private static HttpStatus statusFor(String outcome) {
+  /**
+   * A replayed idempotency key is a conflict, not an authorization failure: reporting it as 403 would make a safe
+   * retry look like a governance block. Only a real governance decision returns 403.
+   */
+  private static HttpStatus statusFor(String outcome, String reasonCode) {
+    if ("DUPLICATE_REQUEST".equals(reasonCode)) return HttpStatus.CONFLICT;
     return switch (outcome) {
       case "COMPLETE" -> HttpStatus.OK;
       case "BLOCKED" -> HttpStatus.FORBIDDEN;

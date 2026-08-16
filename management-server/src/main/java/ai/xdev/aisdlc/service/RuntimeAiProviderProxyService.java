@@ -34,7 +34,30 @@ public class RuntimeAiProviderProxyService {
     if(inserted==0)return new InvocationResult("BLOCKED","DUPLICATE_REQUEST",null,0,requestDigest,null,null,authorization.runtimeDecisionId());
     ProviderCredentialResolver.CredentialMaterial material; try { material=credentials.resolve(profile.credentialReference(),profile.mtlsReference(),profile.requireMtls()); if(material==null||blank(material.authorizationHeader())||(profile.requireMtls()&&material.sslContext()==null)) throw new IllegalStateException("Credential material unavailable"); } catch(RuntimeException e) { return finish(projectId,workloadSubject,dispatchId,profile,authorization.runtimeDecisionId(),"FAILED",profile.requireMtls()?"PROVIDER_MTLS_UNAVAILABLE":"PROVIDER_CREDENTIAL_UNAVAILABLE",null,0,requestDigest,null,null); }
     ProviderHttpTransport.Response response=null; String reason="PROVIDER_TRANSPORT_FAILURE"; int attempts=0;
-    for(int attempt=1;attempt<=profile.maxAttempts();attempt++){ attempts=attempt; try { if(chaosFaults!=null)chaosFaults.ifAvailable(registry->registry.check(ChaosFaultRegistry.Component.RUNTIME_AI_PROVIDER)); response=transport.execute(new ProviderHttpTransport.Request(profile.endpoint(),body,material.authorizationHeader(),request.idempotencyKey().toString(),Duration.ofMillis(profile.timeoutMs()),material.sslContext())); if(!retryable(response.statusCode())||attempt==profile.maxAttempts())break; reason="PROVIDER_RETRY_EXHAUSTED"; pause(attempt); } catch(java.net.http.HttpTimeoutException e){reason="PROVIDER_TIMEOUT"; if(attempt<profile.maxAttempts()){pause(attempt);continue;} } catch(IOException|InterruptedException e){if(e instanceof InterruptedException)Thread.currentThread().interrupt();reason="PROVIDER_TRANSPORT_FAILURE"; if(attempt<profile.maxAttempts()&&!Thread.currentThread().isInterrupted()){pause(attempt);continue;} break;} catch(ChaosFaultRegistry.ChaosFaultException injected){reason="PROVIDER_TIMEOUT";break;} catch(RuntimeException e){reason="PROVIDER_TRANSPORT_FAILURE";break;} }
+    for (int attempt = 1; attempt <= profile.maxAttempts(); attempt++) {
+      attempts = attempt;
+      try {
+        if (chaosFaults != null) { chaosFaults.ifAvailable(registry -> registry.check(ChaosFaultRegistry.Component.RUNTIME_AI_PROVIDER)); }
+        response = transport.execute(new ProviderHttpTransport.Request(profile.endpoint(), body, material.authorizationHeader(), request.idempotencyKey().toString(), Duration.ofMillis(profile.timeoutMs()), material.sslContext()));
+        if (!retryable(response.statusCode()) || attempt == profile.maxAttempts()) { break; }
+        reason = "PROVIDER_RETRY_EXHAUSTED";
+        pause(attempt);
+      } catch (java.net.http.HttpTimeoutException e) {
+        reason = "PROVIDER_TIMEOUT";
+        if (attempt < profile.maxAttempts()) { pause(attempt); continue; }
+      } catch (IOException | InterruptedException e) {
+        if (e instanceof InterruptedException) { Thread.currentThread().interrupt(); }
+        reason = "PROVIDER_TRANSPORT_FAILURE";
+        if (attempt < profile.maxAttempts() && !Thread.currentThread().isInterrupted()) { pause(attempt); continue; }
+        break;
+      } catch (ChaosFaultRegistry.ChaosFaultException injected) {
+        reason = "PROVIDER_TIMEOUT";
+        break;
+      } catch (RuntimeException e) {
+        reason = "PROVIDER_TRANSPORT_FAILURE";
+        break;
+      }
+    }
     if(response==null)return finish(projectId,workloadSubject,dispatchId,profile,authorization.runtimeDecisionId(),"FAILED",reason,null,attempts,requestDigest,null,null);
     String responseDigest=sha256(response.body()==null?"":response.body()); boolean success=response.statusCode()>=200&&response.statusCode()<300; String outcome=success?"COMPLETE":"FAILED"; String responseReason=success?"PROVIDER_RESPONSE_ACCEPTED":retryable(response.statusCode())?"PROVIDER_RETRY_EXHAUSTED":"PROVIDER_HTTP_"+response.statusCode();
     return finish(projectId,workloadSubject,dispatchId,profile,authorization.runtimeDecisionId(),outcome,responseReason,response.statusCode(),attempts,requestDigest,responseDigest,response.body());

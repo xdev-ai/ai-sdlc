@@ -45,6 +45,7 @@ The workload subject comes from the validated token subject, never from the requ
 |---|---|---|
 | `COMPLETE` | 200 | Reason code, digests, attempt count, decision ID, and the provider response returned to the authorized caller |
 | `BLOCKED` | 403 | Reason code and digests; no provider response, and no outbound call was made |
+| `BLOCKED` with `DUPLICATE_REQUEST` | 409 | A replayed idempotency key is a conflict, not an authorization failure, so a safe retry is not reported as a governance block |
 | `FAILED` | 502 | Reason code, attempt count, and digests; the provider response is withheld |
 
 Only digests reach the audit record. The provider response is never persisted.

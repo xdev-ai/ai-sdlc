@@ -68,6 +68,18 @@ class RuntimeAiProviderProxyControllerTest {
   }
 
   @Test
+  void reportsAReplayedIdempotencyKeyAsAConflictRatherThanAGovernanceBlock() throws Exception {
+    when(proxy.invoke(any(), any(), any())).thenReturn(new RuntimeAiProviderProxyService.InvocationResult(
+        "BLOCKED", "DUPLICATE_REQUEST", null, 0, "a".repeat(64), null, null, UUID.randomUUID()));
+
+    var response = controller.invoke(UUID.randomUUID(), UUID.randomUUID(), input(), workloadToken("workload-1"));
+
+    assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+    assertEquals("DUPLICATE_REQUEST", response.getBody().reasonCode());
+    assertNull(response.getBody().providerResponse());
+  }
+
+  @Test
   void returnsBadGatewayAndNoProviderBodyWhenTheDispatchFails() throws Exception {
     when(proxy.invoke(any(), any(), any())).thenReturn(new RuntimeAiProviderProxyService.InvocationResult(
         "FAILED", "PROVIDER_TIMEOUT", null, 3, "a".repeat(64), null, "leaked provider body", UUID.randomUUID()));
