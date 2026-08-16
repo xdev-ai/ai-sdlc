@@ -35,9 +35,16 @@ updates:
     # revalidate OAuth2, migrations, authorization, and CLI evidence flows, so it is not accepted as a
     # dependency bump. PRs #4 and #7 proposing eclipse-temurin-26 were closed for this reason.
     ignore:
+      # Build image.
       - dependency-name: maven
         versions: ["3.9.15-eclipse-temurin-26"]
       - dependency-name: maven
+        update-types: ["version-update:semver-major"]
+      # Runtime image. The first rule covered only the build image, which let PRs #17 and #21 raise the same
+      # JDK move against eclipse-temurin.
+      - dependency-name: eclipse-temurin
+        versions: ["26-jre-alpine-3.23"]
+      - dependency-name: eclipse-temurin
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
@@ -51,9 +58,16 @@ updates:
     # revalidate OAuth2, migrations, authorization, and CLI evidence flows, so it is not accepted as a
     # dependency bump. PRs #4 and #7 proposing eclipse-temurin-26 were closed for this reason.
     ignore:
+      # Build image.
       - dependency-name: maven
         versions: ["3.9.15-eclipse-temurin-26"]
       - dependency-name: maven
+        update-types: ["version-update:semver-major"]
+      # Runtime image. The first rule covered only the build image, which let PRs #17 and #21 raise the same
+      # JDK move against eclipse-temurin.
+      - dependency-name: eclipse-temurin
+        versions: ["26-jre-alpine-3.23"]
+      - dependency-name: eclipse-temurin
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
