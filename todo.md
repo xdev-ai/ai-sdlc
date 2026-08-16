@@ -131,3 +131,16 @@
 - [ ] Post-P2 P3: implement policy-aware AI gateway enforcement for approved agent identities, model allowlists, prompt/data classification, and decision evidence.
 - [ ] Post-P2 P4: introduce tenant isolation verification, capacity/performance testing, and compliance evidence packs for enterprise assurance.
 - [ ] Post-P2 P4: publish a stable integration marketplace and extension certification process for independently deployable SDK and connector modules.
+- [ ] P3.1.1: define the OpenTelemetry resource model, semantic-convention profile, trace-propagation contract, and telemetry data-classification policy.
+- [ ] P3.1.2: instrument Spring MVC, Spring Security, JPA, outbound HTTP, object evidence storage, notification delivery, policy evaluation, and SCM ingestion with OpenTelemetry.
+- [ ] P3.1.3: deploy an OpenTelemetry Collector reference topology with tenant-safe routing, sampling, redaction, retry, and back-pressure controls.
+- [ ] P3.1.4: define, implement, and document availability, latency, correctness, freshness, and durability SLIs with service-specific SLOs and error budgets.
+- [ ] P3.1.5: add alert-routing, incident linkage, SLO dashboards, burn-rate rules, operational audit evidence, and synthetic health checks.
+- [ ] P3.1.6: add telemetry contract tests, cardinality/privacy regression tests, collector resilience tests, and SLO runbooks.
+- [ ] P3.3.1: define the runtime AI governance gateway threat model, trust boundaries, decision taxonomy, data classification, and tenant-isolation requirements.
+- [ ] P3.3.2: implement authenticated agent workload identities, service-to-service authorization, model/provider allowlists, and tenant-scoped policy evaluation.
+- [ ] P3.3.3: implement pre-flight and post-flight AI decision enforcement for prompts, context, tools, output handling, and mandatory human-approval gates.
+- [ ] P3.3.4: add privacy-preserving runtime evidence, tamper-evident request/decision linkage, provenance correlation, retention, and legal-hold enforcement.
+- [ ] P3.3.5: add fail-closed resilience controls: provider timeout/budget management, idempotency, circuit breaking, rate limiting, safe fallback, and operator override governance.
+- [ ] P3.3.6: create runtime AI governance APIs, portal workflows, deterministic conformance/security tests, rollout controls, and English operational documentation.
+- [x] Publish the implementation design for P3.1 OpenTelemetry/SLO and P3.3 Runtime AI Governance, including architecture, acceptance criteria, and cited control rationale.

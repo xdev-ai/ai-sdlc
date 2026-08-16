@@ -19,6 +19,8 @@ The next investment should strengthen production operability, make AI governance
 
 The P3 AI gateway work is the highest product-risk reduction item because it moves governance from post-hoc recording to enforceable runtime controls. It should align agent controls to the NIST AI RMF functions **Govern, Map, Measure, and Manage**, while keeping the platform’s existing invariant that deterministic validators never call AI.[1]
 
+The implementation-ready design for **P3.1 Reliability** and **P3.3 Runtime AI Governance** is maintained in [`p3-reliability-and-runtime-ai-governance-design.md`](p3-reliability-and-runtime-ai-governance-design.md). It defines the OpenTelemetry contract, proposed initial SLIs/SLOs, Collector controls, safe runtime AI decision lifecycle, workload identity model, provider/tool controls, data-minimization rules, rollout gates, and acceptance criteria.
+
 The policy-pack catalog should be implemented before broad connector expansion. A shared, signed policy distribution model ensures that every CI/SCM connector consumes the same reviewed controls rather than embedding vendor-specific policy logic. The supply-chain work should add consumer-side provenance verification and progressively measure its coverage against SLSA requirements; SLSA frames provenance and progressively stronger integrity controls as a practical path for hardening software supply chains.[2]
 
 ## P4 — Assurance, Scale, and Ecosystem
