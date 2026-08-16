@@ -122,3 +122,4 @@
 - [ ] Run full Java, frontend, Go, static guardrail, security-policy, Compose CI, and GitHub Actions verification for the P0–P2 release.
 - [x] Update English-only architecture, API, operations, security, administrator, developer, integration, and changelog documentation for every P0–P2 capability.
 - [ ] Commit and publish every verified P0–P2 increment to `xdev-ai/ai-sdlc` on the `main` branch.
+- [ ] Remediate remaining OSV dependency resolution and Hibernate fixed-digest schema validation failures, then re-run CI.

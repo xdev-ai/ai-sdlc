@@ -13,7 +13,7 @@ public class NotificationDeliveryReceipt {
   @Column(nullable = false, length = 30) private String outcome;
   @Column(name = "http_status") private Integer httpStatus;
   @Column(name = "error_code", length = 120) private String errorCode;
-  @Column(name = "payload_sha256", nullable = false, columnDefinition = "char(64)") private String payloadSha256;
+  @Column(name = "payload_sha256", nullable = false, length = 64) private String payloadSha256;
   @Column(name = "delivery_timestamp", nullable = false) private Instant deliveryTimestamp = Instant.now();
   protected NotificationDeliveryReceipt() {}
   public NotificationDeliveryReceipt(UUID deliveryId, int attemptNumber, String outcome, Integer httpStatus, String errorCode, String payloadSha256) { this.deliveryId = deliveryId; this.attemptNumber = attemptNumber; this.outcome = outcome; this.httpStatus = httpStatus; this.errorCode = errorCode; this.payloadSha256 = payloadSha256; }

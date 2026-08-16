@@ -10,7 +10,7 @@ public class ScimServicePrincipal {
   @Id @GeneratedValue(strategy = GenerationType.UUID) private UUID id;
   @Column(name = "tenant_id", nullable = false) private UUID tenantId;
   @Column(name = "display_name", nullable = false, length = 160) private String displayName;
-  @Column(name = "token_sha256", nullable = false, unique = true, columnDefinition = "char(64)") private String tokenSha256;
+  @Column(name = "token_sha256", nullable = false, unique = true, length = 64) private String tokenSha256;
   @Column(nullable = false) private boolean active = true;
   @Column(name = "created_by", nullable = false, length = 200) private String createdBy;
   @Column(name = "created_at", nullable = false) private Instant createdAt = Instant.now();
