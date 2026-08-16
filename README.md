@@ -45,6 +45,8 @@ The SSR portal is the public browser entry point. The Management API runs on the
 5. Run `cd sdk/typescript && npm ci --ignore-scripts && npm run build && npm test` to verify the TypeScript SDK.
 6. Run `cd infra/terraform-provider && go test ./... && go build ./...` to verify the Terraform provider, then `cd ide/vscode && node --test test/extension.test.mjs` to check the VS Code integration manifest.
 
+For module-by-module startup, integration, P3 foundation APIs, and the complete release-verification command set, see the [Module Usage and Verification Guide](docs/module-usage-and-verification.md).
+
 ## Language policy
 
 Repository-facing material—README, documentation, issue and pull-request content, release notes, API descriptions, and developer-facing code comments—uses English. The portal supports English and Vietnamese; Vietnamese text is deliberately confined to the localization resource that is rendered to end users. See [`docs/localization.md`](docs/localization.md).

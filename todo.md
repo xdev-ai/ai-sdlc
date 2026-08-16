@@ -179,3 +179,6 @@
 - [ ] P3.3 Provider proxy: add a provider-neutral request contract with model/provider allowlist verification, workload identity binding, timeouts, bounded retries, and fail-closed decision evidence.
 - [ ] P3.3 Tool broker: add tenant-scoped tool capability grants, argument fingerprinting, explicit approval linkage for high-impact tools, and no raw prompt/output persistence.
 - [x] P3.3 Runtime integration: add controlled integration tests for policy-engine chaos timeout and confirm profile isolation when `chaos` is not active.
+- [x] Release verification: inventory every independently buildable AI-SDLC artifact, run its documented build/test/security contract, and remediate any failing artifact.
+- [x] Release documentation: publish or refresh English getting-started, configuration, usage, and verification guidance for every independently usable module.
+- [x] Release evidence: publish the active-release build/module verification report and capture the verified public SSR portal surface without fabricating authenticated data views.
