@@ -134,6 +134,15 @@
     ,"pending review decisions": "quyết định phê duyệt đang chờ"
     ,"pending exceptions": "ngoại lệ đang chờ"
     ,"Every decision remains server-authorized, CSRF-protected and appended to the immutable audit ledger. Exception approvals also require an explicit UTC expiry.": "Mọi quyết định đều do server ủy quyền, được bảo vệ CSRF và được ghi thêm vào sổ cái kiểm toán bất biến. Phê duyệt ngoại lệ cũng yêu cầu thời hạn UTC rõ ràng."
+    ,"Keycloak session connected": "Phiên Keycloak đã kết nối"
+    ,"Keycloak session needs renewal": "Phiên Keycloak cần được gia hạn"
+    ,"SECURE SESSION": "PHIÊN BẢO MẬT"
+    ,"Reconnect to continue your": "Kết nối lại để tiếp tục"
+    ,"governed work.": "công việc được quản trị."
+    ,"Your secure sign-in session ended or could not be refreshed. No draft, evidence, API token, or identity-provider detail is displayed on this page.": "Phiên đăng nhập bảo mật đã kết thúc hoặc không thể làm mới. Trang này không hiển thị bản nháp, bằng chứng, API token hoặc chi tiết nhà cung cấp danh tính."
+    ,"Sign in again": "Đăng nhập lại"
+    ,"Return to home": "Về trang chủ"
+    ,"After a successful sign-in, the portal resumes a safe saved workspace request when one is available; otherwise it opens the standard overview.": "Sau khi đăng nhập thành công, portal sẽ tiếp tục yêu cầu không gian làm việc đã lưu và an toàn khi có thể; nếu không, portal sẽ mở trang tổng quan tiêu chuẩn."
   };
 
   function translateText(root) {

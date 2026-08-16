@@ -15,6 +15,7 @@ import org.springframework.web.multipart.MultipartFile;
 /** Server-side OAuth client. Browser code never receives a management API access token. */
 @Component
 public class ManagementApiClient {
+  static final String AUTHENTICATION_REQUIRED = "AUTHENTICATION_REQUIRED";
   private final RestClient rest;
   public ManagementApiClient(@Value("${aisdlc.management-api.base-url}") String baseUrl) { this.rest = RestClient.builder().baseUrl(baseUrl).build(); }
 
@@ -84,8 +85,13 @@ public class ManagementApiClient {
   private int number(Object value) { return value instanceof Number number ? number.intValue() : 0; }
   private long longNumber(Object value) { return value instanceof Number number ? number.longValue() : 0L; }
   private String bearer(String token) { return "Bearer " + token; }
-  private String errorMessage(RuntimeException error) {
-    if (error instanceof RestClientResponseException response) return "Control plane returned " + response.getStatusCode().value() + ". Check role, scope, and request data.";
+  static boolean requiresSessionRecovery(String error) { return AUTHENTICATION_REQUIRED.equals(error); }
+  static String errorMessage(RuntimeException error) {
+    if (error instanceof RestClientResponseException response) {
+      if (response.getStatusCode().value() == 401) return AUTHENTICATION_REQUIRED;
+      if (response.getStatusCode().value() == 403) return "Control plane denied this request. Check project access and try again.";
+      return "Control plane could not process this request. Please retry.";
+    }
     return "Control plane is temporarily unavailable. Please retry.";
   }
 }

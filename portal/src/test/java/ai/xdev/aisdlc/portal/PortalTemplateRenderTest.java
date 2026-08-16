@@ -26,7 +26,7 @@ class PortalTemplateRenderTest {
     engine.setTemplateResolver(resolver);
 
     Map<String, Object> variables = Map.ofEntries(
-        Map.entry("page", "overview"), Map.entry("userName", "Administrator"),
+        Map.entry("page", "overview"), Map.entry("userName", "Administrator"), Map.entry("keycloakSessionStatus", "CONNECTED"),
         Map.entry("_csrf", Map.of("parameterName", "_csrf", "token", "test-token", "headerName", "X-CSRF-TOKEN")),
         Map.entry("organizations", List.of()), Map.entry("projects", List.of()), Map.entry("memberships", List.of()),
         Map.entry("kits", List.of()), Map.entry("projectKits", List.of()), Map.entry("validations", List.of()),
@@ -49,5 +49,7 @@ class PortalTemplateRenderTest {
     assertTrue(html.contains("AI—SDLC"));
     assertTrue(html.contains("Make every delivery"));
     assertTrue(html.contains("browser never stores API tokens"));
+    assertTrue(html.contains("Keycloak session connected"));
+    assertTrue(html.contains("action=\"/logout\""));
   }
 }

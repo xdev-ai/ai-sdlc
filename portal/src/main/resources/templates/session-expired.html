@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en" th:lang="${#locale.language}" xmlns:th="https://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Reconnect · AI-SDLC</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/portal.css"><link rel="stylesheet" href="/css/locale.css">
+</head>
+<body class="session-body">
+  <main class="session-shell" aria-labelledby="session-title">
+    <a class="brand session-brand" href="/"><span class="brand-mark">A</span><span>AI—SDLC</span></a>
+    <section class="session-card">
+      <p class="eyebrow">SECURE SESSION</p>
+      <div class="connection-state expired" role="status"><span aria-hidden="true"></span><span>Keycloak session needs renewal</span></div>
+      <h1 id="session-title">Reconnect to continue your <em>governed work.</em></h1>
+      <p>Your secure sign-in session ended or could not be refreshed. No draft, evidence, API token, or identity-provider detail is displayed on this page.</p>
+      <div class="session-actions"><a class="button primary" href="/oauth2/authorization/keycloak">Sign in again <span>→</span></a><a class="button session-quiet" href="/">Return to home</a></div>
+      <p class="session-note">After a successful sign-in, the portal resumes a safe saved workspace request when one is available; otherwise it opens the standard overview.</p>
+    </section>
+  </main>
+  <script src="/js/locale.js" defer></script>
+</body>
+</html>

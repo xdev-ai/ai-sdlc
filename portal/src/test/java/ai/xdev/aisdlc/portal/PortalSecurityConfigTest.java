@@ -16,5 +16,8 @@ class PortalSecurityConfigTest {
     assertTrue(source.contains("httpStrictTransportSecurity"));
     assertTrue(source.contains("/actuator/health"));
     assertTrue(source.contains(".requestMatchers(\"/app/**\").authenticated()"));
+    assertTrue(source.contains("/session-expired"));
+    assertTrue(source.contains("LoginUrlAuthenticationEntryPoint"));
+    assertTrue(source.contains("failureUrl(\"/session-expired\")"));
   }
 }

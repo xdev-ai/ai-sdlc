@@ -7,6 +7,7 @@ The screenshot set contains only **real runtime evidence**. It never uses mock U
 | Surface | Evidence | Verification state |
 | --- | --- | --- |
 | Public English portal landing | `portal-landing-en.png` | Captured from the live SSR portal at `http://127.0.0.1:8080/` with Chromium headless at a 1440×1100 viewport during release verification. |
+| Public Keycloak session-recovery screen | `portal-session-expired-en.png` | Captured from the live SSR portal at `http://127.0.0.1:18080/session-expired` with Chromium headless at a 1440×1100 viewport. The page contains no token, user identity, draft, or identity-provider diagnostic data. |
 | Control-plane workspace | Automated module/API/Docker Compose verification | Requires Keycloak authentication and a management-server session. |
 | Risk Intelligence Cockpit | Automated React-island and module verification | Requires Keycloak authentication and project-scoped data. |
 | Policy-as-Code workspace | Automated policy-engine and module verification | Requires Keycloak authentication and project-scoped policy data. |

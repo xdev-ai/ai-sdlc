@@ -183,3 +183,5 @@
 - [x] Release verification: inventory every independently buildable AI-SDLC artifact, run its documented build/test/security contract, and remediate any failing artifact.
 - [x] Release documentation: publish or refresh English getting-started, configuration, usage, and verification guidance for every independently usable module.
 - [x] Release evidence: publish the active-release build/module verification report and capture the verified public SSR portal surface without fabricating authenticated data views.
+- [x] Portal authentication UX: expose a privacy-safe Keycloak connection state in SSR navigation and a graceful, localized session-expiry recovery flow without exposing tokens or identity-provider internals.
+- [x] Portal authentication UX: add controller/template regression coverage, visual verification, and English operational documentation for Keycloak outage and expired-session behavior.
