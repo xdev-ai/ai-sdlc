@@ -17,8 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class InferenceCostService {
   public record UsageView(UUID id, String sourceEventKey, String provider, String modelName, Instant occurredAt, long inputTokens, long outputTokens, String currencyCode, long sourceCostMinor) {}
   public record ForecastView(UUID id, LocalDate start, int horizonDays, String currencyCode, Long predictedCostMinor, Long lowerBoundMinor, Long upperBoundMinor, int sampleDays, String status) {}
-  private final JdbcTemplate jdbc; private final ProjectAccessService access; private final AuditService audit;
-  public InferenceCostService(JdbcTemplate jdbc, ProjectAccessService access, AuditService audit) { this.jdbc = jdbc; this.access = access; this.audit = audit; }
+  private final JdbcTemplate jdbc; private final ProjectAccessService access; private final AuditService audit; private final BudgetEnforcementService budgets;
+  public InferenceCostService(JdbcTemplate jdbc, ProjectAccessService access, AuditService audit, BudgetEnforcementService budgets) { this.jdbc = jdbc; this.access = access; this.audit = audit; this.budgets = budgets; }
   @Transactional
   public UsageView ingest(UUID projectId, String actor, String sourceEventKey, String provider, String model, String version, Instant occurredAt, long input, long output, String currency, long costMinor, String sourceClaimSha256) {
     var project = access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER);
@@ -29,6 +29,7 @@ public class InferenceCostService {
     String evidence = sha256(projectId + "|" + sourceEventKey + "|" + c + "|" + costMinor);
     jdbc.update("insert into inference_cost_allocations(id,usage_event_id,project_id,allocation_key,currency_code,allocated_cost_minor,allocation_method,allocation_evidence_sha256) values(?,?,?,?,?,?,?,?)", UUID.randomUUID(), id, projectId, "project:" + projectId, c, costMinor, "SOURCE_COST_EXACT", evidence);
     audit.append(project.getOrganizationId(), projectId, actor, "inference_usage.ingested", "inference_usage_event", id.toString(), "{\"sourceEventKey\":\"" + json(sourceEventKey) + "\",\"costMinor\":" + costMinor + "}");
+    budgets.evaluateAfterUsage(projectId, id, c, actor);
     return new UsageView(id, sourceEventKey.trim(), provider.trim(), model.trim(), occurredAt == null ? Instant.now() : occurredAt, input, output, c, costMinor);
   }
   @Transactional

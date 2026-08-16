@@ -31,4 +31,12 @@ class AuditMigrationTest {
     assertTrue(migration.contains("evidence_retention_after_created_ck"));
     assertTrue(migration.contains("evidence_retention_cleanup_idx"));
   }
+
+  @Test
+  void declaresUsageLinkedBudgetDecisionIdempotency() throws Exception {
+    String migration = Files.readString(Path.of("src/main/resources/db/migration/V16__budget_usage_linkage.sql"));
+    assertTrue(migration.contains("add column usage_event_id uuid references inference_usage_events(id)"));
+    assertTrue(migration.contains("inference_budget_decisions_usage_event_unique"));
+    assertTrue(migration.contains("where usage_event_id is not null"));
+  }
 }

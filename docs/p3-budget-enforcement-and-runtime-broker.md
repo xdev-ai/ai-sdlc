@@ -13,6 +13,20 @@
 
 Runtime authorization treats a missing active budget policy as `DENY_NO_POLICY`; it creates an immutable decision record with a canonical evidence digest. A budget exception cannot become effective merely by being requested: its linked `approval_request` must be `APPROVED` and the exception must not be expired. Neither budget evaluation nor exception approval changes a provider, a model route, or a price catalog.
 
+## Usage-Ledger Linkage and Notifications
+
+Each **newly persisted** usage event now invokes budget evaluation after its exact cost allocation and audit record have been written. The linkage uses the immutable `inference_usage_events.id` as `inference_budget_decisions.usage_event_id`, protected by a partial unique index. A provider reconciliation replay therefore finds the original `(project_id, source_event_key)` row before budget evaluation; it cannot append another decision or generate another notification.
+
+| Condition after ingestion | Ledger action | Budget action | Notification action |
+|---|---|---|---|
+| Replayed source event | Return the existing usage event. | None. | None. |
+| New event, no active project policy | Record usage and exact allocation. | None. Runtime authorization remains fail-closed if later invoked without a policy. | None. |
+| New event, currency differs from policy | Record usage in its original currency. | None; the platform does not invent a cross-currency conversion. | None. |
+| New matching-currency event below warning | Record usage and one linked `ALLOW` decision. | Preserve an immutable evidence record. | None. |
+| New matching-currency event at warning or limit | Record usage and one linked `WARN` or `HOLD` decision. | Preserve the exact accumulated spend and policy result. | Queue a deduplicated project notification. |
+
+Notification idempotency is stable per project, calendar month, decision, and reason code. Reconciliation cannot repeat an alert, while a material state transition such as `WARN` to `HOLD` produces a distinct notification. `HOLD` is prospective governance for later runtime pre-flight decisions; it never rewrites, deletes, or retroactively rejects a usage event that has already been recorded. A human-approved, unexpired exception remains the only path to `EXCEPTION_APPROVED`.
+
 | API | Human role required | Purpose |
 |---|---|---|
 | `PUT /api/v1/projects/{projectId}/inference-costs/budget` | Project owner | Configure the bounded, tenant-scoped monthly policy. |
