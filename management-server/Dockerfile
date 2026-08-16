@@ -3,6 +3,7 @@ WORKDIR /workspace
 COPY pom.xml ./
 COPY management-server/pom.xml management-server/pom.xml
 COPY portal/pom.xml portal/pom.xml
+COPY sdk/pom.xml sdk/pom.xml
 RUN --mount=type=cache,target=/root/.m2 mvn -q -pl management-server -am dependency:go-offline
 COPY management-server/src management-server/src
 RUN mvn -q -pl management-server -am -DskipTests package

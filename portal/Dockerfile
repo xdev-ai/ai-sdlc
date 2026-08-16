@@ -3,6 +3,7 @@ WORKDIR /workspace
 COPY pom.xml ./
 COPY management-server/pom.xml management-server/pom.xml
 COPY portal/pom.xml portal/pom.xml
+COPY sdk/pom.xml sdk/pom.xml
 RUN --mount=type=cache,target=/root/.m2 mvn -q -pl portal -am dependency:go-offline
 COPY portal/src portal/src
 COPY portal/frontend/package.json portal/frontend/package-lock.json portal/frontend/vite.config.mjs portal/frontend/
