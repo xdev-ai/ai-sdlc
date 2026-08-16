@@ -14,8 +14,8 @@ public class NotificationDelivery {
   @Column(nullable = false, length = 300) private String subject;
   @Column(nullable = false, columnDefinition = "text") private String body;
   @Column(name = "idempotency_key", nullable = false, length = 180) private String idempotencyKey;
-  @Column(name = "payload_sha256", nullable = false, length = 64) private String payloadSha256;
-  @Column(name = "recipient_fingerprint", nullable = false, length = 64) private String recipientFingerprint;
+  @Column(name = "payload_sha256", nullable = false, columnDefinition = "char(64)") private String payloadSha256;
+  @Column(name = "recipient_fingerprint", nullable = false, columnDefinition = "char(64)") private String recipientFingerprint;
   @Enumerated(EnumType.STRING) @Column(name = "delivery_status", nullable = false, length = 30) private DomainTypes.NotificationDeliveryStatus deliveryStatus = DomainTypes.NotificationDeliveryStatus.PENDING;
   @Column(nullable = false) private int attempts;
   @Column(name = "next_attempt_at", nullable = false) private Instant nextAttemptAt = Instant.now();
