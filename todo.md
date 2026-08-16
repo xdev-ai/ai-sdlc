@@ -87,6 +87,8 @@
 - [ ] Add GitHub CodeQL configuration and Dependabot coverage for Maven, npm, Go modules, GitHub Actions, and Docker.
 - [ ] Document security sources, severity policy, remediation workflow, false-positive handling, and CI evidence retention.
 - [ ] Verify OSV, Trivy, CodeQL, Dependabot configuration, SARIF upload, and release dependency gates on GitHub Actions.
+- [ ] Remediate OSV findings in Jackson, Log4j, and PostgreSQL dependencies before enabling the new fail-closed gate.
+- [ ] Assign unique categories to all Trivy SARIF uploads so GitHub code scanning accepts source and both image reports in one job.
 - [x] Standardize all GitHub-facing source metadata, documentation, and developer-facing copy in English.
 - [x] Add English/Vietnamese localization to the SSR portal, including language selection, persisted preference, and English fallback.
 - [x] Add localization to React Islands and test SSR fallback, accessibility, and URL/cookie language preference.

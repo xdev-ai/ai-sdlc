@@ -49,6 +49,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-release.sarif
+          category: trivy-release
       - name: Retain Trivy release evidence
         if: always()
         uses: actions/upload-artifact@v4
