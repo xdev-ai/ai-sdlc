@@ -31,6 +31,8 @@ All notable changes to the AI-SDLC platform are documented in this file. The rep
 
 - End-to-end acceptance run of the governed flow against the real Compose topology, wired into the CI integration job, plus the defects it exposed: every `jsonb` column was bound as `varchar` so no audit event could be inserted, `audit_events.tenant_id` was NOT NULL with no entity field, the audit hash chain could never verify because PostgreSQL reformats `jsonb` between write and read, the realm import bound no client secrets, service accounts held no platform role, and the realm shipped with no human user.
 
+- Architecture decision records closing three long-open governance questions: stay on Java 25 LTS (Java 26 revalidates cleanly — full suite and a 32/32 end-to-end run on a temurin-26 runtime — but is not an LTS), make `dependency-review` advisory while OSV and Trivy remain the blocking dependency gates, and fix the exit criteria for enabling SLO paging after a 28-day observe-only baseline.
+
 ### Security
 
 - Enforced HMAC validation and replay-resistant idempotency for inbound GitHub events, encrypted at-rest notification and federation secrets, signed outbound generic webhooks, SCIM service-principal token hashing, tenant-aware e-discovery access controls, and explicit human verification of release provenance.

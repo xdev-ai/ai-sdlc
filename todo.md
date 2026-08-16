@@ -151,7 +151,7 @@
 - [x] P3.1 Sprint 2: publish versioned SLI recording rules and initial availability, latency, correctness, freshness, and durability SLO definitions.
 - [x] P3.1 Sprint 3: configure multi-window multi-burn-rate alerts, alert routing, runbook links, and authenticated synthetic health journeys.
 - [x] P3.1 Sprint 3: add collector resilience, telemetry privacy/cardinality, instrumentation contract, and burn-alert rule validation tests.
-- [ ] P3.1 Sprint 4: collect a 28-day observe-only baseline, review SLO targets and exclusions, then approve production alert enforcement with signed operational evidence.
+- [ ] P3.1 Sprint 4: collect a 28-day observe-only baseline, review SLO targets and exclusions, then approve production alert enforcement with signed operational evidence. (Decision closed in docs/decisions/0003; the exit criteria are fixed and the remaining work is elapsed time on a production deployment.)
 - [x] Publish P3.1 Collector/burn-rate reference configuration and P3.3 CEL policy samples with fixture regression coverage.
 - [ ] P3.1 Resilience: publish a component-by-component fault-injection matrix covering Collector, telemetry backend, PostgreSQL/audit, evidence storage, policy engine, notification provider, SCM ingress, Keycloak, and runtime AI dependencies.
 - [ ] P3.1 Resilience: implement deterministic integration tests for fail-open telemetry and fail-closed governance evidence, policy, approval, and integrity paths.
