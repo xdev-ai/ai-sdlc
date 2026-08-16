@@ -15,7 +15,7 @@ The CI workflow must use minimum `contents: read` permission by default and gran
 
 > CodeQL supports Java/Kotlin, JavaScript/TypeScript, Go, and GitHub Actions workflows, which covers the managed server, React Islands, CLI, and workflow surface in this repository. [2]
 
-The enforced severity threshold for Trivy is HIGH and CRITICAL. A finding can be suppressed only through a reviewed, time-bounded entry in `.trivyignore.yaml` that records the advisory identifier, rationale, owner, and expiry date. Suppression does not delete SARIF evidence or remove the finding from audit history.
+The enforced severity threshold for Trivy is HIGH and CRITICAL. The CI policy reads the generated SARIF and blocks only `error`-level findings, which Trivy maps from that threshold; MEDIUM/LOW findings are retained as evidence and uploaded to code scanning without blocking delivery. A finding can be suppressed only through a reviewed, time-bounded entry in `.trivyignore.yaml` that records the advisory identifier, rationale, owner, and expiry date. Suppression does not delete SARIF evidence or remove the finding from audit history.
 
 Container-image scan results are retained as CI evidence. Base-image findings must be remediated through a digest-pinned upstream runtime update, a verified minimal-runtime replacement, or a deterministic distribution security upgrade during the image build; they must not be suppressed merely because they originate in an upstream image.
 

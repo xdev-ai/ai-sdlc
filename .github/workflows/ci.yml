@@ -122,9 +122,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Test Trivy SARIF policy parser
+        run: sh scripts/test-trivy-sarif-policy.sh
+
       - name: Scan dependencies, secrets, and infrastructure as code
-        id: filesystem
-        continue-on-error: true
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
@@ -134,7 +135,9 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-filesystem.sarif
-          exit-code: '1'
+          # Findings are evaluated from SARIF after all reports upload.
+          # Operational scanner failures still make this step fail.
+          exit-code: '0'
           cache: true
 
       - name: Build production images for image security scanning
@@ -143,8 +146,6 @@ jobs:
           docker build --file portal/Dockerfile --tag aisdlc-portal:security .
 
       - name: Scan management server production image
-        id: management_image
-        continue-on-error: true
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: aisdlc-management-server:security
@@ -154,12 +155,10 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-management-server.sarif
-          exit-code: '1'
+          exit-code: '0'
           cache: true
 
       - name: Scan portal production image
-        id: portal_image
-        continue-on-error: true
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: aisdlc-portal:security
@@ -169,7 +168,7 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-portal.sarif
-          exit-code: '1'
+          exit-code: '0'
           cache: true
 
       - name: Upload Trivy filesystem findings to code scanning
@@ -203,15 +202,4 @@ jobs:
 
       - name: Enforce Trivy security policy
         if: always()
-        run: |
-          failed=0
-          for scan in filesystem management_image portal_image; do
-            outcome="${{ steps.filesystem.outcome }}"
-            if [ "$scan" = "management_image" ]; then outcome="${{ steps.management_image.outcome }}"; fi
-            if [ "$scan" = "portal_image" ]; then outcome="${{ steps.portal_image.outcome }}"; fi
-            if [ "$outcome" != "success" ]; then
-              echo "::error::Trivy $scan scan found HIGH/CRITICAL findings or could not complete."
-              failed=1
-            fi
-          done
-          exit "$failed"
+        run: node scripts/enforce-trivy-sarif-policy.mjs trivy-filesystem.sarif trivy-management-server.sarif trivy-portal.sarif

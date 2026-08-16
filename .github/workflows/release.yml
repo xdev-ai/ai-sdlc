@@ -32,6 +32,8 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ inputs.tag || github.ref }}
+      - name: Test Trivy SARIF policy parser
+        run: sh scripts/test-trivy-sarif-policy.sh
       - name: Scan release source for vulnerabilities, secrets, and misconfiguration
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -42,7 +44,8 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-release.sarif
-          exit-code: '1'
+          # The SARIF policy step below evaluates HIGH/CRITICAL findings after evidence upload.
+          exit-code: '0'
           cache: true
       - name: Upload Trivy findings to code scanning
         if: always() && hashFiles('trivy-release.sarif') != ''
@@ -57,6 +60,9 @@ jobs:
           name: trivy-release-report
           path: trivy-release.sarif
           if-no-files-found: warn
+      - name: Enforce Trivy release security policy
+        if: always()
+        run: node scripts/enforce-trivy-sarif-policy.mjs trivy-release.sarif
 
   release:
     name: Assemble and publish signed-by-checksum release

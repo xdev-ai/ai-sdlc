@@ -91,6 +91,8 @@
 - [ ] Assign unique categories to all Trivy SARIF uploads so GitHub code scanning accepts source and both image reports in one job.
 - [ ] Upgrade pinned Eclipse Temurin runtime images to a release containing Pebble built with Go 1.26.6 or later, then verify both production-image scans are clean.
 - [ ] Apply verified Alpine security package upgrades for libexpat and p11-kit in both runtime images, then re-run fail-closed Trivy scans.
+- [ ] Enforce the Trivy HIGH/CRITICAL policy from generated SARIF results rather than scanner step outcomes, preserving scanner-operation failures as CI failures.
+- [ ] Add a regression test proving Trivy SARIF warnings do not block CI while error-level findings do.
 - [x] Standardize all GitHub-facing source metadata, documentation, and developer-facing copy in English.
 - [x] Add English/Vietnamese localization to the SSR portal, including language selection, persisted preference, and English fallback.
 - [x] Add localization to React Islands and test SSR fallback, accessibility, and URL/cookie language preference.
