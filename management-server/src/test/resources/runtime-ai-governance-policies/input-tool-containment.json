@@ -1,0 +1,39 @@
+{
+  "key": "runtime-ai.input-tool-containment",
+  "semanticVersion": "0.1.0",
+  "description": "Allows a pre-flight request only when input classification is approved, injection/secrets signals are absent, and the deterministic gateway tool-resolution verdict confirms bounded allowlisted read-only capabilities.",
+  "expression": "context.request.stage == 'PRE_FLIGHT' && context.data.classification in context.policy.allowed_input_classifications && !context.data.prompt_has_secrets && !context.data.untrusted_instruction_detected && context.tool.requested_count <= context.policy.max_tool_count && context.tool.all_requested_tools_allowlisted == true && !context.tool.mutating_requested && !context.tool.network_egress_requested",
+  "dryRunDefault": true,
+  "fixtures": [
+    {
+      "name": "allows-bounded-read-only-tool-request",
+      "expected": true,
+      "context": {
+        "request": {"stage": "PRE_FLIGHT"},
+        "data": {"classification": "INTERNAL", "prompt_has_secrets": false, "untrusted_instruction_detected": false},
+        "tool": {"requested_count": 2, "all_requested_tools_allowlisted": true, "mutating_requested": false, "network_egress_requested": false},
+        "policy": {"allowed_input_classifications": ["PUBLIC", "INTERNAL"], "max_tool_count": 2}
+      }
+    },
+    {
+      "name": "denies-prompt-injection-signal",
+      "expected": false,
+      "context": {
+        "request": {"stage": "PRE_FLIGHT"},
+        "data": {"classification": "INTERNAL", "prompt_has_secrets": false, "untrusted_instruction_detected": true},
+        "tool": {"requested_count": 1, "all_requested_tools_allowlisted": true, "mutating_requested": false, "network_egress_requested": false},
+        "policy": {"allowed_input_classifications": ["PUBLIC", "INTERNAL"], "max_tool_count": 2}
+      }
+    },
+    {
+      "name": "denies-unapproved-or-mutating-tool-request",
+      "expected": false,
+      "context": {
+        "request": {"stage": "PRE_FLIGHT"},
+        "data": {"classification": "INTERNAL", "prompt_has_secrets": false, "untrusted_instruction_detected": false},
+        "tool": {"requested_count": 1, "all_requested_tools_allowlisted": false, "mutating_requested": true, "network_egress_requested": true},
+        "policy": {"allowed_input_classifications": ["PUBLIC", "INTERNAL"], "max_tool_count": 2}
+      }
+    }
+  ]
+}

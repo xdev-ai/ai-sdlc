@@ -1,0 +1,42 @@
+{
+  "key": "runtime-ai.emergency-override",
+  "semanticVersion": "0.1.0",
+  "description": "Allows an emergency runtime override only when it is time-bounded, independently approved, auditable, and accompanied by a named incident record.",
+  "expression": "context.request.stage == 'OVERRIDE' && context.override.emergency == true && context.override.reason != '' && context.override.expires_at_epoch_seconds > context.now_epoch_seconds && context.override.requested_by != context.override.approved_by && context.approval.status == 'APPROVED' && context.approval.quorum_met && context.evidence.override_ticket != '' && context.evidence.audit_event_id != ''",
+  "dryRunDefault": true,
+  "fixtures": [
+    {
+      "name": "allows-time-bounded-independently-approved-override",
+      "expected": true,
+      "context": {
+        "request": {"stage": "OVERRIDE"},
+        "now_epoch_seconds": 1786860000,
+        "override": {"emergency": true, "reason": "Contain provider outage while preserving read-only mode", "expires_at_epoch_seconds": 1786863600, "requested_by": "operator-a", "approved_by": "reviewer-b"},
+        "approval": {"status": "APPROVED", "quorum_met": true},
+        "evidence": {"override_ticket": "INC-2026-0816", "audit_event_id": "audit-456"}
+      }
+    },
+    {
+      "name": "denies-self-approved-override",
+      "expected": false,
+      "context": {
+        "request": {"stage": "OVERRIDE"},
+        "now_epoch_seconds": 1786860000,
+        "override": {"emergency": true, "reason": "Contain provider outage while preserving read-only mode", "expires_at_epoch_seconds": 1786863600, "requested_by": "operator-a", "approved_by": "operator-a"},
+        "approval": {"status": "APPROVED", "quorum_met": true},
+        "evidence": {"override_ticket": "INC-2026-0816", "audit_event_id": "audit-456"}
+      }
+    },
+    {
+      "name": "denies-expired-or-unapproved-override",
+      "expected": false,
+      "context": {
+        "request": {"stage": "OVERRIDE"},
+        "now_epoch_seconds": 1786860000,
+        "override": {"emergency": true, "reason": "Contain provider outage while preserving read-only mode", "expires_at_epoch_seconds": 1786859999, "requested_by": "operator-a", "approved_by": "reviewer-b"},
+        "approval": {"status": "PENDING", "quorum_met": false},
+        "evidence": {"override_ticket": "INC-2026-0816", "audit_event_id": "audit-456"}
+      }
+    }
+  ]
+}

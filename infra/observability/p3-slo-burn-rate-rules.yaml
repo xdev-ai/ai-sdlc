@@ -1,0 +1,130 @@
+# Prometheus rule groups for initial P3.1 service-level objectives.
+#
+# Contract: the management server emits aisdlc_sli_events_total with labels
+# service, environment, journey, and outcome (good|bad). It emits exactly one
+# aisdlc_slo_target_ratio time series per service/environment/journey with the
+# 30-day target as its value (for example, 0.999 for 99.90%).
+#
+# Values are proposed initial targets. Enable paging only after the 28-day
+# observe-only baseline and runbook/route approval described in the roadmap.
+
+groups:
+  - name: aisdlc.p3.sli-recording
+    interval: 30s
+    rules:
+      - record: aisdlc:sli_error_ratio:rate5m
+        expr: |
+          sum by (service, environment, journey) (
+            rate(aisdlc_sli_events_total{outcome="bad"}[5m])
+          )
+          /
+          clamp_min(
+            sum by (service, environment, journey) (
+              rate(aisdlc_sli_events_total[5m])
+            ),
+            1
+          )
+      - record: aisdlc:sli_error_ratio:rate30m
+        expr: |
+          sum by (service, environment, journey) (
+            rate(aisdlc_sli_events_total{outcome="bad"}[30m])
+          )
+          /
+          clamp_min(
+            sum by (service, environment, journey) (
+              rate(aisdlc_sli_events_total[30m])
+            ),
+            1
+          )
+      - record: aisdlc:sli_error_ratio:rate1h
+        expr: |
+          sum by (service, environment, journey) (
+            rate(aisdlc_sli_events_total{outcome="bad"}[1h])
+          )
+          /
+          clamp_min(
+            sum by (service, environment, journey) (
+              rate(aisdlc_sli_events_total[1h])
+            ),
+            1
+          )
+      - record: aisdlc:sli_error_ratio:rate6h
+        expr: |
+          sum by (service, environment, journey) (
+            rate(aisdlc_sli_events_total{outcome="bad"}[6h])
+          )
+          /
+          clamp_min(
+            sum by (service, environment, journey) (
+              rate(aisdlc_sli_events_total[6h])
+            ),
+            1
+          )
+
+  - name: aisdlc.p3.slo-burn-rate
+    interval: 30s
+    rules:
+      - alert: AiSdlcSloFastBurn
+        expr: |
+          (
+            aisdlc:sli_error_ratio:rate5m
+            /
+            on (service, environment, journey) group_left
+            (1 - aisdlc_slo_target_ratio{window="30d"})
+          ) > 14.4
+          and
+          (
+            aisdlc:sli_error_ratio:rate1h
+            /
+            on (service, environment, journey) group_left
+            (1 - aisdlc_slo_target_ratio{window="30d"})
+          ) > 14.4
+        for: 2m
+        labels:
+          severity: page
+          team: platform-governance
+          alert_class: slo-burn
+        annotations:
+          summary: "AI-SDLC {{ $labels.journey }} is rapidly exhausting its 30-day error budget"
+          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/production-operations.md"
+          description: "The 5m and 1h error-budget burn rates exceed 14.4. Inspect the authorized trace and audit links; do not paste raw prompt or evidence data into the incident."
+
+      - alert: AiSdlcSloSlowBurn
+        expr: |
+          (
+            aisdlc:sli_error_ratio:rate30m
+            /
+            on (service, environment, journey) group_left
+            (1 - aisdlc_slo_target_ratio{window="30d"})
+          ) > 6
+          and
+          (
+            aisdlc:sli_error_ratio:rate6h
+            /
+            on (service, environment, journey) group_left
+            (1 - aisdlc_slo_target_ratio{window="30d"})
+          ) > 6
+        for: 15m
+        labels:
+          severity: ticket
+          team: platform-governance
+          alert_class: slo-burn
+        annotations:
+          summary: "AI-SDLC {{ $labels.journey }} is consuming the 30-day error budget above the sustained threshold"
+          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/production-operations.md"
+          description: "The 30m and 6h error-budget burn rates exceed 6. Review trend, deployment changes, and approved operational evidence."
+
+      - alert: AiSdlcAuditOrEvidenceIntegrityViolation
+        expr: |
+          increase(aisdlc_audit_integrity_failures_total[5m]) > 0
+          or
+          increase(aisdlc_evidence_integrity_failures_total[5m]) > 0
+        for: 0m
+        labels:
+          severity: page
+          team: platform-governance
+          alert_class: governance-integrity
+        annotations:
+          summary: "AI-SDLC detected an audit or evidence integrity violation"
+          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/production-operations.md"
+          description: "Integrity objectives have zero tolerated failures. Preserve the affected audit identifiers and begin the evidence incident procedure."

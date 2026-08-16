@@ -1,0 +1,45 @@
+{
+  "key": "runtime-ai.workload-model-allowlist",
+  "semanticVersion": "0.1.0",
+  "description": "Allows a pre-flight request only when a tenant- and project-bound workload identity uses an approved provider/model/version with idempotency and correlation identifiers.",
+  "expression": "context.request.stage == 'PRE_FLIGHT' && context.agent.identity.authenticated == true && context.agent.identity.kind == 'WORKLOAD' && context.agent.identity.tenant_id == context.tenant.id && context.agent.identity.project_id == context.project.id && context.model.provider in context.policy.allowed_providers && context.model.name in context.policy.allowed_models && context.model.version != '' && context.request.idempotency_key != '' && context.request.correlation_id != ''",
+  "dryRunDefault": true,
+  "fixtures": [
+    {
+      "name": "allows-bound-identity-and-approved-model",
+      "expected": true,
+      "context": {
+        "request": {"stage": "PRE_FLIGHT", "idempotency_key": "req-9b8c", "correlation_id": "corr-7a6b"},
+        "tenant": {"id": "tenant-a"},
+        "project": {"id": "project-a"},
+        "agent": {"identity": {"authenticated": true, "kind": "WORKLOAD", "tenant_id": "tenant-a", "project_id": "project-a"}},
+        "model": {"provider": "approved-provider", "name": "approved-model", "version": "2026-08-01"},
+        "policy": {"allowed_providers": ["approved-provider"], "allowed_models": ["approved-model"]}
+      }
+    },
+    {
+      "name": "denies-cross-tenant-workload-identity",
+      "expected": false,
+      "context": {
+        "request": {"stage": "PRE_FLIGHT", "idempotency_key": "req-9b8c", "correlation_id": "corr-7a6b"},
+        "tenant": {"id": "tenant-a"},
+        "project": {"id": "project-a"},
+        "agent": {"identity": {"authenticated": true, "kind": "WORKLOAD", "tenant_id": "tenant-b", "project_id": "project-a"}},
+        "model": {"provider": "approved-provider", "name": "approved-model", "version": "2026-08-01"},
+        "policy": {"allowed_providers": ["approved-provider"], "allowed_models": ["approved-model"]}
+      }
+    },
+    {
+      "name": "denies-unapproved-or-unpinned-model",
+      "expected": false,
+      "context": {
+        "request": {"stage": "PRE_FLIGHT", "idempotency_key": "req-9b8c", "correlation_id": "corr-7a6b"},
+        "tenant": {"id": "tenant-a"},
+        "project": {"id": "project-a"},
+        "agent": {"identity": {"authenticated": true, "kind": "WORKLOAD", "tenant_id": "tenant-a", "project_id": "project-a"}},
+        "model": {"provider": "unapproved-provider", "name": "approved-model", "version": ""},
+        "policy": {"allowed_providers": ["approved-provider"], "allowed_models": ["approved-model"]}
+      }
+    }
+  ]
+}

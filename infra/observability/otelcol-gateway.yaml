@@ -1,0 +1,165 @@
+# Production reference configuration for an OpenTelemetry Collector Contrib gateway.
+#
+# Deployment requirements:
+# - Use a digest-pinned otelcol-contrib image selected by P3.1 dependency review.
+# - Bind OTLP endpoints only to a private service network; do not expose them publicly.
+# - Supply all ${env:...} values from the deployment secret/configuration system.
+# - Mount TLS material read-only and rotate it outside this configuration file.
+# - Validate before deployment: otelcol-contrib validate --config=otelcol-gateway.yaml
+#
+# This file intentionally contains no backend endpoint, token, tenant ID, prompt,
+# user, project, session, approval, evidence, or raw business payload.
+
+extensions:
+  health_check:
+    endpoint: ${env:OTEL_HEALTH_CHECK_ENDPOINT}
+    path: /healthz
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: ${env:OTEL_OTLP_GRPC_ENDPOINT}
+        tls:
+          cert_file: ${env:OTEL_TLS_CERT_FILE}
+          key_file: ${env:OTEL_TLS_KEY_FILE}
+          client_ca_file: ${env:OTEL_TLS_CLIENT_CA_FILE}
+      http:
+        endpoint: ${env:OTEL_OTLP_HTTP_ENDPOINT}
+        tls:
+          cert_file: ${env:OTEL_TLS_CERT_FILE}
+          key_file: ${env:OTEL_TLS_KEY_FILE}
+          client_ca_file: ${env:OTEL_TLS_CLIENT_CA_FILE}
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: ${env:OTEL_MEMORY_LIMIT_MIB}
+    spike_limit_mib: ${env:OTEL_MEMORY_SPIKE_LIMIT_MIB}
+
+  filter/allowlisted-services:
+    error_mode: ignore
+    traces:
+      span:
+        - 'resource.attributes["service.name"] != "aisdlc-management-server" and resource.attributes["service.name"] != "aisdlc-portal"'
+    metrics:
+      metric:
+        - 'resource.attributes["service.name"] != "aisdlc-management-server" and resource.attributes["service.name"] != "aisdlc-portal"'
+    logs:
+      log_record:
+        - 'resource.attributes["service.name"] != "aisdlc-management-server" and resource.attributes["service.name"] != "aisdlc-portal"'
+
+  resource/platform:
+    attributes:
+      - key: deployment.environment.name
+        value: ${env:DEPLOYMENT_ENVIRONMENT}
+        action: upsert
+      - key: service.namespace
+        value: ai-sdlc
+        action: upsert
+      - key: host.name
+        action: delete
+      - key: process.command_line
+        action: delete
+      - key: process.command_args
+        action: delete
+
+  transform/redact:
+    error_mode: ignore
+    trace_statements:
+      - context: span
+        statements:
+          - 'delete_key(attributes, "http.request.header.authorization")'
+          - 'delete_key(attributes, "http.request.header.cookie")'
+          - 'delete_key(attributes, "http.request.body")'
+          - 'delete_key(attributes, "http.response.body")'
+          - 'delete_key(attributes, "db.statement")'
+          - 'delete_key(attributes, "enduser.id")'
+          - 'delete_key(attributes, "user.id")'
+          - 'delete_key(attributes, "tenant.id")'
+          - 'delete_key(attributes, "project.id")'
+          - 'delete_key(attributes, "agent.prompt")'
+          - 'delete_key(attributes, "agent.output")'
+          - 'delete_key(attributes, "tool.arguments")'
+    log_statements:
+      - context: log
+        statements:
+          - 'set(body, "<redacted-by-collector>") where body != nil'
+          - 'delete_key(attributes, "authorization")'
+          - 'delete_key(attributes, "cookie")'
+          - 'delete_key(attributes, "user.id")'
+          - 'delete_key(attributes, "tenant.id")'
+          - 'delete_key(attributes, "project.id")'
+          - 'delete_key(attributes, "prompt")'
+          - 'delete_key(attributes, "output")'
+          - 'delete_key(attributes, "tool.arguments")'
+    metric_statements:
+      - context: datapoint
+        statements:
+          - 'delete_key(attributes, "user.id")'
+          - 'delete_key(attributes, "tenant.id")'
+          - 'delete_key(attributes, "project.id")'
+          - 'delete_key(attributes, "session.id")'
+          - 'delete_key(attributes, "trace.id")'
+
+  batch:
+    timeout: 5s
+    send_batch_size: 512
+    send_batch_max_size: 1024
+
+exporters:
+  otlphttp/approved-backend:
+    endpoint: ${env:OTEL_EXPORTER_OTLP_ENDPOINT}
+    headers:
+      Authorization: Bearer ${env:OTEL_EXPORTER_AUTH_TOKEN}
+    tls:
+      ca_file: ${env:OTEL_EXPORTER_CA_FILE}
+      server_name_override: ${env:OTEL_EXPORTER_SERVER_NAME}
+      insecure: false
+    timeout: 10s
+    sending_queue:
+      enabled: true
+      num_consumers: 4
+      queue_size: 2048
+    retry_on_failure:
+      enabled: true
+      initial_interval: 1s
+      max_interval: 30s
+      max_elapsed_time: 5m
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors:
+        [
+          memory_limiter,
+          filter/allowlisted-services,
+          resource/platform,
+          transform/redact,
+          batch,
+        ]
+      exporters: [otlphttp/approved-backend]
+    metrics:
+      receivers: [otlp]
+      processors:
+        [
+          memory_limiter,
+          filter/allowlisted-services,
+          resource/platform,
+          transform/redact,
+          batch,
+        ]
+      exporters: [otlphttp/approved-backend]
+    logs:
+      receivers: [otlp]
+      processors:
+        [
+          memory_limiter,
+          filter/allowlisted-services,
+          resource/platform,
+          transform/redact,
+          batch,
+        ]
+      exporters: [otlphttp/approved-backend]

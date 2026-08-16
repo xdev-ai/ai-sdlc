@@ -120,6 +120,16 @@ Alerting uses multi-window burn-rate rules after baseline collection. A fast bur
 | 6 | Telemetry, cardinality, privacy, and Collector-resilience tests | Load test demonstrates bounded memory/queue behavior and no metric identity explosion |
 | 7 | Operations documentation and controlled rollout | One project in observe-only mode completes 28-day baseline before broad enforcement |
 
+### 4.2 Implementation Reference Artefacts
+
+The initial implementation artefacts are versioned with the repository so that deployment, policy, and test work starts from an auditable baseline rather than unreviewed console configuration.
+
+| Artefact | Purpose | Validation status |
+|---|---|---|
+| [`infra/observability/otelcol-gateway.yaml`](../infra/observability/otelcol-gateway.yaml) | Private mTLS Collector gateway with allowlisting, redaction, memory limiting, batching, bounded retry, and backend routing. | YAML structure reviewed; the P3.1 selected digest-pinned Collector distribution must run its `validate` command before deployment. |
+| [`infra/observability/p3-slo-burn-rate-rules.yaml`](../infra/observability/p3-slo-burn-rate-rules.yaml) | Versioned SLI recording rules, fast/slow multi-window burn rules, and zero-tolerance audit/evidence integrity alert. | Prometheus rule syntax and alert routing must be checked by the P3.1 monitoring stack before enabling paging. |
+| [`management-server/src/test/resources/runtime-ai-governance-policies/`](../management-server/src/test/resources/runtime-ai-governance-policies/) | CEL bundle samples for workload/model allowlisting, input/tool containment, post-flight approval, and emergency override. | Evaluated through the real `PolicyExpressionEngine` in `RuntimeAiGovernancePolicySamplesTest`. |
+
 ## 5. P3.3 Runtime AI Governance: Architecture and Requirements
 
 ### 5.1 Scope and Non-Goals

@@ -1,0 +1,45 @@
+{
+  "key": "runtime-ai.output-approval-gate",
+  "semanticVersion": "0.1.0",
+  "description": "Allows post-flight handling only when output is classified, free of secrets/restricted data, linked to durable evidence, and any release-impacting action has quorum-approved human authorization.",
+  "expression": "context.request.stage == 'POST_FLIGHT' && context.output.classification in context.policy.allowed_output_classifications && !context.output.contains_secrets && !context.output.contains_restricted_data && context.output.artifact_digest_sha256.matches('^[a-f0-9]{64}$') && context.evidence.decision_id != '' && context.evidence.request_fingerprint_sha256.matches('^[a-f0-9]{64}$') && (!context.action.release_impacting || (context.approval.required && context.approval.status == 'APPROVED' && context.approval.quorum_met && context.approval.policy_reference != ''))",
+  "dryRunDefault": true,
+  "fixtures": [
+    {
+      "name": "allows-non-release-output-with-linked-evidence",
+      "expected": true,
+      "context": {
+        "request": {"stage": "POST_FLIGHT"},
+        "output": {"classification": "INTERNAL", "contains_secrets": false, "contains_restricted_data": false, "artifact_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+        "evidence": {"decision_id": "decision-1", "request_fingerprint_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+        "action": {"release_impacting": false},
+        "approval": {"required": false, "status": "NOT_REQUIRED", "quorum_met": false, "policy_reference": ""},
+        "policy": {"allowed_output_classifications": ["PUBLIC", "INTERNAL"]}
+      }
+    },
+    {
+      "name": "denies-release-impacting-output-without-human-approval",
+      "expected": false,
+      "context": {
+        "request": {"stage": "POST_FLIGHT"},
+        "output": {"classification": "INTERNAL", "contains_secrets": false, "contains_restricted_data": false, "artifact_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+        "evidence": {"decision_id": "decision-2", "request_fingerprint_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+        "action": {"release_impacting": true},
+        "approval": {"required": true, "status": "PENDING", "quorum_met": false, "policy_reference": "runtime-ai.output-approval-gate@0.1.0"},
+        "policy": {"allowed_output_classifications": ["PUBLIC", "INTERNAL"]}
+      }
+    },
+    {
+      "name": "denies-output-with-secrets-even-when-approved",
+      "expected": false,
+      "context": {
+        "request": {"stage": "POST_FLIGHT"},
+        "output": {"classification": "INTERNAL", "contains_secrets": true, "contains_restricted_data": false, "artifact_digest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+        "evidence": {"decision_id": "decision-3", "request_fingerprint_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+        "action": {"release_impacting": true},
+        "approval": {"required": true, "status": "APPROVED", "quorum_met": true, "policy_reference": "runtime-ai.output-approval-gate@0.1.0"},
+        "policy": {"allowed_output_classifications": ["PUBLIC", "INTERNAL"]}
+      }
+    }
+  ]
+}
