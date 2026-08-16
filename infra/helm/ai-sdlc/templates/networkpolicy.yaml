@@ -1,0 +1,98 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- $fullname := include "ai-sdlc.fullname" . }}
+{{- $egress := .Values.networkPolicy.egress }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $fullname }}-management-server
+  labels: {{- include "ai-sdlc.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ai-sdlc.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: management-server
+  policyTypes: [Ingress, Egress]
+  ingress:
+    # Only the portal reaches the management API. Nothing else in the cluster, and nothing outside it.
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "ai-sdlc.name" . }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/component: portal
+      ports:
+        - protocol: TCP
+          port: 8081
+  egress:
+    - to: []
+      ports:
+        {{- range $egress.dnsPorts }}
+        - protocol: UDP
+          port: {{ . }}
+        - protocol: TCP
+          port: {{ . }}
+        {{- end }}
+    - to: []
+      ports:
+        - protocol: TCP
+          port: {{ $egress.postgresPort }}
+        - protocol: TCP
+          port: {{ $egress.keycloakPort }}
+        - protocol: TCP
+          port: {{ $egress.objectStoragePort }}
+        {{- if $.Values.telemetry.enabled }}
+        - protocol: TCP
+          port: {{ $egress.otlpPort }}
+        {{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ $fullname }}-portal
+  labels: {{- include "ai-sdlc.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ai-sdlc.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: portal
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        {{- if .Values.networkPolicy.ingressNamespaceSelector }}
+        - namespaceSelector: {{- toYaml .Values.networkPolicy.ingressNamespaceSelector | nindent 12 }}
+        {{- else }}
+        # No selector configured: ingress stays closed rather than defaulting open.
+        []
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to: []
+      ports:
+        {{- range $egress.dnsPorts }}
+        - protocol: UDP
+          port: {{ . }}
+        - protocol: TCP
+          port: {{ . }}
+        {{- end }}
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "ai-sdlc.name" . }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+              app.kubernetes.io/component: management-server
+      ports:
+        - protocol: TCP
+          port: 8081
+    - to: []
+      ports:
+        - protocol: TCP
+          port: {{ $egress.keycloakPort }}
+        {{- if $.Values.telemetry.enabled }}
+        - protocol: TCP
+          port: {{ $egress.otlpPort }}
+        {{- end }}
+{{- end }}

@@ -1,0 +1,95 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-sdlc.fullname" . }}-portal
+  labels: {{- include "ai-sdlc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: portal
+spec:
+  replicas: {{ .Values.portal.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ai-sdlc.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: portal
+  template:
+    metadata:
+      labels: {{- include "ai-sdlc.labels" . | nindent 8 }}
+        app.kubernetes.io/component: portal
+      annotations:
+        # A configuration change must roll the pods; otherwise the release reports success while the running
+        # containers keep the previous configuration.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "ai-sdlc.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: portal
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}/portal@{{ include "ai-sdlc.requiredImage" .Values.image.managementServerDigest }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext: {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: MANAGEMENT_API_BASE_URL
+              value: "http://{{ include "ai-sdlc.fullname" . }}-management-server:8081"
+          envFrom:
+            - configMapRef:
+                name: {{ include "ai-sdlc.fullname" . }}-config
+            - secretRef:
+                name: {{ include "ai-sdlc.requiredValue" (list .Values.existingSecrets.keycloak "existingSecrets.keycloak") }}
+          # The portal is stateless; readiness reflects its own health and its ability to reach the API.
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 10
+          resources: {{- toYaml .Values.portal.resources | nindent 12 }}
+          volumeMounts:
+            # The image runs with a read-only root filesystem; the JVM still needs a writable temporary directory.
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-sdlc.fullname" . }}-portal
+  labels: {{- include "ai-sdlc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: portal
+spec:
+  # ClusterIP only. The management API is never published directly; the portal is the browser entry point.
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: {{ include "ai-sdlc.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: portal

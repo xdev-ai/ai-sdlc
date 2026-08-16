@@ -1,0 +1,48 @@
+# Argo CD reference. Adapt the repoURL, revision, and destination; nothing here is environment-specific by accident.
+#
+# The release is pinned to a chart revision and to image digests supplied by a values file in the config repository.
+# Automated sync is deliberately NOT self-healing on its own: prune and selfHeal are enabled together so a manual
+# in-cluster edit is reverted rather than silently retained, but the source of truth stays the config repository.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-sdlc
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: ai-sdlc
+  source:
+    repoURL: https://github.com/xdev-ai/ai-sdlc.git
+    # Pin a tag or commit. A branch would let an unreviewed push change production.
+    targetRevision: v0.1.0
+    path: infra/helm/ai-sdlc
+    helm:
+      releaseName: ai-sdlc
+      valueFiles:
+        - $config/environments/production/values.yaml
+  sources: []
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-sdlc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ServerSideApply=true
+      # Never let a sync delete or recreate a Secret the platform team manages out of band.
+      - RespectIgnoreDifferences=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      jsonPointers:
+        - /data
+  revisionHistoryLimit: 10

@@ -1,0 +1,34 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "ai-sdlc.fullname" . }}-portal
+  labels: {{- include "ai-sdlc.labels" . | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ include "ai-sdlc.requiredValue" (list .Values.ingress.host "ingress.host") }}
+      secretName: {{ include "ai-sdlc.requiredValue" (list .Values.ingress.tls.secretName "ingress.tls.secretName") }}
+  {{- else }}
+  {{- fail "ingress.tls.enabled must stay true: the portal is a confidential OIDC client and must not be published over plaintext HTTP" }}
+  {{- end }}
+  rules:
+    # Only the portal is published. The management API has no Ingress by design.
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "ai-sdlc.fullname" . }}-portal
+                port:
+                  number: 8080
+{{- end }}

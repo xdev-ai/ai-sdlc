@@ -1,0 +1,110 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "ai-sdlc.fullname" . }}-management-server
+  labels: {{- include "ai-sdlc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: management-server
+spec:
+  replicas: {{ .Values.managementServer.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "ai-sdlc.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: management-server
+  template:
+    metadata:
+      labels: {{- include "ai-sdlc.labels" . | nindent 8 }}
+        app.kubernetes.io/component: management-server
+      annotations:
+        # A configuration change must roll the pods; otherwise the release reports success while the running
+        # containers keep the previous configuration.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "ai-sdlc.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountServiceAccountToken }}
+      securityContext: {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: management-server
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}/management-server@{{ include "ai-sdlc.requiredImage" .Values.image.managementServerDigest }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext: {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: {{ include "ai-sdlc.fullname" . }}-config
+            - secretRef:
+                name: {{ include "ai-sdlc.requiredValue" (list .Values.existingSecrets.database "existingSecrets.database") }}
+            - secretRef:
+                name: {{ include "ai-sdlc.requiredValue" (list .Values.existingSecrets.objectStorage "existingSecrets.objectStorage") }}
+            {{- if .Values.existingSecrets.notifications }}
+            - secretRef:
+                name: {{ .Values.existingSecrets.notifications }}
+            {{- end }}
+          # Readiness includes the database and the audit ledger, so a pod that cannot record governance evidence
+          # is removed from the service rather than accepting mutations it cannot audit.
+          startupProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            httpGet: { path: /actuator/health/liveness, port: http }
+            periodSeconds: 10
+          readinessProbe:
+            httpGet: { path: /actuator/health/readiness, port: http }
+            periodSeconds: 10
+          resources: {{- toYaml .Values.managementServer.resources | nindent 12 }}
+          volumeMounts:
+            # The image runs with a read-only root filesystem; the JVM still needs a writable temporary directory.
+            - name: tmp
+              mountPath: /tmp
+            {{- if .Values.runtimeAi.credentialSecretName }}
+            - name: runtime-ai-credentials
+              mountPath: {{ .Values.runtimeAi.credentialMountPath | default "/var/run/aisdlc/provider-credentials" }}
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            medium: Memory
+            sizeLimit: 256Mi
+        {{- if .Values.runtimeAi.credentialSecretName }}
+        - name: runtime-ai-credentials
+          secret:
+            secretName: {{ .Values.runtimeAi.credentialSecretName }}
+            defaultMode: 0400
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.topologySpreadConstraints }}
+      topologySpreadConstraints: {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "ai-sdlc.fullname" . }}-management-server
+  labels: {{- include "ai-sdlc.labels" . | nindent 4 }}
+    app.kubernetes.io/component: management-server
+spec:
+  # ClusterIP only. The management API is never published directly; the portal is the browser entry point.
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8081
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: {{ include "ai-sdlc.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: management-server

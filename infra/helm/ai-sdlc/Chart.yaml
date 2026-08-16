@@ -1,0 +1,17 @@
+apiVersion: v2
+name: ai-sdlc
+description: Governed AI-assisted delivery control plane — management server and SSR portal.
+type: application
+# Chart version tracks packaging changes; appVersion tracks the platform release.
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.29.0-0"
+home: https://github.com/xdev-ai/ai-sdlc
+sources:
+  - https://github.com/xdev-ai/ai-sdlc
+maintainers:
+  - name: xDev AI Platform Engineering
+annotations:
+  # PostgreSQL, Keycloak, and object storage are deliberately NOT subcharts. They are stateful, security-critical
+  # dependencies whose lifecycle must not be coupled to an application upgrade or rollback.
+  artifacthub.io/prerelease: "true"

@@ -1,0 +1,122 @@
+# Hardened defaults. Every value here is safe to deploy as-is into a locked-down cluster: the workloads run as
+# non-root with a read-only root filesystem, no capabilities, and no network egress beyond what is declared.
+#
+# Nothing in this file is a secret. Database, Keycloak, object-storage, and provider credentials are read from
+# Secrets that the deployment creates out of band; the chart references them by name and fails to render if a
+# required reference is empty.
+
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  registry: ghcr.io
+  repository: xdev-ai/ai-sdlc
+  # Digests, not tags. A mutable tag makes a rollback unreproducible and lets a rebuild change what is running.
+  managementServerDigest: ""
+  portalDigest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+# Both services scale horizontally. Flyway migrations are guarded by its own lock, so more than one replica is safe.
+managementServer:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 500m, memory: 1Gi }
+    limits: { cpu: "2", memory: 2Gi }
+portal:
+  replicaCount: 2
+  resources:
+    requests: { cpu: 250m, memory: 512Mi }
+    limits: { cpu: "1", memory: 1Gi }
+
+# Applied to every pod. Overriding any of these weakens the deployment; the contract test asserts the defaults.
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  fsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  privileged: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+
+serviceAccount:
+  create: true
+  name: ""
+  # The control plane calls no Kubernetes API. A mounted token would be an unnecessary credential in the pod.
+  automountServiceAccountToken: false
+
+# Default-deny ingress and egress. Egress is opened only to the declared dependencies.
+networkPolicy:
+  enabled: true
+  # CIDR or namespace selectors for the ingress controller permitted to reach the portal.
+  ingressNamespaceSelector: {}
+  egress:
+    dnsPorts: [53]
+    # Ports the control plane must reach. Postgres, Keycloak, object storage, and the OTLP collector.
+    postgresPort: 5432
+    keycloakPort: 8080
+    objectStoragePort: 9000
+    otlpPort: 4317
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+ingress:
+  enabled: false
+  className: ""
+  host: ""
+  annotations: {}
+  tls:
+    enabled: true
+    secretName: ""
+
+# Names of Secrets that must already exist. The chart never creates or templates a secret value.
+existingSecrets:
+  database: ""
+  keycloak: ""
+  objectStorage: ""
+  notifications: ""
+
+config:
+  database:
+    host: ""
+    port: 5432
+    name: aisdlc
+  keycloak:
+    issuerUri: ""
+    jwkSetUri: ""
+  objectStorage:
+    endpoint: ""
+    region: us-east-1
+    bucket: aisdlc-evidence
+  allowedOrigins: ""
+  audience:
+    controlPlane: ""
+    runtime: ""
+    runtimeAuthorizedParty: ""
+
+# Telemetry is off by default, matching the application default. Enabling it requires an exporter endpoint; the
+# container entrypoint fails startup rather than running unobserved while claiming otherwise.
+telemetry:
+  enabled: false
+  environment: development
+  exporterEndpoint: ""
+  traceSampleRatio: 0.1
+
+# Runtime AI surfaces stay closed until a deployment opts in, matching the application defaults.
+runtimeAi:
+  providerProxyEnabled: false
+  toolBrokerEnabled: false
+  credentialMountPath: ""
+  credentialSecretName: ""
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+topologySpreadConstraints: []

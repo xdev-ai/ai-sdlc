@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ai-sdlc.fullname" . }}-config
+  labels: {{- include "ai-sdlc.labels" . | nindent 4 }}
+data:
+  # Non-secret configuration only. Credentials come from the Secrets named in existingSecrets.
+  SPRING_DATASOURCE_URL: {{ printf "jdbc:postgresql://%s:%v/%s" (include "ai-sdlc.requiredValue" (list .Values.config.database.host "config.database.host")) .Values.config.database.port .Values.config.database.name | quote }}
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: {{ include "ai-sdlc.requiredValue" (list .Values.config.keycloak.issuerUri "config.keycloak.issuerUri") | quote }}
+  SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: {{ include "ai-sdlc.requiredValue" (list .Values.config.keycloak.jwkSetUri "config.keycloak.jwkSetUri") | quote }}
+  AISDLC_EVIDENCE_S3_ENDPOINT: {{ .Values.config.objectStorage.endpoint | quote }}
+  AISDLC_EVIDENCE_S3_REGION: {{ .Values.config.objectStorage.region | quote }}
+  AISDLC_EVIDENCE_S3_BUCKET: {{ .Values.config.objectStorage.bucket | quote }}
+  AISDLC_ALLOWED_ORIGINS: {{ .Values.config.allowedOrigins | quote }}
+  AISDLC_CONTROL_PLANE_AUDIENCE: {{ .Values.config.audience.controlPlane | quote }}
+  AISDLC_RUNTIME_AUDIENCE: {{ .Values.config.audience.runtime | quote }}
+  AISDLC_RUNTIME_AUTHORIZED_PARTY: {{ .Values.config.audience.runtimeAuthorizedParty | quote }}
+  AISDLC_TELEMETRY_ENABLED: {{ .Values.telemetry.enabled | quote }}
+  DEPLOYMENT_ENVIRONMENT: {{ .Values.telemetry.environment | quote }}
+  AISDLC_TELEMETRY_EXPORTER_ENDPOINT: {{ .Values.telemetry.exporterEndpoint | quote }}
+  AISDLC_TELEMETRY_TRACE_SAMPLE_RATIO: {{ .Values.telemetry.traceSampleRatio | quote }}
+  AISDLC_RUNTIME_AI_PROVIDER_PROXY_ENABLED: {{ .Values.runtimeAi.providerProxyEnabled | quote }}
+  AISDLC_RUNTIME_AI_TOOL_BROKER_ENABLED: {{ .Values.runtimeAi.toolBrokerEnabled | quote }}
+  AISDLC_RUNTIME_AI_CREDENTIAL_MOUNT_PATH: {{ .Values.runtimeAi.credentialMountPath | quote }}
+{{- if and .Values.telemetry.enabled (not .Values.telemetry.exporterEndpoint) }}
+  {{- fail "telemetry.enabled requires telemetry.exporterEndpoint; the container refuses to start unobserved" }}
+{{- end }}

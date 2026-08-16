@@ -91,6 +91,14 @@ jobs:
           -Dtest='ChaosFaultRegistryTest,ChaosFaultRegistryProfileIntegrationTest,ResilienceScenarioTest'
           -DfailIfNoSpecifiedTests=false
 
+  helm-chart:
+    name: Helm chart · lint and hardening contract
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify hardened defaults and rendering guards
+        run: sh scripts/test-helm-hardening.sh
+
   observability-config:
     name: Observability configuration · Collector and Prometheus validation
     runs-on: ubuntu-24.04
