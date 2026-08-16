@@ -61,7 +61,9 @@ public class SecurityConfig {
             .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).preload(true).maxAgeInSeconds(31536000)))
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-            .requestMatchers("/api/v1/webhooks/github", "/scim/v2/**").permitAll()
+            // Webhook ingress authenticates by provider signature, not by a bearer token, and every connector refuses
+            // an unverified request. An unconfigured connector rejects rather than accepting unverified input.
+            .requestMatchers("/api/v1/webhooks/github", "/api/v1/webhooks/scm/**", "/scim/v2/**").permitAll()
             .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").hasAuthority("ROLE_admin")
             .requestMatchers("/api/v1/cli/**").hasAnyAuthority("ROLE_admin", "ROLE_developer")
             .requestMatchers("/api/v1/reviews/**").hasAnyAuthority("ROLE_admin", "ROLE_reviewer")

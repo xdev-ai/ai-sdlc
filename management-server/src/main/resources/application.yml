@@ -63,6 +63,16 @@ aisdlc:
       control-plane: ${AISDLC_CONTROL_PLANE_AUDIENCE:}
       runtime: ${AISDLC_RUNTIME_AUDIENCE:}
       runtime-authorized-party: ${AISDLC_RUNTIME_AUTHORIZED_PARTY:}
+  scm:
+    connectors:
+      gitlab:
+        secret: ${AISDLC_SCM_GITLAB_SECRET:}
+      bitbucket:
+        secret: ${AISDLC_SCM_BITBUCKET_SECRET:}
+      azure-devops:
+        secret: ${AISDLC_SCM_AZURE_DEVOPS_SECRET:}
+      jira:
+        secret: ${AISDLC_SCM_JIRA_SECRET:}
   runtime-ai:
     provider-proxy-enabled: ${AISDLC_RUNTIME_AI_PROVIDER_PROXY_ENABLED:false}
     tool-broker-enabled: ${AISDLC_RUNTIME_AI_TOOL_BROKER_ENABLED:false}

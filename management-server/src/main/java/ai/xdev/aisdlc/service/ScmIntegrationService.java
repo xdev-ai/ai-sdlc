@@ -61,6 +61,36 @@ public class ScmIntegrationService {
     return link.getId();
   }
 
+  /**
+   * Ingests a verified event from any connector. Repository linking, idempotency, persistence, policy feedback, and
+   * audit are shared: a connector maps the payload, it does not get to reinterpret what happens next.
+   */
+  @Transactional
+  public WebhookIngestResult ingestConnectorEvent(ai.xdev.aisdlc.scm.ScmConnector connector, com.fasterxml.jackson.databind.JsonNode payload, java.util.Map<String, String> headers, byte[] rawPayload) {
+    return telemetry.recordUnchecked("aisdlc.scm.ingest", "scm-ingestion-freshness",
+        () -> ingestConnectorDelivery(connector, payload, headers, rawPayload));
+  }
+
+  private WebhookIngestResult ingestConnectorDelivery(ai.xdev.aisdlc.scm.ScmConnector connector, com.fasterxml.jackson.databind.JsonNode payload, java.util.Map<String, String> headers, byte[] rawPayload) {
+    var parsed = connector.parse(payload, headers).orElse(null);
+    if (parsed == null) return new WebhookIngestResult(null, false, true, "event_not_represented");
+    ScmProvider provider = connector.provider();
+    Optional<ScmEvent> prior = events.findByProviderAndDeliveryId(provider, parsed.deliveryId());
+    if (prior.isPresent()) return new WebhookIngestResult(prior.get().getId(), true, true, "duplicate");
+    ScmRepositoryLink link = repositoryLinks.findByProviderAndRepositoryFullName(provider, parsed.repositoryFullName()).orElse(null);
+    if (link == null) return new WebhookIngestResult(null, false, false, "repository_not_linked");
+    if (chaosFaults != null) chaosFaults.ifAvailable(registry -> registry.check(ChaosFaultRegistry.Component.SCM_INGRESS));
+    ScmEvent event = events.save(new ScmEvent(link.getProjectId(), link.getId(), provider, parsed.deliveryId(), parsed.eventType(),
+        parsed.action(), parsed.repositoryFullName(), null, parsed.ref(), parsed.commitSha(), parsed.pullRequestNumber(),
+        null, parsed.externalKey(), sha256(rawPayload), new String(rawPayload, StandardCharsets.UTF_8)));
+    event.markProcessed();
+    Project project = access.requireProject(link.getProjectId());
+    audit.append(project.getOrganizationId(), project.getId(), connector.provider().name().toLowerCase(java.util.Locale.ROOT) + "-connector",
+        "SCM_EVENT_INGESTED", "scm_event", event.getId().toString(),
+        "{\"provider\":\"" + provider + "\",\"eventType\":\"" + parsed.eventType() + "\",\"contract\":\"" + ai.xdev.aisdlc.scm.ScmConnector.CONTRACT_VERSION + "\",\"payloadSha256\":\"" + event.getPayloadSha256() + "\"}");
+    return new WebhookIngestResult(event.getId(), false, true, "processed");
+  }
+
   @Transactional
   public WebhookIngestResult ingestGitHub(String deliveryId, String eventName, byte[] rawPayload) {
     return telemetry.recordUnchecked("aisdlc.scm.ingest", "scm-ingestion-freshness", () -> ingestGitHubDelivery(deliveryId, eventName, rawPayload));
@@ -155,6 +185,7 @@ public class ScmIntegrationService {
       case CHECK_RUN -> nullableText(payload.path("check_run"), "head_branch");
       case WORKFLOW_RUN -> nullableText(payload.path("workflow_run"), "head_branch");
       case RELEASE -> nullableText(payload.path("release"), "target_commitish");
+      case WORK_ITEM -> null;
     };
   }
   private String extractCommitSha(JsonNode payload, ScmEventType type) {
@@ -164,6 +195,7 @@ public class ScmIntegrationService {
       case CHECK_RUN -> nullableText(payload.path("check_run"), "head_sha");
       case WORKFLOW_RUN -> nullableText(payload.path("workflow_run"), "head_sha");
       case RELEASE -> nullableText(payload.path("release"), "target_commitish");
+      case WORK_ITEM -> null;
     };
   }
   private Integer extractPullRequestNumber(JsonNode payload) { return payload.hasNonNull("number") ? payload.path("number").asInt() : null; }

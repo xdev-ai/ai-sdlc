@@ -14,8 +14,8 @@ public final class DomainTypes {
   public enum EvidenceAssetType { VALIDATION, SPECIFICATION, REVIEW, GOVERNANCE, DELIVERY, SBOM, PROVENANCE, OTHER }
   public enum EvidenceAccessLevel { PROJECT, REVIEWERS, OWNERS }
   public enum ObjectLockMode { GOVERNANCE, COMPLIANCE }
-  public enum ScmProvider { GITHUB, GITLAB }
-  public enum ScmEventType { PUSH, PULL_REQUEST, CHECK_RUN, WORKFLOW_RUN, RELEASE }
+  public enum ScmProvider { GITHUB, GITLAB, BITBUCKET, AZURE_DEVOPS, JIRA }
+  public enum ScmEventType { PUSH, PULL_REQUEST, CHECK_RUN, WORKFLOW_RUN, RELEASE, WORK_ITEM }
   public enum ScmProcessingStatus { RECEIVED, PROCESSED, IGNORED, FAILED }
   public enum ScmPolicyConclusion { SUCCESS, FAILURE, ACTION_REQUIRED, NEUTRAL }
   public enum NotificationChannelType { EMAIL, SLACK_WEBHOOK, TEAMS_WEBHOOK, GENERIC_WEBHOOK }
