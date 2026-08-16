@@ -64,6 +64,20 @@ class RuntimeAiProviderProxyServiceTest {
     verify(audit).append(any(),eq(projectId),eq("workload"),eq("runtime_ai.provider_dispatched"),eq("runtime_ai_provider_dispatch"),anyString(),argThat(payload -> !payload.contains("sensitive but transient") && !payload.contains("Bearer transient") && payload.contains("requestSha256")));
   }
 
+  @Test
+  @SuppressWarnings({"unchecked","rawtypes"})
+  void reportsTheTerminalFailureRatherThanAnEarlierRetryableResponse() throws Exception {
+    UUID projectId=UUID.randomUUID(), profileId=UUID.randomUUID(); JdbcTemplate jdbc=mock(JdbcTemplate.class); RuntimeAiBrokerService broker=mock(RuntimeAiBrokerService.class); ProviderHttpTransport transport=mock(ProviderHttpTransport.class); ProjectAccessService access=mock(ProjectAccessService.class); Project project=mock(Project.class); when(project.getOrganizationId()).thenReturn(UUID.randomUUID()); when(access.requireProject(projectId)).thenReturn(project);
+    when(broker.preflight(eq(projectId),eq("workload"),any(),anyString(),anyString(),anyString(),any(),eq(false))).thenReturn(new RuntimeAiBrokerService.AuthorizationView("ALLOW","POLICY_PASS",UUID.randomUUID(),UUID.randomUUID()));
+    when(jdbc.queryForObject(startsWith("select id,endpoint_uri"),any(RowMapper.class),eq(projectId),anyString(),anyString())).thenReturn(proxyProfile(profileId));
+    when(jdbc.update(startsWith("insert into runtime_ai_provider_dispatches"),any(Object[].class))).thenReturn(1);
+    // Attempt 1 is retryable; attempt 2 times out. The stale 503 must not become the reported outcome or evidence.
+    when(transport.execute(any())).thenReturn(new ProviderHttpTransport.Response(503,"temporary")).thenThrow(new java.net.http.HttpTimeoutException("read timeout"));
+    var resolver=mock(ProviderCredentialResolver.class); when(resolver.resolve("secret/provider-a",null,false)).thenReturn(new ProviderCredentialResolver.CredentialMaterial("Bearer transient",null));
+    var service=new RuntimeAiProviderProxyService(jdbc,broker,access,mock(AuditService.class),resolver,transport); var result=service.invoke(projectId,"workload",request());
+    assertEquals("FAILED",result.outcome()); assertEquals("PROVIDER_TIMEOUT",result.reasonCode()); assertNull(result.httpStatus()); assertNull(result.responseSha256()); assertNull(result.responseBody()); assertEquals(2,result.attempts());
+  }
+
   private RuntimeAiProviderProxyService service(JdbcTemplate jdbc,RuntimeAiBrokerService broker,ProviderHttpTransport transport){return new RuntimeAiProviderProxyService(jdbc,broker,mock(ProjectAccessService.class),mock(AuditService.class),mock(ProviderCredentialResolver.class),transport);}
   private RuntimeAiProviderProxyService.InvocationRequest request() throws Exception{return new RuntimeAiProviderProxyService.InvocationRequest(UUID.randomUUID(),"provider-a","model-a","a".repeat(64),json.readTree("{\"approved\":true}"),UUID.randomUUID(),json.readTree("{\"input\":\"sensitive but transient\"}"));}
   private RuntimeAiProviderProxyService.Profile proxyProfile(UUID id) { return new RuntimeAiProviderProxyService.Profile(id, URI.create("https://provider.example/v1/infer"), "secret/provider-a", false, null, 1_000, 2); }

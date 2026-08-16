@@ -36,6 +36,9 @@ public class RuntimeAiProviderProxyService {
     ProviderHttpTransport.Response response=null; String reason="PROVIDER_TRANSPORT_FAILURE"; int attempts=0;
     for (int attempt = 1; attempt <= profile.maxAttempts(); attempt++) {
       attempts = attempt;
+      // Clear the previous attempt's response: a later timeout or transport failure must report its own terminal
+      // reason, not be masked by a retryable response captured earlier in the loop.
+      response = null;
       try {
         if (chaosFaults != null) { chaosFaults.ifAvailable(registry -> registry.check(ChaosFaultRegistry.Component.RUNTIME_AI_PROVIDER)); }
         response = transport.execute(new ProviderHttpTransport.Request(profile.endpoint(), body, material.authorizationHeader(), request.idempotencyKey().toString(), Duration.ofMillis(profile.timeoutMs()), material.sslContext()));
