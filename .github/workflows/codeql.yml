@@ -39,7 +39,7 @@ jobs:
             language: actions
             build_mode: none
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set up Java 25
         if: matrix.language == 'java-kotlin'

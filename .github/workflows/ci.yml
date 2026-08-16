@@ -19,7 +19,7 @@ jobs:
     name: Java 25 · Maven verification
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
         with:
           distribution: temurin
@@ -41,7 +41,7 @@ jobs:
     name: Go 1.24 · CLI verification
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: '1.24.x'
@@ -59,7 +59,7 @@ jobs:
     name: React Islands · production build
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: '22.13.0'
@@ -75,7 +75,7 @@ jobs:
     name: Observability configuration · Collector and Prometheus validation
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Verify observability validation script contract
         run: sh scripts/test-validate-observability-config.sh
       - name: Validate Collector configuration and SLO burn-rate rules
@@ -85,7 +85,7 @@ jobs:
     name: TypeScript SDK · build and test
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: '22.13.0'
@@ -102,7 +102,7 @@ jobs:
     name: Terraform provider · Go 1.25 build and test
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-go@v6
         with:
           go-version: '1.25.x'
@@ -118,7 +118,7 @@ jobs:
     name: VS Code integration · manifest test
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/setup-node@v5
         with:
           node-version: '22.13.0'
@@ -131,7 +131,7 @@ jobs:
     needs: [java, cli, frontend, typescript-sdk, terraform-provider, vscode-integration]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - name: Start hardened topology and verify public health surfaces
         run: bash scripts/integration-smoke.sh
       - name: Publish Compose diagnostics on failure
@@ -147,7 +147,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: actions/dependency-review-action@v5
 
   osv-pr:
@@ -175,7 +175,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Test Trivy SARIF policy parser
         run: sh scripts/test-trivy-sarif-policy.sh
