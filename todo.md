@@ -119,7 +119,7 @@
 - [x] Add P2 enterprise identity integration contracts for SCIM 2.0 provisioning, per-tenant OIDC/SAML federation settings, group mapping, custom roles, permission sets, tests, and documentation.
 - [x] Add P2 developer integration surface: versioned outbound webhook event contracts and signed delivery verification.
 - [x] Add P2 Java and TypeScript SDKs, a Terraform provider skeleton, IDE integration manifest/guidance, contract tests, release packaging, and documentation.
-- [ ] Run full Java, frontend, Go, static guardrail, security-policy, Compose CI, and GitHub Actions verification for the P0–P2 release.
+- [x] Run full Java, frontend, Go, static guardrail, security-policy, Compose CI, and GitHub Actions verification for the P0–P2 release.
 - [x] Update English-only architecture, API, operations, security, administrator, developer, integration, and changelog documentation for every P0–P2 capability.
-- [ ] Commit and publish every verified P0–P2 increment to `xdev-ai/ai-sdlc` on the `main` branch.
-- [ ] Remediate remaining OSV dependency resolution and Hibernate fixed-digest schema validation failures, then re-run CI.
+- [x] Commit and publish every verified P0–P2 increment to `xdev-ai/ai-sdlc` on the `main` branch.
+- [x] Remediate remaining OSV dependency resolution and Hibernate fixed-digest schema validation failures, then re-run CI.
