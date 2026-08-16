@@ -6,6 +6,7 @@ import java.util.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.*;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 public final class Repositories {
@@ -70,5 +71,5 @@ public final class Repositories {
     Optional<RiskScore> findTopByProjectIdOrderByCalculatedAtDesc(UUID projectId);
     Page<RiskScore> findByProjectIdOrderByCalculatedAtDesc(UUID projectId, Pageable pageable);
   }
-  @Repository public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> { Optional<AuditEvent> findTopByOrganizationIdOrderBySequenceDesc(UUID organizationId); Page<AuditEvent> findByOrganizationId(UUID organizationId, Pageable pageable); Page<AuditEvent> findByOrganizationIdAndActionContainingIgnoreCase(UUID organizationId, String action, Pageable pageable); List<AuditEvent> findByOrganizationIdOrderBySequenceAsc(UUID organizationId); List<AuditEvent> findTop100ByOrganizationIdOrderBySequenceDesc(UUID organizationId); List<AuditEvent> findTop500ByTenantIdOrderByOccurredAtAsc(UUID tenantId); }
+  @Repository public interface AuditEventRepository extends JpaRepository<AuditEvent, UUID> { Optional<AuditEvent> findTopByOrganizationIdOrderBySequenceDesc(UUID organizationId); Page<AuditEvent> findByOrganizationId(UUID organizationId, Pageable pageable); Page<AuditEvent> findByOrganizationIdAndActionContainingIgnoreCase(UUID organizationId, String action, Pageable pageable); List<AuditEvent> findByOrganizationIdOrderBySequenceAsc(UUID organizationId); List<AuditEvent> findTop100ByOrganizationIdOrderBySequenceDesc(UUID organizationId); @Query("select e from AuditEvent e, Organization o where e.organizationId = o.id and o.tenantId = :tenantId order by e.occurredAt asc") List<AuditEvent> findByTenantIdOrderByOccurredAtAsc(@Param("tenantId") UUID tenantId, Pageable pageable); }
 }
