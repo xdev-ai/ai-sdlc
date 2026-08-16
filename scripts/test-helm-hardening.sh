@@ -70,6 +70,17 @@ if [ -n "$manifest" ]; then
   [ "${containers:-0}" -ge 2 ] && pass "both workloads declare a readiness probe" || fail "a workload has no readiness probe"
   limits="$(printf '%s' "$manifest" | grep -c 'limits:' || true)"
   [ "${limits:-0}" -ge 2 ] && pass "both workloads declare resource limits" || fail "a workload has no resource limits"
+
+  # Each workload must reference its own digest. A copy-paste that points the portal at the management-server
+  # digest renders and lints cleanly, and only fails when something actually pulls the image.
+  ms_line="$(printf '%s' "$manifest" | grep -o 'management-server@sha256:[0-9a-f]*' | head -1)"
+  portal_line="$(printf '%s' "$manifest" | grep -o 'portal@sha256:[0-9a-f]*' | head -1)"
+  ms_digest="${ms_line##*@}"; portal_digest="${portal_line##*@}"
+  if [ -n "$ms_digest" ] && [ -n "$portal_digest" ] && [ "$ms_digest" != "$portal_digest" ]; then
+    pass "each workload references its own image digest"
+  else
+    fail "the workloads share a digest ($ms_digest vs $portal_digest); one is running the wrong image"
+  fi
 fi
 
 # A mutable tag must be refused outright rather than deployed.

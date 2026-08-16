@@ -89,4 +89,28 @@ sh scripts/test-helm-hardening.sh
 
 The hardening test asserts the values-level defaults with no tooling, then renders the chart with Helm to check the manifest-level properties and to prove both refusals actually refuse. CI runs it on every pull request.
 
-**Not verified:** no cluster install has been performed from this repository. The chart renders, lints, and holds its contract; that it reconciles correctly against a live cluster, ingress controller, and CNI still needs a real environment.
+## Verified on a real cluster
+
+The chart has been installed on a live Kubernetes cluster (kind, v1.36.1) against a local registry so image digests are genuine manifest digests rather than local tags.
+
+Confirmed by the API server and by the running pods, not by the templates:
+
+| Check | Result |
+|---|---|
+| Both workloads admitted and Ready | `management-server` 1/1, `portal` 1/1 |
+| Images resolved **by digest** | `…/management-server@sha256:aa708c…`, `…/portal@sha256:e920d8…` |
+| `runAsNonRoot`, `readOnlyRootFilesystem`, `capabilities: [ALL]` dropped, `seccompProfile: RuntimeDefault` | all applied |
+| `automountServiceAccountToken` | `false` |
+| Resource limits | applied |
+| Services | all `ClusterIP`; no Ingress, no NodePort |
+| Flyway against in-cluster PostgreSQL | 18 migrations applied, latest `V18` |
+| Readiness including `db` and `auditLedger` | `{"status":"UP"}` |
+
+### Two chart defects the install found
+
+Neither was visible to `helm lint` or `helm template`.
+
+1. **`volumes` was nested inside `containers`** in the portal deployment. Server-side apply rejected it: `field not declared in schema`. Rendering produced valid YAML, just not a valid Deployment.
+2. **The portal referenced the management-server's digest.** The chart rendered and linted cleanly and would have deployed the management server under the portal's name. Only an actual image pull exposed it. `scripts/test-helm-hardening.sh` now asserts each workload references its own digest.
+
+Still not exercised: an ingress controller, a real CNI enforcing the NetworkPolicies (kind's default CNI does not), and Keycloak or object storage in-cluster.

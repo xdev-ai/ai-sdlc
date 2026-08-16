@@ -28,7 +28,7 @@ spec:
       {{- end }}
       containers:
         - name: portal
-          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}/portal@{{ include "ai-sdlc.requiredImage" .Values.image.managementServerDigest }}"
+          image: "{{ .Values.image.registry }}/{{ .Values.image.repository }}/portal@{{ include "ai-sdlc.requiredImage" .Values.image.portalDigest }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext: {{- toYaml .Values.containerSecurityContext | nindent 12 }}
           ports:
@@ -58,7 +58,7 @@ spec:
             # The image runs with a read-only root filesystem; the JVM still needs a writable temporary directory.
             - name: tmp
               mountPath: /tmp
-          volumes:
+      volumes:
         - name: tmp
           emptyDir:
             medium: Memory
