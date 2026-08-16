@@ -163,12 +163,12 @@
 - [ ] P3.2: design provider adapters for usage reconciliation and model-routing recommendations that remain advisory until an explicit human decision.
 - [x] Observability CI: add a digest-pinned Collector and Prometheus rule validation script, workflow gate, deterministic failure tests, and documentation for local reproduction.
 - [x] Publish the detailed P3.1 resilience/chaos test plan and P3.2 Cost Optimization/inference forecasting design with cited governance rationale.
-- [ ] P3.1 Implementation: add a test-profile-only chaos fault registry with explicit component scopes, deterministic delays/errors, bounded resource pressure, and a hard production startup guard.
+- [x] P3.1 Implementation: add a test-profile-only chaos fault registry with explicit component scopes, deterministic delays/errors, bounded resource pressure, and a hard production startup guard.
 - [ ] P3.1 Implementation: add resilience integration tests that verify telemetry degrades without blocking requests while governance policy, approval, and audit evidence remain fail-closed.
 - [ ] P3.1 Implementation: add controlled scenario tests for policy-engine timeout, notification outage, evidence storage failure, authentication dependency loss, SCM ingress retry, and runtime provider timeout.
-- [ ] P3.2 Implementation: add Flyway schema for provider-neutral inference usage ledger, price catalog, allocation records, forecast snapshots, and cost-governance audit events.
-- [ ] P3.2 Implementation: implement tenant-scoped usage ingestion with idempotency, immutable source claims, deterministic allocation, currency-safe minor units, and audit linkage.
-- [ ] P3.2 Implementation: implement an explainable baseline forecast prototype with insufficient-data behavior, confidence bounds, back-testing evidence, and no autonomous model-routing action.
+- [x] P3.2 Implementation: add Flyway schema for provider-neutral inference usage ledger, price catalog, allocation records, forecast snapshots, and cost-governance audit events.
+- [x] P3.2 Implementation: implement tenant-scoped usage ingestion with idempotency, immutable source claims, deterministic allocation, currency-safe minor units, and audit linkage.
+- [x] P3.2 Implementation: implement an explainable baseline forecast prototype with insufficient-data behavior, confidence bounds, back-testing evidence, and no autonomous model-routing action.
 - [ ] P3.3 Implementation: add runtime AI decision contracts, authenticated workload identity, tenant-scoped CEL evaluation, and deterministic policy evidence persistence.
 - [ ] P3.3 Implementation: enforce model/provider allowlists, input/tool containment verdicts, output approval gates, and emergency override requirements fail-closed before a governed action.
 - [ ] P3.3 Implementation: add controller/API integration, service-level regression tests, and English documentation for runtime AI enforcement rollout and recovery.
