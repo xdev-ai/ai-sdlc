@@ -2,6 +2,7 @@ package ai.xdev.aisdlc.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.junit.jupiter.api.Test;
 
 class ChaosFaultRegistryTest {
@@ -12,5 +13,16 @@ class ChaosFaultRegistryTest {
     assertDoesNotThrow(() -> registry.check(ChaosFaultRegistry.Component.EVIDENCE_STORAGE));
     registry.clear();
     assertDoesNotThrow(() -> registry.check(ChaosFaultRegistry.Component.POLICY_ENGINE));
+  }
+
+  @Test void policyEngineEvaluatesThroughTheChaosSeamOnlyWhenTheFaultIsEnabled() throws Exception {
+    ChaosFaultRegistry registry = new ChaosFaultRegistry();
+    ObjectProvider<ChaosFaultRegistry> provider = new ObjectProvider<>() {
+      @Override public ChaosFaultRegistry getObject() { return registry; }
+    };
+    PolicyExpressionEngine engine = new PolicyExpressionEngine(provider);
+    assertEquals(Boolean.TRUE, engine.evaluate("true", java.util.Map.of()));
+    registry.enable(ChaosFaultRegistry.Component.POLICY_ENGINE, ChaosFaultRegistry.Mode.TIMEOUT);
+    assertThrows(ChaosFaultRegistry.ChaosFaultException.class, () -> engine.evaluate("true", java.util.Map.of()));
   }
 }
