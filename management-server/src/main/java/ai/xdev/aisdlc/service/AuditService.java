@@ -17,13 +17,26 @@ public class AuditService {
   private final OrganizationRepository organizations;
   private final AuditEventRepository events;
 
+  private final ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry;
+
   public AuditService(OrganizationRepository organizations, AuditEventRepository events) {
+    this(organizations, events, ai.xdev.aisdlc.telemetry.GovernanceTelemetry.inert());
+  }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  public AuditService(OrganizationRepository organizations, AuditEventRepository events, ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry) {
+    this.telemetry = telemetry;
     this.organizations = organizations;
     this.events = events;
   }
 
   @Transactional
   public AuditEvent append(UUID organizationId, UUID projectId, String actor, String action, String entityType, String entityId, String payload) {
+    return telemetry.recordUnchecked("aisdlc.audit.append", "audit-correctness",
+        () -> appendChained(organizationId, projectId, actor, action, entityType, entityId, payload));
+  }
+
+  private AuditEvent appendChained(UUID organizationId, UUID projectId, String actor, String action, String entityType, String entityId, String payload) {
     organizations.lockById(organizationId).orElseThrow(() -> new IllegalArgumentException("Organization not found"));
     AuditEvent previous = events.findTopByOrganizationIdOrderBySequenceDesc(organizationId).orElse(null);
     long sequence = previous == null ? 1 : previous.getSequence() + 1;

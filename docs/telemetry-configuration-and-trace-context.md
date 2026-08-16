@@ -59,6 +59,8 @@ Tenant, project, user, session, request, and trace identifiers are excluded from
 
 `W3CTraceContext.outboundHeaders()` renders the version-`00` `traceparent` and, when present, the forwarded `tracestate` for outbound calls. Wiring it into the outbound HTTP clients, and adding the same propagation to the SSR portal, belongs to P3.1 Sprint 2 instrumentation; today a portal-to-API request starts a new root at the API boundary.
 
+The agent deployment profile and the domain instrumentation built on this contract are described in [`telemetry-agent-and-instrumentation.md`](telemetry-agent-and-instrumentation.md).
+
 ## Verification
 
 ```sh

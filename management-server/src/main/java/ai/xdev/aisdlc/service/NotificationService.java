@@ -31,6 +31,8 @@ public class NotificationService {
   record DispatchCandidate(UUID deliveryId, UUID channelId, NotificationChannelType channelType, String destination, String secret, String subject, String body, String eventType, String payloadSha256, int attempt) {}
   private final ProjectAccessService access; private final NotificationChannelRepository channels; private final NotificationDeliveryRepository deliveries; private final NotificationDeliveryReceiptRepository receipts; private final AuditService audit; private final NotificationSecretCipher cipher; private final NotificationProperties properties; private final ObjectMapper mapper; private final ObjectProvider<JavaMailSender> mailSender; private final TransactionTemplate transactions; private final RestClient http = RestClient.create();
   private final ObjectProvider<ChaosFaultRegistry> chaosFaults;
+  private ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry = ai.xdev.aisdlc.telemetry.GovernanceTelemetry.inert();
+  @org.springframework.beans.factory.annotation.Autowired public void setTelemetry(ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry) { this.telemetry = telemetry; }
   public NotificationService(ProjectAccessService access, NotificationChannelRepository channels, NotificationDeliveryRepository deliveries, NotificationDeliveryReceiptRepository receipts, AuditService audit, NotificationSecretCipher cipher, NotificationProperties properties, ObjectMapper mapper, ObjectProvider<JavaMailSender> mailSender, PlatformTransactionManager transactionManager) { this(access, channels, deliveries, receipts, audit, cipher, properties, mapper, mailSender, transactionManager, null); }
   @org.springframework.beans.factory.annotation.Autowired public NotificationService(ProjectAccessService access, NotificationChannelRepository channels, NotificationDeliveryRepository deliveries, NotificationDeliveryReceiptRepository receipts, AuditService audit, NotificationSecretCipher cipher, NotificationProperties properties, ObjectMapper mapper, ObjectProvider<JavaMailSender> mailSender, PlatformTransactionManager transactionManager, ObjectProvider<ChaosFaultRegistry> chaosFaults) { this.access = access; this.channels = channels; this.deliveries = deliveries; this.receipts = receipts; this.audit = audit; this.cipher = cipher; this.properties = properties; this.mapper = mapper; this.mailSender = mailSender; this.transactions = new TransactionTemplate(transactionManager); this.chaosFaults = chaosFaults; }
 
@@ -100,6 +102,14 @@ public class NotificationService {
     else delivery.fail(attempt.code);
   }
   private Attempt send(DispatchCandidate candidate) {
+    long startedAt = System.nanoTime();
+    Attempt attempt = dispatch(candidate);
+    telemetry.recordOutcome("aisdlc.notification.dispatch", "notification-timeliness",
+        attempt.delivered() ? "success" : attempt.retryable() ? "timeout" : "failed", System.nanoTime() - startedAt);
+    return attempt;
+  }
+
+  private Attempt dispatch(DispatchCandidate candidate) {
     try {
       if (chaosFaults != null) chaosFaults.ifAvailable(registry -> registry.check(ChaosFaultRegistry.Component.NOTIFICATION_PROVIDER));
       if (candidate.channelType() == NotificationChannelType.EMAIL) return sendEmail(candidate.destination(), candidate);

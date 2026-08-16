@@ -145,9 +145,9 @@
 - [ ] P3.3.6: create runtime AI governance APIs, portal workflows, deterministic conformance/security tests, rollout controls, and English operational documentation.
 - [x] Publish the implementation design for P3.1 OpenTelemetry/SLO and P3.3 Runtime AI Governance, including architecture, acceptance criteria, and cited control rationale.
 - [x] P3.1 Sprint 1: add a versioned telemetry configuration model, safe resource attributes, W3C trace propagation, and telemetry privacy/cardinality contract tests.
-- [ ] P3.1 Sprint 1: package a production OpenTelemetry Java agent deployment profile without changing default local behavior when telemetry is disabled.
+- [x] P3.1 Sprint 1: package a production OpenTelemetry Java agent deployment profile without changing default local behavior when telemetry is disabled.
 - [ ] P3.1 Sprint 1: deploy and validate a hardened OpenTelemetry Collector gateway with OTLP/mTLS, memory limits, redaction, bounded queues, and exporter routing.
-- [ ] P3.1 Sprint 2: instrument policy evaluation, approval orchestration, evidence repository, SCM ingestion, notification delivery, audit ledger, and health dependencies.
+- [x] P3.1 Sprint 2: instrument policy evaluation, approval orchestration, evidence repository, SCM ingestion, notification delivery, audit ledger, and health dependencies.
 - [ ] P3.1 Sprint 2: publish versioned SLI recording rules and initial availability, latency, correctness, freshness, and durability SLO definitions.
 - [ ] P3.1 Sprint 3: configure multi-window multi-burn-rate alerts, alert routing, runbook links, and authenticated synthetic health journeys.
 - [ ] P3.1 Sprint 3: add collector resilience, telemetry privacy/cardinality, instrumentation contract, and burn-alert rule validation tests.

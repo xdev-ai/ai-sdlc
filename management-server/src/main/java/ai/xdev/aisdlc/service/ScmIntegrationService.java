@@ -30,6 +30,8 @@ public class ScmIntegrationService {
   private final GitHubPolicyGateService policyGate;
   private final ObjectMapper objectMapper;
   private final org.springframework.beans.factory.ObjectProvider<ChaosFaultRegistry> chaosFaults;
+  private ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry = ai.xdev.aisdlc.telemetry.GovernanceTelemetry.inert();
+  @org.springframework.beans.factory.annotation.Autowired public void setTelemetry(ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry) { this.telemetry = telemetry; }
 
   public ScmIntegrationService(ProjectAccessService access, ScmRepositoryLinkRepository repositoryLinks, ScmEventRepository events, ValidationRunRepository validations, AuditService audit, GitHubPolicyGateService policyGate, ObjectMapper objectMapper) {
     this(access, repositoryLinks, events, validations, audit, policyGate, objectMapper, null);
@@ -61,6 +63,10 @@ public class ScmIntegrationService {
 
   @Transactional
   public WebhookIngestResult ingestGitHub(String deliveryId, String eventName, byte[] rawPayload) {
+    return telemetry.recordUnchecked("aisdlc.scm.ingest", "scm-ingestion-freshness", () -> ingestGitHubDelivery(deliveryId, eventName, rawPayload));
+  }
+
+  private WebhookIngestResult ingestGitHubDelivery(String deliveryId, String eventName, byte[] rawPayload) {
     if (deliveryId == null || deliveryId.isBlank()) throw new IllegalArgumentException("X-GitHub-Delivery is required");
     ScmEventType eventType = githubEventType(eventName);
     Optional<ScmEvent> prior = events.findByProviderAndDeliveryId(ScmProvider.GITHUB, deliveryId);

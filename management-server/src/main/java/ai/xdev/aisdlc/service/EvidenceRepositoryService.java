@@ -33,6 +33,8 @@ public class EvidenceRepositoryService {
   private final EvidenceStorageProperties properties;
   private final AuditService audit;
   private final org.springframework.beans.factory.ObjectProvider<ChaosFaultRegistry> chaosFaults;
+  private ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry = ai.xdev.aisdlc.telemetry.GovernanceTelemetry.inert();
+  @org.springframework.beans.factory.annotation.Autowired public void setTelemetry(ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry) { this.telemetry = telemetry; }
 
   public EvidenceRepositoryService(ProjectAccessService access, EvidenceAssetRepository assets, ValidationEvidenceRepository validationEvidences, ValidationRunRepository validationRuns, ObjectStoragePort storage, EvidenceStorageProperties properties, AuditService audit) {
     this(access, assets, validationEvidences, validationRuns, storage, properties, audit, null);
@@ -45,6 +47,10 @@ public class EvidenceRepositoryService {
 
   @Transactional
   public EvidenceAsset upload(UUID projectId, String subject, String idempotencyKey, EvidenceAssetType assetType, EvidenceAccessLevel accessLevel, UUID validationEvidenceId, String filename, String contentType, byte[] bytes, String expectedSha256) {
+    return telemetry.recordUnchecked("aisdlc.evidence.write", "evidence-durability", () -> storeEvidence(projectId, subject, idempotencyKey, assetType, accessLevel, validationEvidenceId, filename, contentType, bytes, expectedSha256));
+  }
+
+  private EvidenceAsset storeEvidence(UUID projectId, String subject, String idempotencyKey, EvidenceAssetType assetType, EvidenceAccessLevel accessLevel, UUID validationEvidenceId, String filename, String contentType, byte[] bytes, String expectedSha256) {
     Project project = access.requireMembership(projectId, subject, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER);
     if (bytes == null || bytes.length == 0) throw new IllegalArgumentException("Evidence file must not be empty");
     if (bytes.length > properties.getMaxUploadBytes()) throw new IllegalArgumentException("Evidence file exceeds the configured upload limit");

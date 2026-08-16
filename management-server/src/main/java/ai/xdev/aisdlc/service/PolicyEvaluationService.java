@@ -33,6 +33,8 @@ public class PolicyEvaluationService {
   private static final int MAX_FIXTURES = 100;
 
   private final JdbcTemplate jdbc;
+  private ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry = ai.xdev.aisdlc.telemetry.GovernanceTelemetry.inert();
+  @org.springframework.beans.factory.annotation.Autowired public void setTelemetry(ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry) { this.telemetry = telemetry; }
   private final ProjectAccessService access;
   private final AuditService audit;
   private final ObjectMapper mapper;
@@ -82,6 +84,10 @@ public class PolicyEvaluationService {
 
   @Transactional
   public EvaluationView evaluate(UUID projectId, UUID bundleId, String actor, JsonNode context, boolean dryRun) {
+    return telemetry.recordUnchecked("aisdlc.policy.evaluate", "policy-decision-latency", () -> evaluateBundle(projectId, bundleId, actor, context, dryRun));
+  }
+
+  private EvaluationView evaluateBundle(UUID projectId, UUID bundleId, String actor, JsonNode context, boolean dryRun) {
     access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER);
     PolicyBundleView bundle = require(projectId, bundleId);
     if (!dryRun && bundle.lifecycleStatus() != PolicyBundleLifecycle.ACTIVE) throw new IllegalStateException("Enforcement evaluation requires an ACTIVE policy bundle");

@@ -78,6 +78,8 @@ jobs:
       - uses: actions/checkout@v7
       - name: Verify observability validation script contract
         run: sh scripts/test-validate-observability-config.sh
+      - name: Verify telemetry agent entrypoint contract
+        run: sh scripts/test-agent-entrypoint.sh
       - name: Validate Collector configuration and SLO burn-rate rules
         run: sh scripts/validate-observability-config.sh
 

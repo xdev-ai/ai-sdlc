@@ -13,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class ApprovalOrchestrationService {
+  private ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry = ai.xdev.aisdlc.telemetry.GovernanceTelemetry.inert();
+  @org.springframework.beans.factory.annotation.Autowired public void setTelemetry(ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry) { this.telemetry = telemetry; }
   private final ProjectAccessService access; private final ProjectRepository projects; private final ApprovalRequestRepository approvals; private final ApprovalDecisionRepository decisions; private final SecurityExceptionNoticeRepository exceptions; private final NotificationService notifications; private final NotificationProperties properties; private final AuditService audit;
   public ApprovalOrchestrationService(ProjectAccessService access, ProjectRepository projects, ApprovalRequestRepository approvals, ApprovalDecisionRepository decisions, SecurityExceptionNoticeRepository exceptions, NotificationService notifications, NotificationProperties properties, AuditService audit) { this.access = access; this.projects = projects; this.approvals = approvals; this.decisions = decisions; this.exceptions = exceptions; this.notifications = notifications; this.properties = properties; this.audit = audit; }
   @Transactional
@@ -26,6 +28,10 @@ public class ApprovalOrchestrationService {
   }
   @Transactional
   public void decide(UUID approvalId, String actor, ApprovalDecisionType decision, String comment) {
+    telemetry.recordUnchecked("aisdlc.approval.transition", "approval-orchestration", () -> { decideApproval(approvalId, actor, decision, comment); return null; });
+  }
+
+  private void decideApproval(UUID approvalId, String actor, ApprovalDecisionType decision, String comment) {
     ApprovalRequest request = approvals.lockById(approvalId).orElseThrow(() -> new IllegalArgumentException("Approval request not found"));
     Project project = access.requireMembership(request.getProjectId(), actor, MembershipRole.OWNER, MembershipRole.REVIEWER);
     if (!request.isDecidable()) throw new IllegalStateException("Approval request is already decided");
