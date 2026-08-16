@@ -93,6 +93,7 @@
 - [x] Apply verified Alpine security package upgrades for libexpat and p11-kit in both runtime images, then re-run fail-closed Trivy scans.
 - [x] Enforce the Trivy HIGH/CRITICAL policy from generated SARIF results rather than scanner step outcomes, preserving scanner-operation failures as CI failures.
 - [x] Add a regression test proving Trivy SARIF warnings do not block CI while error-level findings do.
+- [x] Correct OSV scheduling language and define `.trivyignore.yaml` creation, review, expiry, and removal requirements in security operations documentation.
 - [x] Standardize all GitHub-facing source metadata, documentation, and developer-facing copy in English.
 - [x] Add English/Vietnamese localization to the SSR portal, including language selection, persisted preference, and English fallback.
 - [x] Add localization to React Islands and test SSR fallback, accessibility, and URL/cookie language preference.
