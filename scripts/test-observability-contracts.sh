@@ -36,6 +36,16 @@ want "$COLLECTOR" 'transform/redact' "collector applies the redaction transform"
 want "$COLLECTOR" 'client_ca_file' "collector requires a client certificate authority"
 reject "$COLLECTOR" 'insecure: true' "collector never disables transport security"
 
+# Every ${env:VAR} the config reads must either be documented or carry a default. An undocumented required variable
+# means a deployment that follows the README produces a Collector that refuses to start.
+for var in $(grep -oE '\$\{env:[A-Z_]+' "$COLLECTOR" | sed 's/${env://' | sort -u); do
+  if grep -q "$var" "$ROOT/infra/observability/README.md" || grep -q "\${env:$var:-" "$COLLECTOR"; then
+    pass "$var is documented or defaulted"
+  else
+    fail "$var is required by the collector config but neither documented nor defaulted"
+  fi
+done
+
 # Redaction and memory limiting must be in every pipeline, not merely defined.
 pipelines="$(awk '/^  pipelines:/,0' "$COLLECTOR" | grep -c 'transform/redact' || true)"
 [ "${pipelines:-0}" -ge 3 ] && pass "redaction is wired into every signal pipeline" \
@@ -43,6 +53,13 @@ pipelines="$(awk '/^  pipelines:/,0' "$COLLECTOR" | grep -c 'transform/redact' |
 limiters="$(awk '/^  pipelines:/,0' "$COLLECTOR" | grep -c 'memory_limiter' || true)"
 [ "${limiters:-0}" -ge 3 ] && pass "memory limiting is wired into every signal pipeline" \
   || fail "memory_limiter appears in only ${limiters:-0} pipeline(s)"
+
+# The allowlist must name the services that actually emit. A mismatch produces a Collector that starts, validates,
+# and silently discards every signal from the platform — the failure mode that is hardest to notice.
+for declared in $(grep -h 'AISDLC_TELEMETRY_SERVICE_NAME=' "$ROOT/management-server/Dockerfile" "$ROOT/portal/Dockerfile" | sed 's/.*=//'); do
+  grep -q "\"$declared\"" "$COLLECTOR" && pass "collector allowlists the emitted service name $declared" \
+    || fail "collector does not allowlist $declared; its telemetry would be dropped silently"
+done
 
 # --- Cardinality and privacy --------------------------------------------------------------------------------------
 for banned in 'tenant' 'project' 'user' 'session' 'trace_id' 'request_id'; do

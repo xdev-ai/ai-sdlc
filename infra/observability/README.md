@@ -19,6 +19,31 @@ This directory contains the OpenTelemetry Collector gateway configuration, Prome
 | `../../scripts/test-chaos-profile-isolation.sh` | Static guardrails proving the chaos seam is reachable only through the isolated profile. |
 | `../../docs/telemetry-configuration-and-trace-context.md` | Application-side contract: `aisdlc.telemetry` configuration model, resource/metric allowlists, and W3C trace-context propagation implemented in the management server. |
 
+
+## Verified against a running Collector
+
+The gateway has been run for real: the committed configuration, mutual TLS with a private CA, and an approved
+backend receiving OTLP/HTTP over TLS. Telemetry was pushed through it and the backend's received payload inspected.
+
+| Observation | Result |
+|---|---|
+| Gateway starts with the committed config | yes, after the health-endpoint default below |
+| Client without a certificate | refused by mTLS |
+| `service.name` of a platform service | forwarded |
+| Allowlisted `aisdlc.operation` attribute | **kept** |
+| Banned `db.statement` value | **absent from what the backend received** |
+
+Three faults surfaced only by running it, none of which `otelcol validate` reports:
+
+1. `health_check` read `${env:OTEL_HEALTH_CHECK_ENDPOINT}` with no default and the variable was undocumented, so a
+   deployment following this README produced a Collector that **refused to start**. It now defaults to loopback and
+   the variable is in the table above.
+2. The service allowlist named `aisdlc-management-server` and `aisdlc-portal`, but the services emit
+   `ai-sdlc-management-server` and `ai-sdlc-portal`. The gateway started, validated, and **silently discarded every
+   signal from the platform**. `scripts/test-observability-contracts.sh` now pins the allowlist to the names the
+   Dockerfiles actually set.
+3. The exporter endpoint needs a scheme, which the variable table did not say.
+
 ## Collector Operational Contract
 
 The Collector configuration uses the standard `receivers`, `processors`, `exporters`, and `service.pipelines` model. A configured component does not become active until it is present in the pipeline; deployment validation must therefore check both syntax and the effective pipeline.[1]
@@ -32,8 +57,9 @@ The Collector health endpoint must bind on a private loopback or management netw
 | `OTEL_OTLP_GRPC_ENDPOINT`, `OTEL_OTLP_HTTP_ENDPOINT` | Private receiver endpoints | Private cluster DNS/IP and non-public port only |
 | `OTEL_TLS_CERT_FILE`, `OTEL_TLS_KEY_FILE`, `OTEL_TLS_CLIENT_CA_FILE` | Receiver mTLS material | Read-only mounts from approved secret manager |
 | `OTEL_MEMORY_LIMIT_MIB`, `OTEL_MEMORY_SPIKE_LIMIT_MIB` | Memory limiter bounds | Derived from pod/container limit and load test |
+| `OTEL_HEALTH_CHECK_ENDPOINT` | Health extension bind address | Private loopback or management network only; defaults to `127.0.0.1:13133`. The Collector refuses to start if this resolves to an empty value, which is why it now carries a default. |
 | `DEPLOYMENT_ENVIRONMENT` | Stable resource environment value | `production`, `staging`, or `development`; no tenant/project value |
-| `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_AUTH_TOKEN` | Approved backend endpoint and credential | Secret injection only; rotate without repository change |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_AUTH_TOKEN` | Approved backend endpoint and credential | Secret injection only; rotate without repository change. The exporter is `otlphttp`, so the endpoint **must include a scheme** — a bare `host:port` fails at run time with `unsupported protocol scheme`. |
 | `OTEL_EXPORTER_CA_FILE`, `OTEL_EXPORTER_SERVER_NAME` | Exporter TLS validation | Private CA bundle and expected server identity |
 
 Run `otelcol-contrib validate --config=infra/observability/otelcol-gateway.yaml` using the **exact pinned distribution** selected for the deployment. Then use a test exporter to prove that `Authorization`, cookies, raw database statements, raw log bodies, user/tenant/project identifiers, prompts, model outputs, and tool arguments are absent. Do not interpret successful YAML parsing as a security test.

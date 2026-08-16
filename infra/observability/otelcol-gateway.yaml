@@ -12,7 +12,7 @@
 
 extensions:
   health_check:
-    endpoint: ${env:OTEL_HEALTH_CHECK_ENDPOINT}
+    endpoint: ${env:OTEL_HEALTH_CHECK_ENDPOINT:-127.0.0.1:13133}
     path: /healthz
 
 receivers:
@@ -41,13 +41,13 @@ processors:
     error_mode: ignore
     traces:
       span:
-        - 'resource.attributes["service.name"] != "aisdlc-management-server" and resource.attributes["service.name"] != "aisdlc-portal"'
+        - 'resource.attributes["service.name"] != "ai-sdlc-management-server" and resource.attributes["service.name"] != "ai-sdlc-portal"'
     metrics:
       metric:
-        - 'resource.attributes["service.name"] != "aisdlc-management-server" and resource.attributes["service.name"] != "aisdlc-portal"'
+        - 'resource.attributes["service.name"] != "ai-sdlc-management-server" and resource.attributes["service.name"] != "ai-sdlc-portal"'
     logs:
       log_record:
-        - 'resource.attributes["service.name"] != "aisdlc-management-server" and resource.attributes["service.name"] != "aisdlc-portal"'
+        - 'resource.attributes["service.name"] != "ai-sdlc-management-server" and resource.attributes["service.name"] != "ai-sdlc-portal"'
 
   resource/platform:
     attributes:
