@@ -174,3 +174,8 @@
 - [ ] P3.3 Implementation: add controller/API integration, service-level regression tests, and English documentation for runtime AI enforcement rollout and recovery.
 - [x] P3 Foundation: add V14 schema and project-scoped prototype services/APIs for immutable inference usage, exact cost allocation, advisory forecast, and fail-closed CEL runtime decision evidence.
 - [x] P3 Foundation: add the chaos-profile fault registry and deterministic regression test; no chaos bean is available outside the explicit isolated profile.
+- [x] P3.2 Budget enforcement: add tenant-scoped budget policies, immutable budget decisions, deterministic threshold evaluation, and human-approved exceptions without autonomous spending or routing changes.
+- [ ] P3.2 Budget enforcement: add usage-to-budget integration, advisory/hold decision modes, notification linkage, reconciliation-safe idempotency, and regression tests.
+- [ ] P3.3 Provider proxy: add a provider-neutral request contract with model/provider allowlist verification, workload identity binding, timeouts, bounded retries, and fail-closed decision evidence.
+- [ ] P3.3 Tool broker: add tenant-scoped tool capability grants, argument fingerprinting, explicit approval linkage for high-impact tools, and no raw prompt/output persistence.
+- [x] P3.3 Runtime integration: add controlled integration tests for policy-engine chaos timeout and confirm profile isolation when `chaos` is not active.

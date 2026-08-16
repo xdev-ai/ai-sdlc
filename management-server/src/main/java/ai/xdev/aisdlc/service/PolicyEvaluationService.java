@@ -90,6 +90,19 @@ public class PolicyEvaluationService {
     return value;
   }
 
+  /** Runtime-only evaluation path. The caller has authenticated a workload identity scoped to this project. */
+  @Transactional
+  public EvaluationView evaluateForRuntimeWorkload(UUID projectId, UUID bundleId, String workloadSubject, JsonNode context, boolean dryRun) {
+    if (workloadSubject == null || workloadSubject.isBlank() || workloadSubject.length() > 240) throw new IllegalArgumentException("Invalid workload identity");
+    Boolean registered = jdbc.queryForObject("select exists(select 1 from runtime_ai_workload_identities where project_id=? and workload_subject=? and active=true)", Boolean.class, projectId, workloadSubject.trim());
+    if (!Boolean.TRUE.equals(registered)) throw new IllegalArgumentException("Unregistered runtime workload");
+    PolicyBundleView bundle = require(projectId, bundleId);
+    if (!dryRun && bundle.lifecycleStatus() != PolicyBundleLifecycle.ACTIVE) throw new IllegalStateException("Enforcement evaluation requires an ACTIVE policy bundle");
+    EvaluationView value = evaluateInternal(bundle, projectId, workloadSubject.trim(), context, dryRun ? PolicyEvaluationMode.DRY_RUN : PolicyEvaluationMode.ENFORCEMENT, true);
+    audit.append(access.requireProject(projectId).getOrganizationId(), projectId, workloadSubject.trim(), "policy_bundle.runtime_evaluated", "policy_evaluation", value.id().toString(), "{\"bundleId\":\"" + bundleId + "\",\"mode\":\"" + value.mode() + "\",\"outcome\":\"" + value.outcome() + "\",\"contextSha256\":\"" + value.contextSha256() + "\"}");
+    return value;
+  }
+
   @Transactional
   public TestRunView runFixtures(UUID projectId, UUID bundleId, String actor, boolean requireReadAccess) {
     access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);

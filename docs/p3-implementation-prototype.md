@@ -34,3 +34,7 @@ The exposed project-scoped APIs are intentionally limited to prototype operation
 | `POST /api/v1/projects/{projectId}/runtime-ai-governance/decisions` | Evaluate CEL and return an auditable fail-closed decision. |
 
 Workload client credentials, provider proxying, post-flight approval mutation, external tool brokering, pricing-catalog governance, budget enforcement, and production chaos game days remain explicitly out of scope for this foundation and must retain their P3 backlog status.
+
+## Next Foundation Increment: Budget and Authorization Broker
+
+The follow-on V15 foundation adds immutable project budget policies, decisions, human-approved expiry-bound exceptions, registered workload identities, provider/model allowlist profiles, and tool capability profiles. `BudgetEnforcementService` evaluates the current calendar-month allocation before provider pre-flight authorization. `RuntimeAiBrokerService` is deliberately authorization-only: it cannot send a provider request, execute a tool, or access provider credentials. It only returns a fail-closed authorization decision with policy and budget evidence linkage. See [`p3-budget-enforcement-and-runtime-broker.md`](p3-budget-enforcement-and-runtime-broker.md) for the configuration and rollout contract.
