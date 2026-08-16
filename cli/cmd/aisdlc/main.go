@@ -35,6 +35,8 @@ func main() {
 		status(os.Args[2:])
 	case "upload":
 		upload(os.Args[2:])
+	case "link-pr":
+		linkPullRequest(os.Args[2:])
 	case "version", "--version", "-v":
 		fmt.Println(version)
 	default:
@@ -135,6 +137,30 @@ func upload(args []string) {
 	fmt.Printf("Evidence uploaded. sha256=%s idempotency_key=%s attempts=%d\n", result.SHA256, result.IdempotencyKey, result.Attempts)
 }
 
+func linkPullRequest(args []string) {
+	fs := flag.NewFlagSet("link-pr", flag.ExitOnError)
+	configPath := fs.String("config", engine.DefaultConfigPath, "AI-SDLC configuration path")
+	config, err := engine.LoadConfigIfPresent(*configPath)
+	if err != nil {
+		fatal(err)
+	}
+	apiURL := fs.String("api-url", config.APIURL, "Management API root")
+	projectID := fs.String("project", config.Project, "Project UUID")
+	eventID := fs.String("scm-event", "", "SCM pull-request event UUID received from AI-SDLC")
+	validationRunID := fs.String("validation-run", "", "Validation run UUID to associate with the pull request")
+	token := fs.String("token", "", "OAuth2 access token (env or stored token if omitted)")
+	retries := fs.Int("retries", 4, "Maximum attempts for transport, 429 and 5xx failures")
+	_ = fs.Parse(args)
+	resolvedToken, _, err := engine.ResolveToken(*token)
+	if err != nil {
+		fatal(err)
+	}
+	if err := engine.LinkPullRequest(engine.LinkPullRequestOptions{APIURL: *apiURL, ProjectID: *projectID, EventID: *eventID, ValidationRunID: *validationRunID, Token: resolvedToken, MaxAttempts: *retries}); err != nil {
+		fatal(err)
+	}
+	fmt.Println("Pull-request SCM event linked to governed validation evidence.")
+}
+
 func initConfig(args []string) {
 	fs := flag.NewFlagSet("init", flag.ExitOnError)
 	configPath := fs.String("config", engine.DefaultConfigPath, "Configuration file path")
@@ -211,6 +237,6 @@ func status(args []string) {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "AI-SDLC deterministic validator\n\nCommands:\n  aisdlc init --project <uuid> --api-url https://control.example.com --model provider/model@revision\n  aisdlc login --token-url https://auth.example/realms/ai-sdlc/protocol/openid-connect/token --client-secret <secret>\n  aisdlc validate --config .aisdlc.yml --format json|junit|sarif --out validation-result.json\n  aisdlc sync --config .aisdlc.yml --result validation-result.json --idempotency-key <key>\n  aisdlc upload ./evidence.json --project <uuid> --asset-type VALIDATION --json\n  aisdlc status --config .aisdlc.yml --json")
+	fmt.Fprintln(os.Stderr, "AI-SDLC deterministic validator\n\nCommands:\n  aisdlc init --project <uuid> --api-url https://control.example.com --model provider/model@revision\n  aisdlc login --token-url https://auth.example/realms/ai-sdlc/protocol/openid-connect/token --client-secret <secret>\n  aisdlc validate --config .aisdlc.yml --format json|junit|sarif --out validation-result.json\n  aisdlc sync --config .aisdlc.yml --result validation-result.json --idempotency-key <key>\n  aisdlc upload ./evidence.json --project <uuid> --asset-type VALIDATION --json\n  aisdlc link-pr --project <uuid> --scm-event <uuid> --validation-run <uuid>\n  aisdlc status --config .aisdlc.yml --json")
 }
 func fatal(err error) { fmt.Fprintln(os.Stderr, "error:", err); os.Exit(2) }

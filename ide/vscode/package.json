@@ -1,0 +1,27 @@
+{
+  "name": "aisdlc-governance",
+  "displayName": "AI-SDLC Governance",
+  "version": "0.1.0",
+  "publisher": "xdev-ai",
+  "description": "Run deterministic AI-SDLC validation and open governance evidence from VS Code.",
+  "engines": { "vscode": "^1.95.0" },
+  "categories": ["Testing", "Other"],
+  "activationEvents": ["onCommand:aisdlc.validate", "onCommand:aisdlc.openPortal"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "aisdlc.validate", "title": "AI-SDLC: Validate Workspace" },
+      { "command": "aisdlc.openPortal", "title": "AI-SDLC: Open Governance Portal" }
+    ],
+    "configuration": {
+      "title": "AI-SDLC",
+      "properties": {
+        "aisdlc.cliPath": { "type": "string", "default": "aisdlc", "description": "Path to the AI-SDLC CLI executable." },
+        "aisdlc.portalUrl": { "type": "string", "default": "", "description": "Optional project governance portal URL." }
+      }
+    }
+  },
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "devDependencies": { "@types/vscode": "^1.95.0" },
+  "license": "Apache-2.0"
+}

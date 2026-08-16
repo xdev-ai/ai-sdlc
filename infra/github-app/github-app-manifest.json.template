@@ -1,0 +1,24 @@
+{
+  "name": "AI-SDLC Governance",
+  "description": "Signed AI-SDLC policy checks and traceable delivery evidence.",
+  "url": "${AISDLC_PUBLIC_URL}",
+  "hook_attributes": {
+    "url": "${AISDLC_PUBLIC_URL}/api/v1/webhooks/github",
+    "active": true
+  },
+  "public": false,
+  "default_permissions": {
+    "actions": "read",
+    "checks": "write",
+    "contents": "read",
+    "metadata": "read",
+    "pull_requests": "read"
+  },
+  "default_events": [
+    "check_run",
+    "pull_request",
+    "push",
+    "release",
+    "workflow_run"
+  ]
+}

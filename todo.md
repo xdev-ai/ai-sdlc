@@ -104,3 +104,21 @@
 - [x] Add English/Vietnamese localization to the SSR portal, including language selection, persisted preference, and English fallback.
 - [x] Add localization to React Islands and test SSR fallback, accessibility, and URL/cookie language preference.
 - [x] Enforce supported `en`/`vi` locale values so invalid query or cookie input falls back safely to English.
+- [x] Add P0 GitHub SCM integration: signed and idempotent webhook ingestion, project/repository linking, PR/commit/workflow/release correlation, and policy Check Run publication.
+- [x] Add P0 SCM schema, API, portal configuration workflow, CLI pull-request linking command, tests, GitHub App manifest, and operational documentation.
+- [x] Add P0 notification channels with encrypted configuration, delivery receipts, signed outbound webhooks, and email/Slack/Teams adapters.
+- [x] Add P0 approval orchestration with immutable decisions, quorum, delegation, SLA, escalation, reminder processing, REST API, portal queue, tests, and documentation.
+- [x] Add P0 supply-chain records for SBOM assets and release provenance linked to Evidence Repository retention and audit evidence.
+- [x] Add P0 CycloneDX SBOM generation, SBOM ingestion/validation API, portal provenance display, release CI attestation, artifact signing support, tests, and documentation.
+- [x] Add P1 versioned Policy-as-Code bundles with CEL evaluation, dry-run, test fixtures, evaluation evidence, REST API, portal editor, tests, and documentation.
+- [x] Add P1 AI-agent governance records for agent sessions, prompt templates, tool invocations, generated-change provenance, policy decisions, and mandatory human approval evidence.
+- [x] Add P1 agent governance REST/portal workflows, validation-run linkage, immutable audit events, tests, and documentation without allowing validators to invoke AI.
+- [x] Add P1 quality and risk intelligence data model, transparent score computation, risk trends, review latency, gate lead-time, security debt, and evidence-completeness metrics.
+- [x] Add P1 Risk Cockpit React Island with accessible SSR fallback, documented formulas/data sources, API contracts, tests, and documentation.
+- [x] Add P2 tenant isolation model, tenant-aware authorization, tenant audit scope, encryption/data-residency metadata, legal hold, and e-discovery export.
+- [x] Add P2 enterprise identity integration contracts for SCIM 2.0 provisioning, per-tenant OIDC/SAML federation settings, group mapping, custom roles, permission sets, tests, and documentation.
+- [x] Add P2 developer integration surface: versioned outbound webhook event contracts and signed delivery verification.
+- [x] Add P2 Java and TypeScript SDKs, a Terraform provider skeleton, IDE integration manifest/guidance, contract tests, release packaging, and documentation.
+- [ ] Run full Java, frontend, Go, static guardrail, security-policy, Compose CI, and GitHub Actions verification for the P0–P2 release.
+- [x] Update English-only architecture, API, operations, security, administrator, developer, integration, and changelog documentation for every P0–P2 capability.
+- [ ] Commit and publish every verified P0–P2 increment to `xdev-ai/ai-sdlc` on the `main` branch.

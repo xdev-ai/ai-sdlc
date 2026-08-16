@@ -8,6 +8,14 @@ spring:
     multipart:
       max-file-size: ${AISDLC_EVIDENCE_MAX_UPLOAD_BYTES:25MB}
       max-request-size: ${AISDLC_EVIDENCE_MAX_UPLOAD_BYTES:25MB}
+  mail:
+    host: ${AISDLC_SMTP_HOST:}
+    port: ${AISDLC_SMTP_PORT:587}
+    username: ${AISDLC_SMTP_USERNAME:}
+    password: ${AISDLC_SMTP_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${AISDLC_SMTP_AUTH:true}
+      mail.smtp.starttls.enable: ${AISDLC_SMTP_STARTTLS:true}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/aisdlc}
     username: ${SPRING_DATASOURCE_USERNAME:aisdlc}
@@ -60,3 +68,22 @@ aisdlc:
     force-path-style: ${AISDLC_EVIDENCE_S3_FORCE_PATH_STYLE:true}
     presign-ttl: ${AISDLC_EVIDENCE_PRESIGN_TTL:PT5M}
     max-upload-bytes: ${AISDLC_EVIDENCE_MAX_UPLOAD_BYTES:26214400}
+  github:
+    enabled: ${AISDLC_GITHUB_APP_ENABLED:false}
+    api-base-url: ${AISDLC_GITHUB_API_BASE_URL:https://api.github.com}
+    app-id: ${AISDLC_GITHUB_APP_ID:}
+    private-key-pem: ${AISDLC_GITHUB_APP_PRIVATE_KEY_PEM:}
+    webhook-secret: ${AISDLC_GITHUB_WEBHOOK_SECRET:}
+    check-name: ${AISDLC_GITHUB_CHECK_NAME:AI-SDLC Governance}
+    details-url-template: ${AISDLC_GITHUB_CHECK_DETAILS_URL_TEMPLATE:}
+    request-timeout: ${AISDLC_GITHUB_REQUEST_TIMEOUT:PT10S}
+  notifications:
+    encryption-key: ${AISDLC_NOTIFICATION_ENCRYPTION_KEY:}
+    from-address: ${AISDLC_NOTIFICATION_FROM_ADDRESS:}
+    batch-size: ${AISDLC_NOTIFICATION_BATCH_SIZE:25}
+    max-attempts: ${AISDLC_NOTIFICATION_MAX_ATTEMPTS:5}
+    retry-base-delay: ${AISDLC_NOTIFICATION_RETRY_BASE_DELAY:PT1M}
+    reminder-lead-time: ${AISDLC_APPROVAL_REMINDER_LEAD_TIME:PT24H}
+    reminder-interval: ${AISDLC_APPROVAL_REMINDER_INTERVAL:PT6H}
+    dispatch-cron: ${AISDLC_NOTIFICATION_DISPATCH_CRON:0 */2 * * * *}
+    approval-sla-cron: ${AISDLC_APPROVAL_SLA_CRON:30 */5 * * * *}

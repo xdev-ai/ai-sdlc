@@ -6,6 +6,14 @@ All notable changes to the AI-SDLC platform are documented in this file. The rep
 
 ### Added
 
+- P0 GitHub SCM governance: signed GitHub App webhook ingestion, idempotent delivery ledger, repository links, pull-request/commit/workflow/release correlation, policy Check Run publication, SSR administration workflow, and `aisdlc link-pr`.
+- P0 notification and approval orchestration: encrypted email/Slack/Teams/generic-webhook channels, signed versioned generic webhook delivery, immutable receipts, bounded retry/reconciliation, quorum, delegation, SLA reminders, escalation, and retained security-exception expiry notices.
+- P0 supply-chain controls: aggregate CycloneDX SBOM generation, SBOM evidence ingest, release provenance ledger, human verification workflow, GitHub artifact attestations, and optional keyless Cosign signature for checksum manifests.
+- P1 Policy-as-Code: immutable semantic-versioned CEL bundles, typed side-effect-free Boolean evaluation, dry-run mode, fixture runner, policy lifecycle, retained evaluation evidence, REST API, and SSR workspace.
+- P1 AI-agent governance: versioned prompt fingerprints, agent session and tool/context digest provenance, policy-gated generated-change declarations, idempotency, validation/evidence linkage, and mandatory human approval requests.
+- P1 Risk Intelligence: auditable `risk.v1` snapshots, component/source lineage, trend API, SSR ledger fallback, and ECharts Risk Cockpit using persisted governance data.
+- P2 enterprise tenancy: tenant boundaries, encrypted federation metadata, custom permission sets, SCIM provisioning service principals, tenant audit records, legal holds, and tenant-scoped e-discovery export manifests.
+- P2 developer integrations: Java/OpenAPI SDK module, TypeScript client, Terraform provider for notification channels/risk snapshots, VS Code integration manifest, versioned signed outbound webhook contracts, and CI coverage for each integration.
 - Evidence & Governance Data Repository with project-scoped `evidence_assets` metadata, SHA-256 provenance, content classification, bounded multipart upload, pagination, soft delete, optional validation-evidence linkage and private presigned downloads.
 - S3-compatible `ObjectStoragePort` and AWS SDK for Java 2.x adapter, with MinIO Object Lock topology, deterministic bucket bootstrap, retention extension controls and compensating cleanup on metadata rollback.
 - Upload idempotency at the database boundary, audit-backed evidence lifecycle events, SSR portal workflows, and `aisdlc upload` with streaming multipart, digest verification, deterministic retry key and bounded retry/backoff.
@@ -14,6 +22,7 @@ All notable changes to the AI-SDLC platform are documented in this file. The rep
 
 ### Security
 
+- Enforced HMAC validation and replay-resistant idempotency for inbound GitHub events, encrypted at-rest notification and federation secrets, signed outbound generic webhooks, SCIM service-principal token hashing, tenant-aware e-discovery access controls, and explicit human verification of release provenance.
 - Replaced NVD-dependent OWASP Dependency-Check with OSV-Scanner, Trivy, CodeQL, Dependabot and GitHub dependency review.
 - Added fail-closed HIGH/CRITICAL Trivy scanning for repository dependencies, secrets, Docker/Compose configuration and production images, with SARIF evidence retention.
 - Added CodeQL security-and-quality analysis for Java, JavaScript/TypeScript, Go and GitHub Actions, plus a weekly advisory-refresh schedule.

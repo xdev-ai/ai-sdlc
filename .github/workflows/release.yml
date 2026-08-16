@@ -68,11 +68,13 @@ jobs:
         run: node scripts/enforce-trivy-sarif-policy.mjs trivy-release.sarif
 
   release:
-    name: Assemble and publish signed-by-checksum release
+    name: Assemble, attest, and publish release
     needs: [osv, trivy]
     runs-on: ubuntu-24.04
     permissions:
       contents: write
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v5
         with:
@@ -99,7 +101,24 @@ jobs:
           mkdir -p dist
           cp management-server/target/management-server-*.jar dist/
           cp portal/target/portal-*.jar dist/
+          cp target/ai-sdlc-sbom.json dist/ai-sdlc-sbom.cdx.json
           (cd dist && sha256sum * > SHA256SUMS)
+      - name: Generate signed build provenance for release artifacts
+        uses: actions/attest@v4
+        with:
+          subject-checksums: dist/SHA256SUMS
+      - name: Generate signed SBOM attestation for the release manifest
+        uses: actions/attest@v4
+        with:
+          subject-path: dist/SHA256SUMS
+          sbom-path: dist/ai-sdlc-sbom.cdx.json
+      - name: Install Cosign for optional release-manifest signature
+        if: vars.AISDLC_COSIGN_ENABLED == 'true'
+        uses: sigstore/cosign-installer@v3
+      - name: Sign release manifest with Sigstore keyless identity
+        if: vars.AISDLC_COSIGN_ENABLED == 'true'
+        run: |
+          cosign sign-blob --yes --bundle dist/SHA256SUMS.cosign.bundle dist/SHA256SUMS
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:

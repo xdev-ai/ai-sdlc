@@ -87,5 +87,28 @@ function ReviewGuardrail({ reviews, exceptions, organizationId, projectId }) {
   return <div className="react-workspace review-guardrail"><strong>{pending.length} {t('pending review decisions')} · {pendingExceptions.length} {t('pending exceptions')}</strong><span>{t('Every decision remains server-authorized, CSRF-protected and appended to the immutable audit ledger. Exception approvals also require an explicit UTC expiry.')}</span>{pending.slice(0, 3).map(review => <div className="react-review-row" key={review.id}><span>{review.title || review.review_type}</span><div><button type="button" disabled={state.busy === review.id} onClick={() => decide(review, 'APPROVED')}>{t('Approve')}</button><button type="button" disabled={state.busy === review.id} onClick={() => decide(review, 'REJECTED')}>{t('Reject')}</button></div></div>)}{state.message && <span role="alert">{state.message}</span>}</div>;
 }
 
-const registry = { quality: data => <QualityAnalytics rows={Array.isArray(data) ? data : []} />, trace: data => <TraceabilityExplorer trace={data || { nodes: [], edges: []}} />, evidence: data => <EvidenceWorkspace runs={Array.isArray(data) ? data : []} />, review: data => <ReviewGuardrail reviews={Array.isArray(data?.reviews) ? data.reviews : []} exceptions={Array.isArray(data?.exceptions) ? data.exceptions : []} organizationId={data?.organizationId || ''} projectId={data?.projectId || ''} /> };
+function RiskCockpit({ scores }) {
+  const chartRef = useRef(null);
+  const latest = scores?.[0];
+  useEffect(() => {
+    if (!chartRef.current || !window.echarts || !scores?.length) return undefined;
+    const chart = window.echarts.init(chartRef.current, null, { renderer: 'svg' });
+    const ordered = [...scores].reverse();
+    chart.setOption({
+      animationDuration: 180,
+      tooltip: { trigger: 'axis' },
+      grid: { top: 28, left: 40, right: 20, bottom: 42 },
+      xAxis: { type: 'category', data: ordered.map(item => String(item.calculatedAt || '').slice(0, 10)) },
+      yAxis: { type: 'value', min: 0, max: 100, name: t('risk') },
+      series: [{ name: t('Risk score'), type: 'line', smooth: true, showSymbol: false, data: ordered.map(item => num(item.score)), lineStyle: { color: '#b85c4a', width: 2 }, areaStyle: { color: 'rgba(184,92,74,.12)' }, itemStyle: { color: '#b85c4a' } }]
+    });
+    const resize = () => chart.resize(); window.addEventListener('resize', resize);
+    return () => { window.removeEventListener('resize', resize); chart.dispose(); };
+  }, [scores]);
+  if (!scores?.length) return <div className="react-workspace"><strong>{t('No risk snapshot is available yet.')}</strong><span>{t('Run a server-authorized recomputation after governance evidence has been captured.')}</span></div>;
+  const components = Object.entries(latest?.components || {});
+  return <div className="react-workspace"><div className="react-toolbar"><strong>{t('Current posture')}: {latest.score}/100 · {latest.riskBand}</strong><span className="mono">{latest.formulaVersion}</span></div><div ref={chartRef} className="react-chart" role="img" aria-label={t('Risk score trend')}>{!window.echarts && t('Chart module unavailable. Review the server-rendered ledger below.')}</div><div className="risk-components" aria-label={t('Risk components')}>{components.map(([name, value]) => <div key={name}><span>{name.replace(/Risk$/, '').replace(/([A-Z])/g, ' $1')}</span><b>{value}</b></div>)}</div></div>;
+}
+
+const registry = { quality: data => <QualityAnalytics rows={Array.isArray(data) ? data : []} />, trace: data => <TraceabilityExplorer trace={data || { nodes: [], edges: []}} />, evidence: data => <EvidenceWorkspace runs={Array.isArray(data) ? data : []} />, review: data => <ReviewGuardrail reviews={Array.isArray(data?.reviews) ? data.reviews : []} exceptions={Array.isArray(data?.exceptions) ? data.exceptions : []} organizationId={data?.organizationId || ''} projectId={data?.projectId || ''} />, risk: data => <RiskCockpit scores={Array.isArray(data) ? data : []} /> };
 document.querySelectorAll('[data-react-island]').forEach(node => { const factory = registry[node.dataset.reactIsland]; if (factory) createRoot(node).render(factory(props(node))); });

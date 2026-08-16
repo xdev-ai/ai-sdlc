@@ -16,11 +16,36 @@
   <modules>
     <module>management-server</module>
     <module>portal</module>
+    <module>sdk</module>
   </modules>
   <properties>
     <java.version>25</java.version>
     <maven.compiler.release>25</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.cyclonedx</groupId>
+        <artifactId>cyclonedx-maven-plugin</artifactId>
+        <version>2.9.2</version>
+        <inherited>false</inherited>
+        <executions>
+          <execution>
+            <id>aggregate-supply-chain-bom</id>
+            <phase>verify</phase>
+            <goals><goal>makeAggregateBom</goal></goals>
+            <configuration>
+              <schemaVersion>1.6</schemaVersion>
+              <includeBomSerialNumber>true</includeBomSerialNumber>
+              <includeTestScope>false</includeTestScope>
+              <outputFormat>json</outputFormat>
+              <outputName>ai-sdlc-sbom</outputName>
+              <outputDirectory>${project.build.directory}</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 </project>
-

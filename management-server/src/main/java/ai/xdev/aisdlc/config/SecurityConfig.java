@@ -15,7 +15,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -43,13 +46,14 @@ public class SecurityConfig {
             .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).preload(true).maxAgeInSeconds(31536000)))
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
+            .requestMatchers("/api/v1/webhooks/github", "/scim/v2/**").permitAll()
             .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").hasAuthority("ROLE_admin")
             .requestMatchers("/api/v1/cli/**").hasAnyAuthority("ROLE_admin", "ROLE_developer")
             .requestMatchers("/api/v1/reviews/**").hasAnyAuthority("ROLE_admin", "ROLE_reviewer")
             .requestMatchers("/api/v1/policies/**", "/api/v1/constitutions/**").hasAuthority("ROLE_admin")
             .requestMatchers("/api/**").authenticated()
             .anyRequest().denyAll())
-        .oauth2ResourceServer(oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+        .oauth2ResourceServer(oauth -> oauth.bearerTokenResolver(scimAwareBearerTokenResolver()).jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
     return http.build();
   }
 
@@ -72,6 +76,12 @@ public class SecurityConfig {
     JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
     converter.setJwtGrantedAuthoritiesConverter(new RealmRoleConverter());
     return converter;
+  }
+
+  @Bean
+  BearerTokenResolver scimAwareBearerTokenResolver() {
+    DefaultBearerTokenResolver delegate = new DefaultBearerTokenResolver();
+    return (HttpServletRequest request) -> request.getRequestURI().startsWith("/scim/v2/") ? null : delegate.resolve(request);
   }
 
   static final class RealmRoleConverter implements Converter<Jwt, Collection<GrantedAuthority>> {

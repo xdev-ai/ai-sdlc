@@ -20,13 +20,15 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1")
 public class ProjectController {
   private final OrganizationRepository organizations;
+  private final TenantRepository tenants;
   private final ProjectRepository projects;
   private final MembershipRepository memberships;
   private final ProjectAccessService access;
   private final AuditService audit;
 
-  public ProjectController(OrganizationRepository organizations, ProjectRepository projects, MembershipRepository memberships, ProjectAccessService access, AuditService audit) {
+  public ProjectController(OrganizationRepository organizations, TenantRepository tenants, ProjectRepository projects, MembershipRepository memberships, ProjectAccessService access, AuditService audit) {
     this.organizations = organizations;
+    this.tenants = tenants;
     this.projects = projects;
     this.memberships = memberships;
     this.access = access;
@@ -43,7 +45,8 @@ public class ProjectController {
 
   @PostMapping("/organizations") @ResponseStatus(HttpStatus.CREATED) @PreAuthorize("hasRole('admin')") @Transactional
   OrganizationView createOrganization(@RequestBody @Valid OrganizationInput input, @AuthenticationPrincipal Jwt jwt) {
-    Organization org = organizations.save(new Organization(input.slug(), input.name()));
+    Tenant tenant = tenants.findBySlug("default").orElseThrow(() -> new IllegalStateException("Default tenant is unavailable"));
+    Organization org = organizations.save(new Organization(tenant.getId(), input.slug(), input.name()));
     audit.append(org.getId(), null, jwt.getSubject(), "organization.created", "organization", org.getId().toString(), "{\"slug\":\"" + escape(input.slug()) + "\"}");
     return view(org);
   }
@@ -61,9 +64,9 @@ public class ProjectController {
 
   @PostMapping("/organizations/{organizationId}/projects") @ResponseStatus(HttpStatus.CREATED) @PreAuthorize("hasRole('admin')") @Transactional
   ProjectView createProject(@PathVariable UUID organizationId, @RequestBody @Valid ProjectInput input, @AuthenticationPrincipal Jwt jwt) {
-    requireOrganization(organizationId);
-    Project project = projects.save(new Project(organizationId, input.slug(), input.name(), input.description()));
-    memberships.save(new ProjectMembership(project.getId(), jwt.getSubject(), MembershipRole.OWNER));
+    Organization organization = requireOrganization(organizationId);
+    Project project = projects.save(new Project(organization.getTenantId(), organizationId, input.slug(), input.name(), input.description()));
+    memberships.save(new ProjectMembership(project.getTenantId(), project.getId(), jwt.getSubject(), MembershipRole.OWNER));
     audit.append(organizationId, project.getId(), jwt.getSubject(), "project.created", "project", project.getId().toString(), "{\"slug\":\"" + escape(input.slug()) + "\"}");
     return view(project);
   }
@@ -83,7 +86,7 @@ public class ProjectController {
   MembershipView inviteMembership(@PathVariable UUID projectId, @RequestBody @Valid MembershipInput input, @AuthenticationPrincipal Jwt jwt) {
     Project project = requireProject(projectId);
     if (memberships.findByProjectIdAndSubject(projectId, input.subject()).isPresent()) throw new IllegalStateException("Member already belongs to this project");
-    ProjectMembership membership = memberships.save(new ProjectMembership(projectId, input.subject(), input.role()));
+    ProjectMembership membership = memberships.save(new ProjectMembership(project.getTenantId(), projectId, input.subject(), input.role()));
     audit.append(project.getOrganizationId(), projectId, jwt.getSubject(), "membership.created", "project_membership", membership.getId().toString(), "{\"subject\":\"" + escape(input.subject()) + "\",\"role\":\"" + input.role().name() + "\"}");
     return view(membership);
   }
