@@ -31,7 +31,7 @@ jobs:
         run: bash scripts/verify-production.sh
       - name: Publish JVM test reports on failure
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: maven-test-reports
           path: '**/target/surefire-reports/**'
@@ -81,7 +81,7 @@ jobs:
         run: bash scripts/integration-smoke.sh
       - name: Publish Compose diagnostics on failure
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: compose-integration-logs
           path: target-compose-integration.log
@@ -200,7 +200,7 @@ jobs:
 
       - name: Retain Trivy evidence
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-security-reports
           path: trivy-*.sarif
