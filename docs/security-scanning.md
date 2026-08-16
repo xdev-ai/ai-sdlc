@@ -21,6 +21,8 @@ The enforced severity threshold for Trivy is HIGH and CRITICAL. The CI policy re
 
 Run `sh scripts/test-trivy-ignorefile.sh` on a workstation with the Trivy CLI and network access to verify that Trivy honors a temporary, time-bounded YAML exception against a real HIGH/CRITICAL finding. The test creates its exception file in a temporary directory, deletes it on exit, and never adds a live suppression to the repository template.
 
+Any active exception is validated before every Trivy scan by `node scripts/validate-trivy-ignore-expiry.mjs .trivyignore.yaml`. The validator fails closed for expired dates, malformed dates, missing ownership/review metadata, placeholder IDs, or unsupported sections; it emits an operational warning when an exception will expire within 30 days. Run `sh scripts/test-trivy-ignore-expiry.sh` to prove that a future-dated governed exception is accepted and an expired exception fails.
+
 Container-image scan results are retained as CI evidence. Base-image findings must be remediated through a digest-pinned upstream runtime update, a verified minimal-runtime replacement, or a deterministic distribution security upgrade during the image build; they must not be suppressed merely because they originate in an upstream image.
 
 ## References

@@ -97,6 +97,9 @@
 - [x] Add a safe, non-active `.trivyignore.yaml` template that captures every mandatory accepted-risk metadata field.
 - [x] Add automated tests and run a local Trivy exception scan without introducing a live suppression into production CI.
 - [x] Audit Trivy and OSV workflow triggers, permissions, scanner options, policy gates, SARIF retention, and release coverage against security-scanning documentation.
+- [ ] Analyze Node.js runtime deprecation annotations in CI run 31924976967 and remediate owned action/runtime usage where possible.
+- [ ] Generate an English Markdown security-scan report from the latest successful Trivy and OSV CI evidence.
+- [ ] Add fail-closed `.trivyignore.yaml` expiry validation, regression tests, CI/release integration, and operating guidance.
 - [x] Standardize all GitHub-facing source metadata, documentation, and developer-facing copy in English.
 - [x] Add English/Vietnamese localization to the SSR portal, including language selection, persisted preference, and English fallback.
 - [x] Add localization to React Islands and test SSR fallback, accessibility, and URL/cookie language preference.

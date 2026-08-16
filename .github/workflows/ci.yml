@@ -19,7 +19,7 @@ jobs:
     name: Java 25 · Maven verification
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -31,7 +31,7 @@ jobs:
         run: bash scripts/verify-production.sh
       - name: Publish JVM test reports on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: maven-test-reports
           path: '**/target/surefire-reports/**'
@@ -41,8 +41,8 @@ jobs:
     name: Go 1.24 · CLI verification
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.24.x'
           cache-dependency-path: cli/go.mod
@@ -59,8 +59,8 @@ jobs:
     name: React Islands · production build
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '22.13.0'
           cache: npm
@@ -76,12 +76,12 @@ jobs:
     needs: [java, cli, frontend]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Start hardened topology and verify public health surfaces
         run: bash scripts/integration-smoke.sh
       - name: Publish Compose diagnostics on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: compose-integration-logs
           path: target-compose-integration.log
@@ -92,7 +92,7 @@ jobs:
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: actions/dependency-review-action@v5
 
   osv-pr:
@@ -120,10 +120,13 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Test Trivy SARIF policy parser
         run: sh scripts/test-trivy-sarif-policy.sh
+
+      - name: Enforce Trivy exception expiry policy
+        run: node scripts/validate-trivy-ignore-expiry.mjs .trivyignore.yaml
 
       - name: Scan dependencies, secrets, and infrastructure as code
         uses: aquasecurity/trivy-action@v0.36.0
@@ -197,7 +200,7 @@ jobs:
 
       - name: Retain Trivy evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: trivy-security-reports
           path: trivy-*.sarif

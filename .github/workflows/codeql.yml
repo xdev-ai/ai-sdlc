@@ -39,7 +39,7 @@ jobs:
             language: actions
             build_mode: none
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up Java 25
         if: matrix.language == 'java-kotlin'
@@ -51,7 +51,7 @@ jobs:
 
       - name: Set up Go 1.24
         if: matrix.language == 'go'
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: '1.24.x'
           cache-dependency-path: cli/go.mod

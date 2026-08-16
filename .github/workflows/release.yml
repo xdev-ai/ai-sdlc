@@ -29,11 +29,13 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.tag || github.ref }}
       - name: Test Trivy SARIF policy parser
         run: sh scripts/test-trivy-sarif-policy.sh
+      - name: Enforce Trivy exception expiry policy
+        run: node scripts/validate-trivy-ignore-expiry.mjs .trivyignore.yaml
       - name: Scan release source for vulnerabilities, secrets, and misconfiguration
         uses: aquasecurity/trivy-action@v0.36.0
         with:
@@ -56,7 +58,7 @@ jobs:
           category: trivy-release
       - name: Retain Trivy release evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: trivy-release-report
           path: trivy-release.sarif
@@ -72,7 +74,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.tag || github.ref }}
       - uses: actions/setup-java@v4
@@ -80,7 +82,7 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version: '1.24.x'
           cache-dependency-path: cli/go.mod
