@@ -15,7 +15,11 @@
     <dependencies>
       <dependency><groupId>software.amazon.awssdk</groupId><artifactId>bom</artifactId><version>${aws.java.sdk.version}</version><type>pom</type><scope>import</scope></dependency>
       <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>2.22.1</version></dependency>
-      <dependency><groupId>tools.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>3.1.5</version></dependency>
+      <dependency><groupId>tools.jackson.core</groupId><artifactId>jackson-databind</artifactId><version>3.2.1</version></dependency>
+      <!-- Jackson 3.2.1 calls JacksonAnnotationIntrospector.findApplyView, which needs JsonApplyView. That
+           class first appears in jackson-annotations 2.22; the Spring Boot BOM otherwise resolves 2.21 and the
+           application fails at startup with NoClassDefFoundError. -->
+      <dependency><groupId>com.fasterxml.jackson.core</groupId><artifactId>jackson-annotations</artifactId><version>2.22</version></dependency>
       <dependency><groupId>org.apache.logging.log4j</groupId><artifactId>log4j-api</artifactId><version>2.26.1</version></dependency>
       <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42.7.13</version></dependency>
       <!-- Pinned above the versions the AWS SDK BOM resolves: GHSA-hjcp-jmpx-g3qm (httpclient5) and
