@@ -1,0 +1,46 @@
+package ai.xdev.aisdlc.service;
+
+import ai.xdev.aisdlc.domain.DomainTypes.MembershipRole;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.*;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+/** Provider-neutral, minor-unit cost ledger. Forecasts are advisory only and never route a model. */
+@Service
+public class InferenceCostService {
+  public record UsageView(UUID id, String sourceEventKey, String provider, String modelName, Instant occurredAt, long inputTokens, long outputTokens, String currencyCode, long sourceCostMinor) {}
+  public record ForecastView(UUID id, LocalDate start, int horizonDays, String currencyCode, Long predictedCostMinor, Long lowerBoundMinor, Long upperBoundMinor, int sampleDays, String status) {}
+  private final JdbcTemplate jdbc; private final ProjectAccessService access; private final AuditService audit;
+  public InferenceCostService(JdbcTemplate jdbc, ProjectAccessService access, AuditService audit) { this.jdbc = jdbc; this.access = access; this.audit = audit; }
+  @Transactional
+  public UsageView ingest(UUID projectId, String actor, String sourceEventKey, String provider, String model, String version, Instant occurredAt, long input, long output, String currency, long costMinor, String sourceClaimSha256) {
+    var project = access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER);
+    require(sourceEventKey, 240); require(provider, 160); require(model, 240); if (input < 0 || output < 0 || costMinor < 0) throw new IllegalArgumentException("Usage and cost must be non-negative");
+    String c = requireCurrency(currency); requireDigest(sourceClaimSha256); UUID id = UUID.randomUUID();
+    int inserted = jdbc.update("insert into inference_usage_events(id,project_id,source_event_key,provider,model_name,model_version,occurred_at,input_tokens,output_tokens,currency_code,source_cost_minor,source_claim_sha256,recorded_by) values(?,?,?,?,?,?,?, ?,?,?, ?,?,?) on conflict(project_id,source_event_key) do nothing", id, projectId, sourceEventKey.trim(), provider.trim(), model.trim(), blank(version,240), occurredAt == null ? Instant.now() : occurredAt, input, output, c, costMinor, sourceClaimSha256.toLowerCase(Locale.ROOT), actor);
+    if (inserted == 0) return existing(projectId, sourceEventKey);
+    String evidence = sha256(projectId + "|" + sourceEventKey + "|" + c + "|" + costMinor);
+    jdbc.update("insert into inference_cost_allocations(id,usage_event_id,project_id,allocation_key,currency_code,allocated_cost_minor,allocation_method,allocation_evidence_sha256) values(?,?,?,?,?,?,?,?)", UUID.randomUUID(), id, projectId, "project:" + projectId, c, costMinor, "SOURCE_COST_EXACT", evidence);
+    audit.append(project.getOrganizationId(), projectId, actor, "inference_usage.ingested", "inference_usage_event", id.toString(), "{\"sourceEventKey\":\"" + json(sourceEventKey) + "\",\"costMinor\":" + costMinor + "}");
+    return new UsageView(id, sourceEventKey.trim(), provider.trim(), model.trim(), occurredAt == null ? Instant.now() : occurredAt, input, output, c, costMinor);
+  }
+  @Transactional
+  public ForecastView forecast(UUID projectId, String actor, String currency, int horizonDays) {
+    access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER); String c = requireCurrency(currency); int horizon = Math.max(1, Math.min(90, horizonDays));
+    List<Long> daily = jdbc.queryForList("select coalesce(sum(source_cost_minor),0) from inference_usage_events where project_id=? and currency_code=? and occurred_at >= now() - interval '28 days' group by occurred_at::date order by occurred_at::date", Long.class, projectId, c);
+    int days = daily.size(); Long prediction = null, low = null, high = null; String status = days < 7 ? "INSUFFICIENT_DATA" : "ADVISORY";
+    if (days >= 7) { long mean = Math.round(daily.stream().mapToLong(Long::longValue).average().orElse(0)); prediction = Math.multiplyExact(mean, horizon); low = Math.round(prediction * .80d); high = Math.round(prediction * 1.20d); }
+    String evidence = sha256(projectId + "|" + c + "|" + horizon + "|" + daily); UUID id = UUID.randomUUID(); LocalDate start = LocalDate.now(ZoneOffset.UTC).plusDays(1);
+    jdbc.update("insert into inference_cost_forecasts(id,project_id,forecast_start,horizon_days,currency_code,predicted_cost_minor,lower_bound_minor,upper_bound_minor,sample_days,methodology,status,evidence_sha256,generated_by) values(?,?,?,?,?,?,?,?,?,?,?,?,?)", id, projectId, start, horizon, c, prediction, low, high, days, "TRAILING_28D_DAILY_MEAN_V1", status, evidence, actor);
+    return new ForecastView(id, start, horizon, c, prediction, low, high, days, status);
+  }
+  private UsageView existing(UUID projectId, String key) { return jdbc.queryForObject("select id,source_event_key,provider,model_name,occurred_at,input_tokens,output_tokens,currency_code,source_cost_minor from inference_usage_events where project_id=? and source_event_key=?", (rs,n)->new UsageView(rs.getObject(1,UUID.class),rs.getString(2),rs.getString(3),rs.getString(4),rs.getTimestamp(5).toInstant(),rs.getLong(6),rs.getLong(7),rs.getString(8),rs.getLong(9)), projectId,key.trim()); }
+  private static String require(String v,int max){if(v==null||v.isBlank()||v.trim().length()>max)throw new IllegalArgumentException("Required bounded value missing");return v.trim();} private static String blank(String v,int max){return v==null||v.isBlank()?null:require(v,max);} private static String requireCurrency(String v){if(v==null||!v.matches("[A-Za-z]{3}"))throw new IllegalArgumentException("ISO currency code required");return v.toUpperCase(Locale.ROOT);} private static void requireDigest(String v){if(v==null||!v.matches("[a-fA-F0-9]{64}"))throw new IllegalArgumentException("SHA-256 required");} private static String sha256(String v){try{return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(v.getBytes(StandardCharsets.UTF_8)));}catch(Exception e){throw new IllegalStateException(e);}} private static String json(String v){return v.replace("\\","\\\\").replace("\"","\\\"");}
+}
