@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="vi" xmlns:th="https://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.language}" xmlns:th="https://www.thymeleaf.org">
 <body>
   <section th:fragment="qualitySignals" id="quality-signals" class="panel" aria-live="polite">
     <div th:if="${!projectId.isEmpty()}" class="sr-refresh" th:attr="hx-get=@{/app/fragments/quality(org=${organizationId},project=${projectId})}" hx-trigger="every 120s" hx-target="#quality-signals" hx-swap="outerHTML"></div>

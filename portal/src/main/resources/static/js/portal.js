@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  var t = function (key) { return window.AISDLC_I18N?.t?.(key) || key; };
 
   function parseJson(value, fallback) {
     try { return JSON.parse(value || ""); } catch (_) { return fallback; }
@@ -31,13 +32,13 @@
       var chronologicallyOrdered = rows.slice().reverse();
       var chart = window.echarts.init(element, null, { renderer: "svg" });
       var fields = [
-        ["deployment_frequency", "Deployment frequency", "#577363"],
-        ["lead_time_hours", "Lead time (h)", "#b3914b"],
-        ["change_failure_rate", "Change failure rate", "#b85c4a"],
-        ["pr_review_time_delta_hours", "Review delta (h)", "#566b9c"],
-        ["rework_rate", "Rework rate", "#856a99"],
-        ["review_queue_health", "Queue health", "#4b8a7a"],
-        ["spec_alignment_score", "Spec alignment", "#8da84e"]
+        ["deployment_frequency", t("Deployment frequency"), "#577363"],
+        ["lead_time_hours", t("Lead time (h)"), "#b3914b"],
+        ["change_failure_rate", t("Change failure rate"), "#b85c4a"],
+        ["pr_review_time_delta_hours", t("Review delta (h)"), "#566b9c"],
+        ["rework_rate", t("Rework rate"), "#856a99"],
+        ["review_queue_health", t("Queue health"), "#4b8a7a"],
+        ["spec_alignment_score", t("Spec alignment"), "#8da84e"]
       ];
       chart.setOption({
         tooltip: { trigger: "axis" },

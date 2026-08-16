@@ -1,85 +1,89 @@
 # AI-SDLC Build 1 TODO
 
-- [x] Pin Java 25.0.3 LTS, Spring Boot 4.1.0, PostgreSQL 18.6 và Keycloak 26.7.1.
-- [x] Tạo monorepo gồm management-server Spring Boot, portal SSR Thymeleaf, Go CLI và Docker Compose.
-- [x] Cấu hình Keycloak realm và các role `admin`, `developer`, `reviewer`, `viewer`.
-- [x] Xây REST control plane cho projects, validation evidence, kit registry, policy, constitution, traceability, reviews, quality metrics và audit.
-- [x] Áp dụng role checks và project-membership checks tại API/service boundary.
-- [x] Xây append-only audit ledger với database trigger cấm UPDATE và DELETE.
-- [x] Tạo portal SSR responsive cho dashboard, projects, kits, validations, traceability, governance, review queue, quality và audit.
-- [x] Tạo Go CLI deterministic với model pinning, cấm `--bare`, evidence digest và idempotent sync.
-- [x] Viết và chạy Java unit tests cho RBAC, ingest evidence, review decision và audit append-only.
-- [x] Kiểm tra portal SSR công khai, OAuth2 callback configuration và build artifact.
-- [x] Chạy integration regression PostgreSQL/Keycloak qua Docker Compose (chưa thể chạy vì môi trường build hiện tại không có Docker daemon).
-- [x] Hoàn thiện tài liệu thao tác và kiến trúc Build 1.
-- [x] Push monorepo vào `xdev-ai/ai-sdlc` và xác minh repository sạch.
-- [x] Chuẩn hóa bộ thư viện frontend tương thích SSR: HTMX, Alpine.js, ECharts, Cytoscape.js, Tabulator và Lucide Icons.
-- [x] Bổ sung asset pipeline có pin version, Subresource Integrity và progressive enhancement không làm hỏng portal khi JavaScript tắt.
-- [x] Tích hợp DORA quality charts tương tác vào trang Quality, sử dụng dữ liệu API thực thay vì dữ liệu giả.
-- [x] Tích hợp traceability graph Cytoscape.js vào trang Traceability, có keyboard navigation và fallback SSR.
-- [x] Nâng cấp bảng validation, reviews và audit bằng Tabulator có sort/filter/accessibility, kèm fallback HTML table.
-- [x] Nâng cấp form quản trị cho tạo project, policy, exception request, membership, kit lifecycle, validation triage và evidence retention bằng SSR/Alpine.js.
-- [x] Kiểm thử browser, Java build, CLI tests và tài liệu thư viện.
-- [x] Thiết kế và tài liệu hóa kiến trúc React Islands: SSR là nguồn HTML ban đầu, React chỉ hydrate các workspace tương tác.
-- [x] Thêm pipeline Vite/React version-pinned vào module portal, xuất bundle có hashed filenames và tích hợp với Maven build.
-- [x] Giữ Spring MVC, Thymeleaf, Keycloak OAuth2, CSRF và role checks là ranh giới bảo mật/SSR chính; React không tự quản token OAuth2.
-- [x] Xây React Quality Analytics island từ dữ liệu SSR/API thực, duy trì bảng HTML fallback khi JavaScript bị tắt.
-- [x] Xây React Traceability Explorer island với Cytoscape.js và fallback graph table SSR có thể điều hướng bằng bàn phím.
-- [x] Xây React Data Workspace/Review Decision island, dùng cùng các API có phân quyền và không bỏ qua human approval.
-- [x] Push kiến trúc hybrid lên GitHub và kiểm tra trạng thái repository sau commit.
-- [x] Chuẩn bị deck tổng quan kiến trúc AI-SDLC và stack công nghệ với sơ đồ 4 plane, security flow và deployment topology.
-- [x] Tạo slide deck chuyên nghiệp, kiểm tra nội dung và bàn giao file trình bày.
-- [x] Kiểm toán toàn bộ implementation hiện có so với feature inventory F-001 đến F-915, ghi nhận gap bằng tài liệu production backlog.
-- [x] Bổ sung schema lifecycle, chỉ mục truy vấn và ràng buộc integrity cho governance production.
-- [x] Chuẩn hóa control-plane API với phân trang, lọc, detail resources và RFC 9457 problem responses.
-- [x] Hoàn thiện quản trị tổ chức, dự án, thành viên, kit, policy, exception và audit verification tại service/API boundary.
-- [x] Bổ sung OpenAPI, rate limiting, security headers, CORS allowlist, viewer role và observability production.
-- [x] Hoàn thiện organization/project administration, membership management và RBAC theo scope tổ chức/dự án.
-- [x] Hoàn thiện Spec Kit registry với core, extension, preset, override, pinning, compatibility và lifecycle version.
-- [x] Hoàn thiện governance-as-data: policy/constitution versioning, capability grants, exception request và decision workflow.
-- [x] Hoàn thiện validation/evidence lifecycle, severity triage, evidence retention và traceability graph requirement → spec → task → test → evidence.
-- [x] Hoàn thiện review queue, phase gates, MR approval workflow và immutable audit coverage cho mọi human decision.
-- [x] Hoàn thiện quality/DORA metrics, dashboard data contracts, counter-metrics và spec alignment score không dùng dữ liệu giả.
-- [x] Hoàn thiện portal production workflows, responsive mobile/tablet layouts, empty/error/loading states và administrative forms.
-- [x] Hoàn thiện React Islands cho charts, graph, evidence/review, data workspaces và SSR fallback accessible.
-- [x] Nâng cấp portal API client để xử lý page envelope, detail resource, lỗi người dùng và POST/PUT/DELETE có CSRF.
-- [x] Xây SSR workflows cho organization/project, membership, Spec Kit pin/lifecycle, policy/constitution và exception decision.
-- [x] Nâng cấp validation, review, quality và audit views với pagination, evidence detail, filters và audit hash verification.
-- [x] Hoàn thiện React islands cho quality analytics, traceability detail, evidence workspace và review/exception decision hỗ trợ keyboard.
-- [x] Hoàn thiện Go CLI: config, auth, validation rules, model pin enforcement, output formats, sync retry và CI adapters.
-- [x] Bổ sung `init`, file `.aisdlc.yml` có schema kiểm tra được và lệnh `status` không gọi AI.
-- [x] Bổ sung `login` client-credentials, token store có quyền file hạn chế và precedence env/flag/config rõ ràng.
-- [x] Mở rộng deterministic validator với rule completeness/constitution, output JSON/JUnit/SARIF và coverage test.
-- [x] Thêm retry exponential backoff, Retry-After, conflict diagnostics và timeouts cho evidence sync idempotent.
-- [x] Bổ sung OpenAPI/REST contracts, idempotency, pagination/filtering, error model, rate limiting và API security hardening.
-- [x] Bổ sung production observability: structured logs, health/readiness, metrics, audit verification và operational runbooks.
-- [x] Hoàn thiện Docker topology, secrets model, non-root images, backup/restore procedure, migration safeguards và security headers.
-- [x] Bổ sung Java, React, Go, integration, end-to-end, authorization, accessibility và regression test coverage.
-- [x] Bổ sung GitHub Actions CI, dependency/security scanning, release artifact workflow và quality gates.
-- [x] Viết/cập nhật feature documentation, API reference, architecture, admin/developer/user guides và changelog cho từng tính năng mới.
-- [x] Harden Docker image runtime bằng user không đặc quyền, filesystem read-only compatible và JVM resource guardrails.
-- [x] Harden identity gateway bằng các proxy header chuẩn, giới hạn request và security headers tương thích OIDC.
-- [x] Bổ sung CI PR/release cho Maven, Go, frontend, dependency scan và release artifacts có SHA-256 checksum.
-- [x] Cập nhật runbook production cho secrets rotation, backup/restore PostgreSQL, migration và rollback có kiểm soát.
-- [x] Chạy production verification, push toàn bộ source/docs/tests và bàn giao release-ready repository.
-- [x] Chạy release verification theo yêu cầu người dùng: Maven reactor, Go CLI, static production checks, GitHub workflow và Compose runtime nếu môi trường hỗ trợ Docker.
-- [x] Lập báo cáo kiểm thử pass/fail với log bằng chứng và giới hạn môi trường minh bạch.
-- [x] Sửa Docker build portal: copy đầy đủ input frontend Vite trước Maven package để Compose CI không thất bại tại `npm ci`.
-- [x] Sửa OWASP CI: không truyền `nvdApiKey` khi GitHub secret chưa được cấu hình, vẫn giữ security scan bắt buộc.
-- [x] Sửa PostgreSQL integration init: grant database Keycloak cho username cấu hình thực tế thay vì role hard-code.
-- [x] Sửa identity gateway integration: cấp temporary paths Nginx có quyền ghi trong topology read-only.
-- [x] Sửa identity gateway integration: cấp tối thiểu `SETUID`/`SETGID` để Nginx master tạo worker không đặc quyền.
-- [x] Sửa Compose identity readiness: thêm Keycloak healthcheck private port 9000 và chỉ khởi động gateway sau khi identity sẵn sàng.
-- [x] Bound Compose integration smoke bằng timeout hữu hạn và diagnostics để CI không thể treo vô thời hạn.
-- [x] Sửa management-server runtime logging: đóng gói Logstash encoder đúng classpath container để startup không lỗi Logback.
-- [x] Sửa management-server migration runtime: bổ sung Spring Boot 4 Flyway starter để migrations bắt buộc chạy trước Hibernate validation.
-- [x] Sửa management-server repository discovery: bật scan Spring Data rõ ràng cho nested repository interfaces trong container runtime.
-- [x] Thiết kế bounded module contracts để các package governance, validation, review, quality, audit và repository có thể tích hợp độc lập.
-- [x] Bổ sung Evidence & Governance Data Repository: metadata PostgreSQL, object storage tương thích S3, checksum, provenance, access control và retention/hold.
-- [x] Công bố API module repository cho upload intent, finalize digest, download authorization, search/filter và lifecycle evidence.
-- [x] Tích hợp portal SSR và CLI để người dùng đưa evidence vào kho, xem provenance và truy xuất asset được cấp quyền.
-- [x] Bổ sung topology object storage, migration, unit/integration tests, CI smoke test và runbook backup/restore cho repository.
-- [x] Xác minh MinIO Object Lock bucket bootstrap và readiness probe trong Docker Compose smoke trên GitHub Actions (sandbox không có Docker CLI/daemon).
-- [x] Sửa dependency ordering MinIO: dùng `mc ready` từ client bootstrap thay cho healthcheck gọi executable không có trong image server pin.
-- [x] Sửa MinIO bootstrap retry: chờ `mc alias set` có thể kết nối trước khi gọi `mc ready`, tránh connection-refused race trong Compose CI.
-- [ ] Chủ repository cấu hình secret GitHub Actions `NVD_API_KEY` để mở khóa OWASP Dependency-Check security gate.
+- [x] Pin Java 25.0.3 LTS, Spring Boot 4.1.0, PostgreSQL 18.6, and Keycloak 26.7.1.
+- [x] Create a monorepo containing the Spring Boot management server, Thymeleaf SSR portal, Go CLI, and Docker Compose.
+- [x] Configure the Keycloak realm and the `admin`, `developer`, `reviewer`, and `viewer` roles.
+- [x] Build the REST control plane for projects, validation evidence, kit registry, policy, constitution, traceability, reviews, quality metrics, and audit.
+- [x] Apply role checks and project-membership checks at the API/service boundary.
+- [x] Build an append-only audit ledger with a database trigger that forbids UPDATE and DELETE.
+- [x] Create a responsive SSR portal for dashboard, projects, kits, validation, traceability, governance, review queue, quality, and audit.
+- [x] Create a deterministic Go CLI with model pinning, prohibited `--bare`, evidence digest, and idempotent synchronization.
+- [x] Write and run Java unit tests for RBAC, evidence ingest, review decisions, and append-only audit behavior.
+- [x] Verify the public SSR portal, OAuth2 callback configuration, and build artifacts.
+- [x] Run PostgreSQL/Keycloak integration regression through Docker Compose (the local build environment did not provide a Docker daemon).
+- [x] Complete Build 1 operations and architecture documentation.
+- [x] Push the monorepo to `xdev-ai/ai-sdlc` and verify a clean repository state.
+- [x] Standardize an SSR-compatible frontend-library set: HTMX, Alpine.js, ECharts, Cytoscape.js, Tabulator, and Lucide Icons.
+- [x] Add a version-pinned asset pipeline, Subresource Integrity, and progressive enhancement that preserves a usable portal when JavaScript is disabled.
+- [x] Integrate interactive DORA quality charts into the Quality page using real API data rather than mock data.
+- [x] Integrate a Cytoscape.js traceability graph into the Traceability page with keyboard navigation and SSR fallback.
+- [x] Enhance validation, review, and audit tables with Tabulator sort/filter/accessibility while retaining HTML-table fallback.
+- [x] Enhance administrative forms for project creation, policy, exception request, membership, kit lifecycle, validation triage, and evidence retention using SSR/Alpine.js.
+- [x] Test browser behavior, Java build, CLI tests, and library documentation.
+- [x] Design and document the React Islands architecture: SSR remains the source of initial HTML and React enhances only interactive workspaces.
+- [x] Add a version-pinned Vite/React pipeline to the portal module, emit hashed bundles, and integrate it with the Maven build.
+- [x] Retain Spring MVC, Thymeleaf, Keycloak OAuth2, CSRF, and role checks as the primary SSR/security boundary; React does not manage OAuth2 tokens.
+- [x] Build a React Quality Analytics island from real SSR/API data while retaining an HTML-table fallback when JavaScript is disabled.
+- [x] Build a React Traceability Explorer island with Cytoscape.js and keyboard-navigable SSR graph-table fallback.
+- [x] Build React Data Workspace/Review Decision islands using the same authorized APIs without bypassing human approval.
+- [x] Push the hybrid architecture to GitHub and check repository status after the commit.
+- [x] Prepare an AI-SDLC architecture and technology-stack overview deck with a four-plane diagram, security flow, and deployment topology.
+- [x] Create a professional slide deck, verify its content, and deliver the presentation.
+- [x] Audit the full implementation against feature inventory F-001 through F-915 and record gaps in the production backlog.
+- [x] Add lifecycle schema, query indexes, and integrity constraints for production governance.
+- [x] Standardize the control-plane API with pagination, filtering, detail resources, and RFC 9457 problem responses.
+- [x] Complete organization, project, membership, kit, policy, exception, and audit-verification governance at the service/API boundary.
+- [x] Add OpenAPI, rate limiting, security headers, CORS allowlist, viewer role, and production observability.
+- [x] Complete organization/project administration, membership management, and RBAC scoped to organization/project.
+- [x] Complete the Spec Kit registry with core, extension, preset, override, pinning, compatibility, and version lifecycle.
+- [x] Complete governance-as-data: policy/constitution versioning, capability grants, exception requests, and decision workflows.
+- [x] Complete validation/evidence lifecycle, severity triage, evidence retention, and a requirement → specification → task → test → evidence traceability graph.
+- [x] Complete review queue, phase gates, merge-request approval workflow, and immutable audit coverage for every human decision.
+- [x] Complete quality/DORA metrics, dashboard data contracts, counter-metrics, and specification-alignment scoring without mock data.
+- [x] Complete portal production workflows, responsive mobile/tablet layouts, empty/error/loading states, and administrative forms.
+- [x] Complete React Islands for charts, graphs, evidence/review, data workspaces, and accessible SSR fallback.
+- [x] Upgrade the portal API client to handle page envelopes, detail resources, user errors, and CSRF-protected POST/PUT/DELETE.
+- [x] Build SSR workflows for organization/project, membership, Spec Kit pin/lifecycle, policy/constitution, and exception decisions.
+- [x] Upgrade validation, review, quality, and audit views with pagination, evidence detail, filters, and audit-hash verification.
+- [x] Complete React islands for quality analytics, traceability detail, evidence workspace, and keyboard-supported review/exception decisions.
+- [x] Complete the Go CLI: configuration, authentication, validation rules, model-pin enforcement, output formats, sync retry, and CI adapters.
+- [x] Add `init`, a verifiable `.aisdlc.yml` schema, and a `status` command that makes no AI calls.
+- [x] Add client-credentials `login`, a permission-restricted token store, and clear environment/flag/config precedence.
+- [x] Extend the deterministic validator with completeness/constitution rules, JSON/JUnit/SARIF output, and coverage tests.
+- [x] Add exponential-backoff retry, Retry-After, conflict diagnostics, and timeouts for idempotent evidence synchronization.
+- [x] Add OpenAPI/REST contracts, idempotency, pagination/filtering, error model, rate limiting, and API-security hardening.
+- [x] Add production observability: structured logs, health/readiness, metrics, audit verification, and operational runbooks.
+- [x] Complete Docker topology, secrets model, non-root images, backup/restore procedure, migration safeguards, and security headers.
+- [x] Add Java, React, Go, integration, end-to-end, authorization, accessibility, and regression-test coverage.
+- [x] Add GitHub Actions CI, dependency/security scanning, release-artifact workflow, and quality gates.
+- [x] Write or update feature documentation, API reference, architecture, administrator/developer/user guides, and changelog for every new feature.
+- [x] Harden Docker image runtime with non-privileged users, read-only-filesystem compatibility, and JVM resource guardrails.
+- [x] Harden the identity gateway with standard proxy headers, request limits, and OIDC-compatible security headers.
+- [x] Add CI for pull requests/releases covering Maven, Go, frontend, dependency scan, and release artifacts with SHA-256 checksums.
+- [x] Update production runbook for secret rotation, PostgreSQL backup/restore, migration, and controlled rollback.
+- [x] Run production verification, push source/docs/tests, and deliver a release-ready repository.
+- [x] Run release verification requested by the user: Maven reactor, Go CLI, static production checks, GitHub workflow, and Compose runtime when Docker is available.
+- [x] Produce a pass/fail test report with evidence logs and transparent environmental limits.
+- [x] Fix the portal Docker build by copying complete Vite frontend inputs before Maven packaging so Compose CI does not fail at `npm ci`.
+- [x] Fix OWASP CI by not passing `nvdApiKey` when the GitHub secret is absent while retaining mandatory security scanning.
+- [x] Fix PostgreSQL integration initialization by granting the Keycloak database to the configured username rather than a hard-coded role.
+- [x] Fix identity-gateway integration by granting Nginx writable temporary paths in the read-only topology.
+- [x] Fix identity-gateway integration by granting the minimum `SETUID`/`SETGID` capabilities for the Nginx master to create non-privileged workers.
+- [x] Fix Compose identity readiness by adding a private Keycloak health check on port 9000 and starting the gateway only after identity is ready.
+- [x] Bound the Compose integration smoke test with a finite timeout and diagnostics so CI cannot hang indefinitely.
+- [x] Fix management-server runtime logging by packaging the correct Logstash encoder on the container classpath to prevent Logback startup failure.
+- [x] Fix management-server migration runtime by adding the Spring Boot 4 Flyway starter so migrations run before Hibernate validation.
+- [x] Fix management-server repository discovery by explicitly enabling Spring Data scanning for nested repository interfaces in the container runtime.
+- [x] Design bounded module contracts so governance, validation, review, quality, audit, and repository packages can be integrated independently.
+- [x] Add the Evidence & Governance Data Repository: PostgreSQL metadata, S3-compatible object storage, checksum, provenance, access control, and retention/hold.
+- [x] Publish repository-module APIs for upload intent, finalize digest, download authorization, search/filter, and evidence lifecycle.
+- [x] Integrate the SSR portal and CLI so users can store evidence, view provenance, and retrieve authorized assets.
+- [x] Add object-storage topology, migration, unit/integration tests, CI smoke test, and repository backup/restore runbook.
+- [x] Verify MinIO Object Lock bucket bootstrap and readiness probe in Docker Compose smoke on GitHub Actions (the sandbox has no Docker CLI/daemon).
+- [x] Fix MinIO dependency ordering by using `mc ready` from the client bootstrap instead of a health check that calls an unavailable server-image executable.
+- [x] Fix MinIO bootstrap retry by waiting for `mc alias set` connectivity before calling `mc ready`, avoiding a connection-refused race in Compose CI.
+- [ ] Repository owner configures the GitHub Actions `NVD_API_KEY` secret to unblock the OWASP Dependency-Check security gate.
+- [x] Standardize all GitHub-facing source metadata, documentation, and developer-facing copy in English.
+- [x] Add English/Vietnamese localization to the SSR portal, including language selection, persisted preference, and English fallback.
+- [x] Add localization to React Islands and test SSR fallback, accessibility, and URL/cookie language preference.
+- [x] Enforce supported `en`/`vi` locale values so invalid query or cookie input falls back safely to English.

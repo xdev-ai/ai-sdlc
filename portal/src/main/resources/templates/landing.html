@@ -1,15 +1,15 @@
 <!doctype html>
-<html lang="vi" xmlns:th="https://www.thymeleaf.org">
+<html lang="en" th:lang="${#locale.language}" xmlns:th="https://www.thymeleaf.org">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <title>AI-SDLC — Governed delivery, proven quality</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/portal.css">
+  <link rel="stylesheet" href="/css/portal.css"><link rel="stylesheet" href="/css/locale.css">
 </head>
 <body class="landing-body">
   <div class="grain"></div>
-  <header class="site-header"><a class="brand" href="/"><span class="brand-mark">A</span><span>AI—SDLC</span></a><div class="header-note"><span class="signal"></span>Control plane online</div></header>
+	  <header class="site-header"><a class="brand" href="/"><span class="brand-mark">A</span><span>AI—SDLC</span></a><div class="landing-tools"><div class="header-note"><span class="signal"></span>Control plane online</div><nav class="locale-switcher inverse" aria-label="Language"><a data-locale-choice="en" th:classappend="${#locale.language == 'en'} ? ' active'" th:href="@{/(lang='en')}" lang="en">EN</a><span aria-hidden="true">/</span><a data-locale-choice="vi" th:classappend="${#locale.language == 'vi'} ? ' active'" th:href="@{/(lang='vi')}" lang="vi">VI</a></nav></div></header>
   <main class="landing-shell">
     <section class="hero">
       <p class="eyebrow">GOVERNED AI-ASSISTED DELIVERY</p>
@@ -27,5 +27,4 @@
   </main>
   <section id="principles" class="principles"><div><p class="eyebrow">FOUR PLANES, ONE STANDARD</p><h2>Execution stays fast.<br>Governance stays firm.</h2></div><div class="principle-list"><div><span>01</span><p><b>Execution</b> · Go CLI validates specification rules offline.</p></div><div><span>02</span><p><b>Control</b> · Spring Boot applies policy and authorization.</p></div><div><span>03</span><p><b>Evidence</b> · PostgreSQL preserves traceability and audit history.</p></div><div><span>04</span><p><b>Experience</b> · A server-rendered portal keeps decisions legible.</p></div></div></section>
   <footer><span>AI-SDLC / xDev AI</span><span>JAVA 25 · SPRING BOOT 4.1 · POSTGRESQL 18</span></footer>
-</body></html>
-
+	<script defer src="/js/locale.js"></script></body></html>

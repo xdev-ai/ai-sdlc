@@ -1,44 +1,44 @@
-# Hướng dẫn tích hợp module AI-SDLC
+# AI-SDLC module integration guide
 
-## Mục tiêu và boundary ổn định
+## Objective and stable boundaries
 
-AI-SDLC được triển khai như một Maven reactor và một control-plane service, nhưng các khả năng được tách theo bounded module. Đường tích hợp được hỗ trợ cho hệ thống bên ngoài là **API `/api/v1` có version**, OpenAPI được bảo vệ, OAuth2/JWT, và Go CLI. Không tích hợp bằng cách truy cập trực tiếp schema PostgreSQL, JPA entity hoặc repository nội bộ vì các thành phần đó không phải hợp đồng tương thích.
+AI-SDLC is delivered as a Maven reactor and control-plane service, while its capabilities are separated into bounded modules. The supported integration paths for external systems are the versioned **`/api/v1` API**, protected OpenAPI, OAuth2/JWT, and the Go CLI. Do not integrate by directly accessing the PostgreSQL schema, JPA entities, or internal repositories because those components are not compatibility contracts.
 
-| Nhu cầu | Contract tích hợp được hỗ trợ | Không được phụ thuộc |
+| Need | Supported integration contract | Do not depend on |
 |---|---|---|
-| Gửi validation xác định | `POST /api/v1/cli/projects/{projectId}/validation-runs` hoặc `aisdlc sync` | Bảng `validation_runs`, entity `ValidationRun` |
-| Lưu artefact/evidence | `POST /api/v1/projects/{projectId}/evidence-assets` hoặc `aisdlc upload` | Bucket/key trực tiếp, credential S3/MinIO |
-| Truy xuất chứng cứ | `GET /api/v1/projects/{projectId}/evidence-assets` và detail có presigned URL | URL object storage dài hạn hoặc danh sách bucket |
-| Governance/review | REST resources tương ứng và audit verification endpoint | Tạo `ReviewDecision` hay `AuditEvent` qua SQL |
-| Nhúng trong JVM cùng source tree | `ObjectStoragePort` là port thay thế được; service/repository package vẫn là implementation nội bộ | AWS SDK, MinIO SDK hoặc JPA repository của module khác |
+| Submit deterministic validation | `POST /api/v1/cli/projects/{projectId}/validation-runs` or `aisdlc sync` | `validation_runs` table or `ValidationRun` entity |
+| Store an artifact/evidence | `POST /api/v1/projects/{projectId}/evidence-assets` or `aisdlc upload` | Direct bucket/key access or S3/MinIO credentials |
+| Retrieve evidence | `GET /api/v1/projects/{projectId}/evidence-assets` and a detail response with a presigned URL | Long-lived object-storage URLs or bucket listings |
+| Governance/review | Corresponding REST resources and the audit-verification endpoint | Creating `ReviewDecision` or `AuditEvent` through SQL |
+| Embed in the JVM source tree | `ObjectStoragePort` is replaceable; service/repository packages remain internal implementations | AWS SDK, MinIO SDK, or another module's JPA repositories |
 
-> **Quy tắc tích hợp:** Mọi quyết định review/exception vẫn do một principal con người có role và project membership phù hợp gửi qua control plane. Integrator không được thay thế quyết định đó bằng agent hay job tự động.
+> **Integration rule:** Every review or exception decision must still be submitted through the control plane by a human principal with the appropriate role and project membership. An integrator must not replace that decision with an agent or automated job.
 
-## Tích hợp HTTP khuyến nghị
+## Recommended HTTP integration
 
-Một integration tạo OAuth2 client có scope/realm role tối thiểu, nhận JWT từ Keycloak và gửi token ở `Authorization: Bearer`. Project ID phải được chọn rõ ràng; role realm không đủ vì server luôn kiểm tra thêm membership trong project. API trả lỗi RFC 9457 `application/problem+json`; client chỉ retry lỗi transport, `429` và `5xx` theo backoff bị chặn. OpenAPI tương tác nằm ở `/swagger-ui.html`, còn document raw nằm ở `/v3/api-docs` cho admin.
+An integration creates an OAuth2 client with the minimum required scope or realm role, receives a JWT from Keycloak, and sends it in `Authorization: Bearer`. The project ID must be explicitly selected; a realm role is insufficient because the server always also verifies project membership. The API returns RFC 9457 `application/problem+json` errors; clients retry only transport failures, `429`, and `5xx` responses with bounded backoff. Interactive OpenAPI is available at `/swagger-ui.html`; the raw document is available at `/v3/api-docs` for administrators.
 
-Với Evidence Repository, client gửi multipart gồm `file`, `assetType`, `accessLevel` và tùy chọn `validationEvidenceId`. `X-Content-SHA256` cho phép server kiểm chứng bytes. `Idempotency-Key` phải giữ ổn định khi retry; nếu thiếu, server dẫn xuất một key từ provenance metadata và digest. Download luôn đi qua API authorization và trả presigned URL ngắn hạn, không phải endpoint public của object storage.[1]
+For the Evidence Repository, clients send multipart data containing `file`, `assetType`, `accessLevel`, and an optional `validationEvidenceId`. `X-Content-SHA256` lets the server verify the received bytes. `Idempotency-Key` must remain stable across retries; if omitted, the server derives one from provenance metadata and the digest. Downloads always pass through API authorization and return a short-lived presigned URL, never a public object-storage endpoint.[1]
 
-## Điểm mở rộng lưu trữ
+## Storage extension point
 
-`ObjectStoragePort` là anti-corruption layer của module evidence. Default `S3ObjectStorageAdapter` dùng AWS SDK for Java 2.x với endpoint override và path-style addressing khi dùng MinIO. Một deployment muốn dùng S3-compatible provider khác chỉ thay adapter/configuration; không thay controller, audit, authorization hoặc persistence metadata. AWS khuyến nghị import SDK BOM cùng các service module/HTTP client thực sự dùng để giữ version alignment.[2]
+`ObjectStoragePort` is the anti-corruption layer for the evidence module. The default `S3ObjectStorageAdapter` uses AWS SDK for Java 2.x with endpoint override and path-style addressing for MinIO. A deployment that uses another S3-compatible provider replaces only the adapter and configuration; it does not replace the controller, audit behavior, authorization, or persistence metadata. AWS recommends importing the SDK BOM together with the service modules and HTTP client actually used to preserve version alignment.[2]
 
-Adapter thay thế phải đảm bảo bốn hành vi: ghi object private kèm SHA-256/project metadata, sinh presigned GET có thời hạn, áp retention Object Lock và xóa bù chỉ khi transaction metadata rollback. Adapter không được tự quyết định RBAC, sửa SHA-256 hoặc phát hành public URL.
+A replacement adapter must provide four behaviors: write private objects with SHA-256 and project metadata; generate time-limited presigned GET URLs; apply Object Lock retention; and compensate by deleting only when metadata persistence rolls back. It must not decide RBAC, alter the SHA-256 value, or issue public URLs.
 
-| Property | Vai trò | Ví dụ local Compose |
+| Property | Purpose | Local Compose example |
 |---|---|---|
-| `AISDLC_EVIDENCE_S3_ENDPOINT` | Endpoint private S3-compatible | `http://minio:9000` |
+| `AISDLC_EVIDENCE_S3_ENDPOINT` | Private S3-compatible endpoint | `http://minio:9000` |
 | `AISDLC_EVIDENCE_S3_REGION` | Signing region | `us-east-1` |
-| `AISDLC_EVIDENCE_S3_BUCKET` | Bucket Object Lock đã bootstrap | `aisdlc-evidence` |
-| `AISDLC_EVIDENCE_S3_ACCESS_KEY` / `...SECRET_KEY` | Credential runtime của control plane | Nhận từ secret manager, không từ CLI/browser |
-| `AISDLC_EVIDENCE_S3_FORCE_PATH_STYLE` | Tương thích MinIO/local endpoint | `true` |
+| `AISDLC_EVIDENCE_S3_BUCKET` | Bootstrapped Object Lock bucket | `aisdlc-evidence` |
+| `AISDLC_EVIDENCE_S3_ACCESS_KEY` / `...SECRET_KEY` | Control-plane runtime credentials | From a secret manager, never from CLI or browser |
+| `AISDLC_EVIDENCE_S3_FORCE_PATH_STYLE` | MinIO/local endpoint compatibility | `true` |
 
-## Versioning, kiểm thử và nâng cấp
+## Versioning, testing, and upgrades
 
-Consumer phải pin image/binary phiên bản release, kiểm tra OpenAPI diff trước nâng cấp minor, và chạy contract smoke: tạo/upload cùng idempotency key hai lần, list theo project, verify download authorization của ba access level, tạo retention dài hơn, và audit-chain verification. Không giả định class Java không public hoặc schema migration Flyway là API tương thích.
+Consumers must pin a release image or binary version, inspect the OpenAPI diff before a minor upgrade, and run a contract smoke test: create/upload twice with the same idempotency key, list by project, verify download authorization for all three access levels, extend retention, and verify the audit chain. Do not assume that non-public Java classes or Flyway schema migrations are compatible APIs.
 
-Maven artifact Java client độc lập (`sdk/`) chưa được công bố. Cho đến khi artifact đó có semantic versioning và compatibility policy riêng, HTTP/OpenAPI và CLI là các integration boundary có hỗ trợ chính thức.
+An independent Java client Maven artifact (`sdk/`) has not yet been published. Until that artifact has its own semantic versioning and compatibility policy, HTTP/OpenAPI and the CLI are the officially supported integration boundaries.
 
 ## References
 
