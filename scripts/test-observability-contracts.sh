@@ -13,7 +13,8 @@ DEFINITIONS="$ROOT/infra/observability/p3-slo-definitions.yaml"
 BURN="$ROOT/infra/observability/p3-slo-burn-rate-rules.yaml"
 ROUTES="$ROOT/infra/observability/alertmanager-routes.yaml"
 CONTRACT="$ROOT/management-server/src/main/java/ai/xdev/aisdlc/telemetry/TelemetryAttributeContract.java"
-COMPOSE="$ROOT/docker-compose.yml"
+COMPOSE="$ROOT/docker-compose.observability.yml"
+BASE_COMPOSE="$ROOT/docker-compose.yml"
 RUNBOOKS="$ROOT/docs/slo-runbooks.md"
 
 failures=0
@@ -22,7 +23,7 @@ pass() { echo "ok: $1"; }
 want() { grep -q -- "$2" "$1" && pass "$3" || fail "$3"; }
 reject() { grep -q -- "$2" "$1" && fail "$3" || pass "$3"; }
 
-for f in "$COLLECTOR" "$DEFINITIONS" "$BURN" "$ROUTES" "$CONTRACT" "$COMPOSE" "$RUNBOOKS"; do
+for f in "$COLLECTOR" "$DEFINITIONS" "$BURN" "$ROUTES" "$CONTRACT" "$COMPOSE" "$BASE_COMPOSE" "$RUNBOOKS"; do
   [ -r "$f" ] || fail "missing required file: $f"
 done
 [ "$failures" -eq 0 ] || { echo "$failures missing file(s)" >&2; exit 1; }
@@ -84,8 +85,11 @@ for secretish in 'password:' 'api_key' 'slack.com/services'; do
 done
 
 # --- Compose gateway stays opt-in -----------------------------------------------------------------------------
-want "$COMPOSE" 'profiles: \[observability\]' "collector service is behind an opt-in Compose profile"
+want "$COMPOSE" 'otel-collector:' "collector is defined in the observability overlay"
 want "$COMPOSE" 'otel/opentelemetry-collector-contrib@sha256:' "collector image is digest-pinned"
+# A profile is not enough: Compose interpolates ${VAR:?} for every service at parse time, so a required variable in
+# the default file breaks the whole topology. The collector must stay out of it entirely.
+reject "$BASE_COMPOSE" 'otel-collector' "default compose topology does not parse the collector"
 
 if [ "$failures" -gt 0 ]; then
   echo "$failures observability contract check(s) failed" >&2

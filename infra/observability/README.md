@@ -1,6 +1,6 @@
 # P3.1 Observability Reference Artefacts
 
-This directory contains the OpenTelemetry Collector gateway configuration, Prometheus SLO definitions, recording and alert rules, and alert routing. The Collector is wired into Docker Compose behind an opt-in `observability` profile, so the default topology is unchanged and the gateway never starts implicitly. P3.1 implementation must pin a Collector Contrib distribution by digest, select an approved telemetry backend, supply the deployment environment variables, test the configuration in the selected distribution, and complete the observe-only baseline before enabling paging.
+This directory contains the OpenTelemetry Collector gateway configuration, Prometheus SLO definitions, recording and alert rules, and alert routing. The Collector ships as the separate `docker-compose.observability.yml` overlay, so the default topology never parses it and the gateway cannot start implicitly. A Compose profile is not sufficient: Compose interpolates every service's `${VAR:?}` variables at parse time regardless of profile, which would break `docker compose up` for the whole topology whenever the exporter variables are unset. P3.1 implementation must pin a Collector Contrib distribution by digest, select an approved telemetry backend, supply the deployment environment variables, test the configuration in the selected distribution, and complete the observe-only baseline before enabling paging.
 
 ## Files
 

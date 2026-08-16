@@ -83,11 +83,9 @@ jobs:
           distribution: temurin
           java-version: '25'
           cache: maven
+      # No SPRING_PROFILES_ACTIVE here. The scenarios construct the registry directly, and activating the profile
+      # process-wide would defeat the isolation test that asserts no chaos bean exists under the default profile.
       - name: Run the isolated chaos and resilience scenarios
-        env:
-          # The tier runs only in this ephemeral runner. It never targets a shared or production environment, and
-          # the scenarios use in-process seams rather than infrastructure faults.
-          SPRING_PROFILES_ACTIVE: chaos
         run: >-
           mvn -B -pl management-server test
           -Dtest='ChaosFaultRegistryTest,ChaosFaultRegistryProfileIntegrationTest,ResilienceScenarioTest'

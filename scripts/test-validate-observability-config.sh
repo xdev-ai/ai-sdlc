@@ -13,7 +13,11 @@ sh -n "$script"
 grep -q 'otel/opentelemetry-collector-contrib@sha256:' "$script"
 grep -q 'prom/prometheus@sha256:' "$script"
 grep -q 'validate --config=/etc/otelcol/config.yaml' "$script"
-grep -q 'check rules /rules/p3-slo-burn-rate-rules.yaml' "$script"
+grep -q 'check rules /rules/p3-slo-definitions.yaml /rules/p3-slo-burn-rate-rules.yaml' "$script"
+# `check rules` proves only that the syntax parses. The unit tests are what prove an alert fires when it should and
+# stays silent when it should not, so the validator must run them too.
+grep -q 'test rules /rules/p3-slo-rule-tests.yaml' "$script"
+grep -q -- '--tmpfs /tmp:rw,noexec,nosuid' "$script"
 grep -q -- '--network none' "$script"
 grep -q -- '--read-only' "$script"
 
@@ -47,7 +51,8 @@ PROMETHEUS_IMAGE='prom/prometheus@sha256:test' \
 "$script"
 
 grep -q 'validate --config=/etc/otelcol/config.yaml' "$tmpdir/docker-calls.log"
-grep -q 'check rules /rules/p3-slo-burn-rate-rules.yaml' "$tmpdir/docker-calls.log"
+grep -q 'check rules /rules/p3-slo-definitions.yaml /rules/p3-slo-burn-rate-rules.yaml' "$tmpdir/docker-calls.log"
+grep -q 'test rules /rules/p3-slo-rule-tests.yaml' "$tmpdir/docker-calls.log"
 grep -q -- '--network none' "$tmpdir/docker-calls.log"
 grep -q -- '--read-only' "$tmpdir/docker-calls.log"
 
