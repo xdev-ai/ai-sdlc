@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 import ai.xdev.aisdlc.service.EnterpriseTenantService;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -22,6 +23,24 @@ class ScimControllerTest {
     assertEquals(401, error.getStatusCode().value());
     verify(service).authorizeScim(tenantId, "invalid");
     verifyNoMoreInteractions(service);
+  }
+
+  @Test void hostileStartIndexAndCountCannotUnderflowTheRequestedPage() {
+    EnterpriseTenantService service = mock(EnterpriseTenantService.class);
+    ScimController controller = new ScimController(service);
+    UUID tenantId = UUID.randomUUID();
+    when(service.authorizeScim(tenantId, "valid")).thenReturn(true);
+    when(service.scimUsers(eq(tenantId), anyInt(), anyInt())).thenReturn(List.of());
+
+    // Integer.MIN_VALUE - 1 wraps to Integer.MAX_VALUE, so the old Math.max(0, startIndex - 1) clamp did not clamp:
+    // it asked for page 21474836 and returned an empty result for what SCIM defines as the first page.
+    controller.list(tenantId, "Bearer valid", Integer.MIN_VALUE, 100);
+    verify(service).scimUsers(tenantId, 0, 100);
+
+    // The divisor must use the same clamp the service applies, or the page number is computed against a page size
+    // the service will never use. count = 1_000_000 becomes 100, so startIndex 201 is page 2, not page 0.
+    controller.list(tenantId, "Bearer valid", 201, 1_000_000);
+    verify(service).scimUsers(tenantId, 2, 100);
   }
 
   @Test void createsTenantScopedScimUserWithStableSubjectWhenExternalIdIsAbsent() {

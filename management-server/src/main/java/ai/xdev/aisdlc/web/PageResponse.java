@@ -10,7 +10,11 @@ public record PageResponse<T>(List<T> items, int page, int size, long totalItems
   }
 
   public static <T> PageResponse<T> of(List<T> items, int page, int size, long totalItems) {
-    int totalPages = size == 0 ? 0 : (int) Math.ceil((double) totalItems / size);
-    return new PageResponse<>(items, page, size, totalItems, totalPages, page + 1 < totalPages);
+    // All arithmetic here is in long. With int arithmetic, page = Integer.MAX_VALUE (reachable through
+    // /governance/... ?page=2147483647&size=1, where PageRequests.offset permits it because 2147483647 * 1 does not
+    // overflow) made page + 1 wrap to Integer.MIN_VALUE, so hasNext reported true on an empty final page.
+    long totalPages = size <= 0 ? 0 : Math.ceilDiv(totalItems, (long) size);
+    return new PageResponse<>(items, page, size, totalItems,
+        (int) Math.min(totalPages, Integer.MAX_VALUE), (long) page + 1 < totalPages);
   }
 }

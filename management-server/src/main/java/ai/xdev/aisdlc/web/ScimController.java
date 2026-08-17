@@ -8,11 +8,13 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping(value = "/scim/v2/tenants/{tenantId}/Users", produces = "application/scim+json")
 public class ScimController {
+  /** Mirrors the clamp {@code EnterpriseTenantService.scimUsers} applies, so the page divisor matches the page size. */
+  private static final int MAX_COUNT = 100;
   private final EnterpriseTenantService service;
   public ScimController(EnterpriseTenantService service) { this.service = service; }
   @GetMapping
   Map<String, Object> list(@PathVariable UUID tenantId, @RequestHeader(value = "Authorization", required = false) String authorization, @RequestParam(defaultValue = "1") int startIndex, @RequestParam(defaultValue = "100") int count) {
-    authorize(tenantId, authorization); List<EnterpriseTenantService.ScimUserView> users = service.scimUsers(tenantId, Math.max(0, startIndex - 1) / Math.max(1, count), count); return Map.of("schemas", List.of("urn:ietf:params:scim:api:messages:2.0:ListResponse"), "totalResults", users.size(), "startIndex", startIndex, "itemsPerPage", users.size(), "Resources", users.stream().map(this::resource).toList());
+    authorize(tenantId, authorization); int boundedCount = Math.min(Math.max(count, 1), MAX_COUNT); int boundedStart = Math.max(1, startIndex); List<EnterpriseTenantService.ScimUserView> users = service.scimUsers(tenantId, (boundedStart - 1) / boundedCount, boundedCount); return Map.of("schemas", List.of("urn:ietf:params:scim:api:messages:2.0:ListResponse"), "totalResults", users.size(), "startIndex", boundedStart, "itemsPerPage", users.size(), "Resources", users.stream().map(this::resource).toList());
   }
   @PostMapping(consumes = "application/scim+json", produces = "application/scim+json") @ResponseStatus(HttpStatus.CREATED)
   Map<String, Object> create(@PathVariable UUID tenantId, @RequestHeader(value = "Authorization", required = false) String authorization, @RequestBody Map<String, Object> body) {
