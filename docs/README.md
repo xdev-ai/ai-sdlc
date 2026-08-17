@@ -14,7 +14,7 @@ Eleven documents, grouped by what you are trying to do. Each one is self-contain
 
 | Document | Covers |
 |---|---|
-| [governance-platform.md](governance-platform.md) | Validation findings and evidence lifecycle, CEL policy-as-code, approval orchestration and notification delivery contracts, the evidence repository and its object-lock model, risk intelligence, and enterprise multi-tenancy with SCIM. |
+| [governance-platform.md](governance-platform.md) | Validation findings and evidence lifecycle, CEL policy-as-code, approval orchestration and notification delivery contracts, the evidence repository and its object-lock model, risk intelligence, enterprise multi-tenancy with SCIM, and the knowledge base that holds project documentation an AI can retrieve and cite. |
 | [runtime-ai-governance.md](runtime-ai-governance.md) | The runtime AI threat model, agent workload identity, model and provider allowlists, single-use tool capability grants, and provider proxy execution. |
 | [scm-integration.md](scm-integration.md) | GitHub App integration, the `scm.inbound.v1` connector contract for GitLab/Bitbucket/Azure DevOps/Jira, the `scm.outbound.v1` policy-feedback contract, and outbound webhook events. |
 | [cost-governance.md](cost-governance.md) | The inference usage ledger, the seasonal forecast with rolling-origin back-testing, and budget policies that warn or hold without ever routing a model. |

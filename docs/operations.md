@@ -55,11 +55,28 @@ A realm role is insufficient to access project data: the management server alway
 
 Create a `spec-kit` containing at least `constitution.md`, `spec.md`, and `tasks.md`. Initialize `.aisdlc.yml` once, commit governance configuration without secrets, then run validation with a clearly pinned model revision. Validation never calls the model—the model pin is stored only as required provenance.
 
+The management API is **not published to the host**. That is deliberate — the portal is the application entry point and the identity gateway is the OIDC entry point, as stated above — and `end-to-end-acceptance.sh` asserts it, failing if `http://localhost:8081` ever answers. So the CLI has to reach the API on the private network. Run it inside that network:
+
+```bash
+docker run --rm --network ai-sdlc_platform -v "$PWD:/w" -w /w/cli golang:1.24 \
+  go run ./cmd/aisdlc init --project <project-uuid> --api-url http://management-server:8081 ...
+```
+
+If you would rather run the CLI from the host, open a forward yourself, bound to loopback only, and close it when you are done. It is a local convenience, never a deployment pattern:
+
+```bash
+docker run --rm -d --name aisdlc-api-forward --network ai-sdlc_platform \
+  -p 127.0.0.1:8081:8081 alpine/socat \
+  tcp-listen:8081,fork,reuseaddr tcp-connect:management-server:8081
+```
+
+The commands below assume one of those two is in place; substitute the address you chose for `--api-url`.
+
 ```bash
 cd cli
 go run ./cmd/aisdlc init \
   --project <project-uuid> \
-  --api-url http://localhost:8081 \
+  --api-url http://management-server:8081 \
   --spec-dir ../my-project/spec-kit \
   --kit-version core@1.0.0 \
   --model provider/model@revision

@@ -9,6 +9,7 @@ The governed flow itself: what a validation run becomes, how policy is expressed
 - [Evidence & Governance Data Repository Architecture](#evidence-governance-data-repository-architecture)
 - [Quality and Risk Intelligence](#quality-and-risk-intelligence)
 - [Enterprise Multi-Tenancy and Identity Integration](#enterprise-multi-tenancy-and-identity-integration)
+- [Knowledge Base: Project Documentation an AI Can Read](#knowledge-base-project-documentation-an-ai-can-read)
 
 ## Validation Finding and Evidence Lifecycle
 
@@ -365,3 +366,91 @@ Legal hold is a tenant-scoped, auditable control that prevents its own release b
 [2] [RFC 7643: System for Cross-domain Identity Management Core Schema](https://datatracker.ietf.org/doc/html/rfc7643)
 
 [3] [Keycloak 26.7.1 Server Administration Guide](https://www.keycloak.org/docs/26.7.1/server_admin/)
+
+## Knowledge Base: Project Documentation an AI Can Read
+
+Governance artifacts describe what was released. They do not hold the prose that explains a system — the analysis documents, process descriptions and operating procedures a team actually writes. Without somewhere to put that, an AI asked a question about the project has nothing to ground an answer in, and the documentation lives in a shared drive where no version, author or reason is recorded.
+
+The knowledge base is that place, shaped like Confluence because that shape is already understood: a space holds a tree of pages, each page has an immutable version history, and pages carry labels.
+
+### Data model
+
+| Table | Holds | Why it is separate |
+|---|---|---|
+| `knowledge_spaces` | The top-level container, scoped to an organization and optionally one project. | A space is what someone browses and what search is scoped to. |
+| `knowledge_pages` | Identity and position in the tree; which version is current. | Page identity outlives any particular wording. |
+| `knowledge_page_versions` | Title, Markdown body, digest, change note, author. Append-only. | The previous wording must stay retrievable and attributable. |
+| `knowledge_page_labels` | Flat labels for cross-tree grouping. | A tree has one path per page; a topic does not. |
+| `knowledge_page_references` | A citation from a page to a Spec Kit, trace node, or evidence asset. Exactly one target per row. | Documentation and governed evidence otherwise drift apart. |
+| `knowledge_chunks` | One section of one page version, with its heading path and a generated `tsvector`. | This is the unit handed to a model, and the unit an answer cites. |
+
+Pages are not stored as Spec Kits. A Spec Kit is a released artifact — one immutable manifest, registered and pinned, deliberately hard to change. Documentation is authored prose, edited continuously and read a paragraph at a time. Forcing pages into Spec Kits would make every typo a release; forcing releases into pages would lose the pinning contract. They are linked instead.
+
+### What the database refuses
+
+These are enforced by constraints and triggers, not by application code, and each was verified by attempting it against a live database:
+
+- `UPDATE` or `DELETE` on a page version — an edited version is not a version.
+- A page parented under one of its own descendants, or under a page in a different space. The walk is bounded at 100 hops.
+- A reference row with zero, two, or three targets.
+- A duplicate version number on one page.
+
+### Chunking
+
+A page body is split at Markdown headings, and each chunk carries the heading path leading to it, so an answer cites `Intake > Insurance check` rather than a file name. Two rules exist because of specific failure modes:
+
+- A `#` inside a fenced code block is a shell comment, not a heading. Fenced blocks are indivisible, so no chunk can end with an unclosed fence. The cost is documented: a fenced block larger than the chunk limit is emitted whole rather than cut, because half a code sample is worthless, and a block beyond 40,000 characters is refused outright.
+- Oversized sections are divided between paragraphs, then between lines, and only cut mid-line when nothing else is left to split on.
+
+A page whose body opens with its own title as an `h1` cites as `Intake`, not `Intake > Intake`.
+
+### Retrieval, and what it is not
+
+`GET /api/v1/organizations/{organizationId}/knowledge/search` returns ranked chunks. `GET .../knowledge/context` returns a bundle sized to a character budget, each chunk with a citation naming space, page, version and section.
+
+**This is lexical retrieval, not semantic search.** pgvector is not available in this deployment, so there are no embeddings. What exists is accent-folded keyword matching over a `simple` tsvector — someone searching `tiep nhan` finds `tiếp nhận` — plus one trigram pass for typos when keyword matching returns nothing, reported as `matchedBy: "trigram"` so a fuzzy match is not mistaken for an exact one. A question worded differently from the document will not match. That caveat is returned in the response body rather than left in this document, because the caller assembling a prompt is the one who needs it.
+
+PostgreSQL also ships no Vietnamese text-search configuration, so Vietnamese content gets `simple`: exact and prefix matching after accent folding, with no stemming. `unaccent()` is `STABLE`, not `IMMUTABLE`, so a generated column cannot call it directly; the migration wraps the two-argument form in an `IMMUTABLE` function, which means existing `search_vector` values would need rebuilding if the unaccent dictionary were ever modified.
+
+Search reads the **current version only**. Superseded wording stays in the table for audit but is excluded from retrieval, because a model that retrieves the paragraph a document deliberately replaced will answer with the version someone decided was wrong.
+
+### Endpoints
+
+| Operation | Endpoint | Authorization |
+|---|---|---|
+| Create/list/archive a space | `/api/v1/organizations/{organizationId}/knowledge/spaces` | Read: any control-plane role. Write: `admin` or `developer`. |
+| Create a page, list the tree | `.../knowledge/spaces/{spaceId}/pages` | As above. |
+| Read a page, author a version | `.../knowledge/pages/{pageId}` | `PUT` appends version *n+1*; nothing is overwritten. |
+| Version history, one version | `.../knowledge/pages/{pageId}/versions[/{version}]` | Read. |
+| Move, publish, label, cite | `.../knowledge/pages/{pageId}/{parent,status,labels,references}` | `admin` or `developer`. |
+| Search, assemble context | `.../knowledge/{search,context}` | Read. |
+
+Archiving is the only removal. There is no delete: removing documentation would also remove the record that an AI answer was once grounded in it.
+
+### Importing a spreadsheet
+
+Requirement registers, screen inventories and test matrices usually arrive as a workbook: one sheet per module, one row per item. That is a fine format for a person with a mouse and a hopeless one for a model, which receives a wall of values with no indication of what any column means.
+
+Import is deliberately two commands, not one:
+
+```bash
+python3 scripts/workbook-to-pages.py <workbook.xlsx> --space-key DOCS \
+  --parent-slug workbook-index --out pages.json     # host only, no network
+bash scripts/import-pages.sh --payload pages.json --org <organization-uuid> --note "why"
+```
+
+Conversion runs on the host with no network access and writes a JSON payload a person can read before anything is transmitted. These workbooks are frequently confidential; doing both steps in one command removes the opportunity to check what is about to leave the machine.
+
+Each sheet becomes a page, and **each row becomes its own subsection** headed by its first non-empty cell, listing `**Column**: value` pairs. A sheet could have become one Markdown table instead, and should not have: a table contains no blank lines, so the chunker sees a single enormous block and divides it between arbitrary rows, leaving every chunk after the first with values and no column names. The cost of the chosen shape is verbosity — the column name repeats on every row — and that repetition is exactly what makes one row interpretable on its own.
+
+Re-running the import is the intended way to refresh. A page that already exists gets a new version rather than a duplicate, so the history shows what the workbook said before, what it says now, and the reason given. An unchanged page reports `same` and writes nothing.
+
+Reading `.xlsx` uses only the Python standard library — the format is a zip of XML — because requiring a `pip install` to read a file the operator already has is a poor trade. Shared strings, inline strings and numbers are all handled. Sheets that cannot be converted (no row with two or more values, so no header can be identified) are **reported on stderr**, never dropped silently.
+
+`scripts/test-workbook-to-pages.sh` builds a synthetic workbook and asserts 16 conversion rules, including the one that matters most: every data row in becomes exactly one section out. A converter that quietly drops rows still prints a success line, and the omission surfaces only when someone searches for a requirement that was never imported and concludes the documentation does not cover it.
+
+### Verification
+
+`scripts/knowledge-sweep.sh` runs 47 assertions against the live stack and is wired into `scripts/integration-smoke.sh`. It covers the properties no unit test can reach: that an unaccented query finds accented content, that wording removed by a later version stops being retrievable, that version 1 is still readable after being superseded, that two concurrent authors both get a version, and that a query consisting of bare tsquery operators returns `200` rather than `500`.
+
+Its first run found a query referencing a column that does not exist — after the code compiled and after the schema itself had been verified directly against PostgreSQL. `MarkdownChunkerTest` covers the chunker as a pure function, including the fence cases.

@@ -40,7 +40,25 @@ class RequestBoundsMatchSchemaTest {
     FIELD_TO_COLUMN.put("TraceNodeInput.status", "trace_nodes.status");
     FIELD_TO_COLUMN.put("TraceEdgeInput.relation", "trace_edges.relation");
     FIELD_TO_COLUMN.put("ReviewInput.title", "review_items.title");
+
+    FIELD_TO_COLUMN.put("CreateSpaceRequest.spaceKey", "knowledge_spaces.space_key");
+    FIELD_TO_COLUMN.put("CreateSpaceRequest.name", "knowledge_spaces.name");
+    FIELD_TO_COLUMN.put("CreatePageRequest.slug", "knowledge_pages.slug");
+    FIELD_TO_COLUMN.put("CreatePageRequest.title", "knowledge_page_versions.title");
+    FIELD_TO_COLUMN.put("CreatePageRequest.changeNote", "knowledge_page_versions.change_note");
+    FIELD_TO_COLUMN.put("AuthorVersionRequest.title", "knowledge_page_versions.title");
+    FIELD_TO_COLUMN.put("AuthorVersionRequest.changeNote", "knowledge_page_versions.change_note");
+    FIELD_TO_COLUMN.put("LabelRequest.label", "knowledge_page_labels.label");
+    FIELD_TO_COLUMN.put("LinkReferenceRequest.referenceNote", "knowledge_page_references.reference_note");
   }
+
+  /**
+   * Request records live in more than one file. A guard that reads only the file whose defects prompted it stops
+   * being a guard as soon as the next endpoint is written somewhere else.
+   */
+  private static final List<String> SOURCES = List.of(
+      "src/main/java/ai/xdev/aisdlc/web/GovernanceController.java",
+      "src/main/java/ai/xdev/aisdlc/web/KnowledgeBaseContracts.java");
 
   @Test
   void noDeclaredRequestBoundExceedsItsColumn() throws IOException {
@@ -64,15 +82,22 @@ class RequestBoundsMatchSchemaTest {
     assertTrue(problems.isEmpty(), String.join("\n  ", problems));
   }
 
-  /** {@code @Size(max = N) String field} inside each {@code record Name(...)} of the governance controller. */
+  /**
+   * {@code @Size(max = N) String field} inside each {@code record Name(...)} of every source above.
+   *
+   * <p>{@code @Size} must sit immediately before the type for this to see it, which is why the request records keep
+   * it last in their annotation list. A bound this cannot read is reported as missing rather than passing silently.
+   */
   private static Map<String, Integer> declaredSizes() throws IOException {
-    String source = Files.readString(Path.of("src/main/java/ai/xdev/aisdlc/web/GovernanceController.java"));
     Map<String, Integer> sizes = new LinkedHashMap<>();
-    Matcher records = Pattern.compile("record (\\w+)\\(([^;]*?)\\) \\{\\}", Pattern.DOTALL).matcher(source);
-    while (records.find()) {
-      String record = records.group(1);
-      Matcher fields = Pattern.compile("@Size\\(max = (\\d+)\\)\\s+String (\\w+)").matcher(records.group(2));
-      while (fields.find()) sizes.put(record + "." + fields.group(2), Integer.parseInt(fields.group(1)));
+    for (String path : SOURCES) {
+      String source = Files.readString(Path.of(path));
+      Matcher records = Pattern.compile("record (\\w+)\\(([^;]*?)\\) \\{\\}", Pattern.DOTALL).matcher(source);
+      while (records.find()) {
+        String record = records.group(1);
+        Matcher fields = Pattern.compile("@Size\\(max = (\\d+)\\)\\s+String (\\w+)").matcher(records.group(2));
+        while (fields.find()) sizes.put(record + "." + fields.group(2), Integer.parseInt(fields.group(1)));
+      }
     }
     return sizes;
   }

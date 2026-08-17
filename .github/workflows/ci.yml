@@ -117,6 +117,14 @@ jobs:
       - name: Validate Collector configuration and SLO burn-rate rules
         run: sh scripts/validate-observability-config.sh
 
+  workbook-importer:
+    name: Workbook importer · conversion contract
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Verify spreadsheet-to-page conversion contract
+        run: sh scripts/test-workbook-to-pages.sh
+
   typescript-sdk:
     name: TypeScript SDK · build and test
     runs-on: ubuntu-24.04

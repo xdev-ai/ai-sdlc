@@ -70,3 +70,12 @@ AISDLC_ACCEPTANCE_KEYCLOAK_URL="http://localhost:8180" \
 AISDLC_ACCEPTANCE_NETWORK="aisdlc-ci_platform" \
 AISDLC_ACCEPTANCE_KEYCLOAK_URL="http://localhost:8180" \
   bash "$(dirname -- "$0")/feature-sweep.sh"
+
+# The knowledge base grounds AI answers, so its retrieval behaviour is a correctness concern, not a convenience.
+# This checks the properties no unit test can reach: that accent-folded search finds Vietnamese content typed without
+# diacritics, that wording a later version removed stops being retrievable, and that a page's history survives an
+# edit. The first run of it found a query referencing a column that does not exist — after the code compiled and the
+# schema had been verified directly against PostgreSQL.
+AISDLC_ACCEPTANCE_NETWORK="aisdlc-ci_platform" \
+AISDLC_ACCEPTANCE_KEYCLOAK_URL="http://localhost:8180" \
+  bash "$(dirname -- "$0")/knowledge-sweep.sh"
