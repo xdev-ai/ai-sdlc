@@ -94,7 +94,7 @@ groups:
           alert_class: slo-burn
         annotations:
           summary: "AI-SDLC {{ $labels.journey }} is rapidly exhausting its 30-day error budget"
-          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/slo-runbooks.md#{{ $labels.journey }}"
+          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/observability-and-resilience.md#{{ $labels.journey }}"
           description: "The 5m and 1h error-budget burn rates exceed 14.4. Inspect the authorized trace and audit links; do not paste raw prompt or evidence data into the incident."
 
       - alert: AiSdlcSloSlowBurn
@@ -119,7 +119,7 @@ groups:
           alert_class: slo-burn
         annotations:
           summary: "AI-SDLC {{ $labels.journey }} is consuming the 30-day error budget above the sustained threshold"
-          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/slo-runbooks.md#{{ $labels.journey }}"
+          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/observability-and-resilience.md#{{ $labels.journey }}"
           description: "The 30m and 6h error-budget burn rates exceed 6. Review trend, deployment changes, and approved operational evidence."
 
       - alert: AiSdlcAuditOrEvidenceIntegrityViolation
@@ -134,5 +134,5 @@ groups:
           alert_class: governance-integrity
         annotations:
           summary: "AI-SDLC detected an audit or evidence integrity violation"
-          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/slo-runbooks.md#governance-integrity"
+          runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/observability-and-resilience.md#governance-integrity"
           description: "Integrity objectives have zero tolerated failures. Preserve the affected audit identifiers and begin the evidence incident procedure."

@@ -1,0 +1,367 @@
+# Governance platform
+
+The governed flow itself: what a validation run becomes, how policy is expressed, who decides, where evidence lives, and how a tenant is bounded.
+
+- [Validation Finding and Evidence Lifecycle](#validation-finding-and-evidence-lifecycle)
+- [Policy-as-Code](#policy-as-code)
+- [Approval and Notification Orchestration](#approval-and-notification-orchestration)
+- [Notification Delivery Contracts](#notification-delivery-contracts)
+- [Evidence & Governance Data Repository Architecture](#evidence-governance-data-repository-architecture)
+- [Quality and Risk Intelligence](#quality-and-risk-intelligence)
+- [Enterprise Multi-Tenancy and Identity Integration](#enterprise-multi-tenancy-and-identity-integration)
+
+## Validation Finding and Evidence Lifecycle
+
+Validation results originate with the deterministic CLI, but their operational handling is a governed human workflow in the control plane. The lifecycle deliberately separates immutable execution evidence from mutable operational metadata.
+
+### Immutable and Mutable Fields
+
+| Record | Immutable data | Governed lifecycle data |
+|---|---|---|
+| Validation run | Idempotency key, CLI version, Spec Kit version, model pin, status and ingest timestamp | None; a run is a historical execution fact. |
+| Finding | Rule code, message, severity, source path and line | Triage status, note, actor and timestamp. |
+| Evidence | Type, URI and SHA-256 digest | Retention deadline. |
+
+The evidence URI is displayed as an external reference; its digest remains the verification anchor. Adjusting a retention deadline does not change the referenced object or digest.
+
+### Finding Triage
+
+Authorized project members transition a finding from `OPEN` to one of `ACKNOWLEDGED`, `RESOLVED`, `FALSE_POSITIVE`, or `ACCEPTED_RISK`. A rationale is required for `FALSE_POSITIVE` and `ACCEPTED_RISK`, so non-remediation remains explicit and auditable. Each successful transition writes `VALIDATION_FINDING_TRIAGED` to the organization audit ledger with actor, target and outcome metadata.
+
+The API uses a project- and run-scoped resource path and validates that the finding belongs to the supplied run. This prevents a caller from updating a finding through a different project context. The SSR portal presents the same workflow from a selected immutable validation run and applies normal CSRF protection.
+
+### Evidence Retention
+
+Evidence retention is set as a future UTC instant. The database checks that it falls after the evidence creation time and indexes the deadline to support a future controlled cleanup worker. No automatic delete process is included in the application: deletion policy must be configured as a separately authorized retention operation, preserving the audit and legal-hold review boundary.
+
+Every retention update writes `VALIDATION_EVIDENCE_RETENTION_SET` to the audit ledger. Operators should preserve audit-event rows even when evidence objects expire, retaining the digest and lifecycle record needed to explain historical validation.
+
+### Operational Use
+
+1. Open **Validations** in the SSR portal, filter runs and select **Inspect**.
+2. Review the immutable code, severity, source location and evidence digest.
+3. Record a human triage decision with a concise rationale where required.
+4. Set or correct the evidence retention deadline according to the organization’s approved retention schedule.
+5. Verify both changes through the organization audit ledger and its hash-chain verification endpoint.
+
+---
+
+## Policy-as-Code
+
+### Design Basis
+
+AI-SDLC policy bundles use Common Expression Language (CEL) expressions for bounded, deterministic policy decisions. CEL is selected because it is non-Turing complete and supports compile-once/evaluate-many operation; the platform does not embed a general-purpose scripting runtime.
+
+Policy authors supply an expression and a fixture collection. The service owns the entire CEL environment: it exposes only a single JSON-like `context` map and no custom host functions. Compilation happens on create/update or explicit dry-run, not on a latency-sensitive enforcement path. Expressions must evaluate to a Boolean value; an error, an unknown value, a non-Boolean result, or a resource-limit violation is a deterministic failed evaluation rather than a pass.
+
+| Control | AI-SDLC behavior |
+|---|---|
+| Language | CEL only; no JavaScript, shell, Python, Rego runtime, or dynamically loaded functions. |
+| Authoring boundary | Maximum source and fixture size, explicit semantic version, immutable version records, and project scope. |
+| Runtime boundary | Declared `context` variable only, bounded JSON depth/node count, no host functions, and a per-evaluation timeout. |
+| Lifecycle | `DRAFT` → `ACTIVE` → `RETIRED`; only owners can activate or retire a bundle. |
+| Dry run | Evaluation is recorded without being treated as an enforcement decision. |
+| Verification | Fixtures state expected Boolean outcomes and must pass before activation. |
+| Evidence | Every evaluation produces an audit event and retained result record, including context digest rather than raw sensitive context. |
+
+### References
+
+[1] [CEL for Java: installation, type-checking and evaluation](https://github.com/cel-expr/cel-java)
+
+[2] [CEL overview: environment declaration and compile-once/evaluate-many model](https://cel.dev/overview/cel-overview)
+
+---
+
+## Approval and Notification Orchestration
+
+### Purpose
+
+The AI-SDLC control plane uses a project-scoped orchestration service to deliver governance notifications and collect **human** decisions. It does not replace any human decision point with automation. Notifications make a decision observable; they never approve, reject, merge, or release software.
+
+### Notification Channels
+
+Project owners can configure `EMAIL`, `SLACK_WEBHOOK`, `TEAMS_WEBHOOK`, or `GENERIC_WEBHOOK` channels through the API or SSR portal. Webhook destinations must use HTTPS. Generic webhooks require a channel-specific signing secret. Email destinations must be syntactically email-like and require a configured Spring Mail sender at runtime.
+
+Destinations and generic-webhook signing secrets are encrypted with AES-256-GCM before persistence. Set `AISDLC_NOTIFICATION_ENCRYPTION_KEY` to a 32-byte base64url value. A channel list response returns only a SHA-256 destination fingerprint; it never returns a destination, encrypted ciphertext, or signing secret.
+
+| Channel | Delivery form | Additional control |
+|---|---|---|
+| `EMAIL` | Spring Mail plaintext message | Requires configured sender and `from-address`. |
+| `SLACK_WEBHOOK` | JSON message to an HTTPS incoming webhook | Retry on network failure, HTTP 429, and HTTP 5xx. |
+| `TEAMS_WEBHOOK` | JSON message to an HTTPS incoming webhook | Retry on network failure, HTTP 429, and HTTP 5xx. |
+| `GENERIC_WEBHOOK` | Versioned JSON delivery envelope | Includes `X-AISDLC-Delivery`, `X-AISDLC-Timestamp`, and `X-AISDLC-Signature-256`. |
+
+For generic webhooks, verify the signature by recomputing `HMAC-SHA256(timestamp + "." + raw JSON body, channel secret)` and compare it in constant time. Reject delivery timestamps outside the receiving service's replay window.
+
+### Delivery Ledger and Retry Behavior
+
+Each enabled channel gets one `notification_deliveries` entry per idempotency key. The immutable `notification_delivery_receipts` table captures every completed attempt, its payload SHA-256, HTTP status when available, and terminal/error code.
+
+The dispatcher uses short database transactions to claim and complete a delivery. It deliberately performs network I/O outside the database transaction. It retries only network errors, HTTP `429`, and HTTP `5xx`, with capped exponential backoff. Configuration errors, invalid responses, disabled channels, and non-retryable client errors become terminal states. A stale `SENDING` claim is eligible for reconciliation after ten minutes.
+
+`GovernanceAutomationScheduler` invokes delivery dispatch and approval SLA processing through configurable cron expressions. These deterministic tasks are application-native; no LLM or external agent is involved.
+
+### Approval Lifecycle
+
+An approval request is bounded by a project, source reference, quorum from 1 to 50, due timestamp, optional assigned approver, and immutable decisions. Only project owners and reviewers can decide or delegate. If an approver is assigned, only that subject, its explicit delegate, or the organization break-glass owner identity may decide.
+
+| State | Transition | Evidence |
+|---|---|---|
+| `PENDING` | Created with a future SLA | `APPROVAL_REQUEST_CREATED` audit event and `approval.requested` notification. |
+| `PENDING` / `ESCALATED` | Approve quorum is met | Immutable approval decisions, `APPROVAL_DECISION_RECORDED`, and `approval.decided` notification. |
+| `PENDING` / `ESCALATED` | Any authorized rejection | Immutable rejection and terminal `REJECTED` state. |
+| `PENDING` | Due timestamp passes | `ESCALATED` status and idempotent `approval.escalated` notification. |
+| `PENDING` / `ESCALATED` | Due soon | Bounded periodic `approval.reminder` notification. |
+
+Duplicate decisions by the same actor are rejected. Delegation never alters an earlier decision, and delegation is recorded in the audit ledger. Automation can issue reminders and escalation notices only; it cannot manufacture an approval.
+
+### Security Exception Expiry
+
+Security exceptions are persisted as project-scoped records rather than inferred from a mutable runtime file. They must have a future expiry and owner/reviewer authorization. The SLA processor emits expiring and expired notices with idempotency keys and changes an expired exception's lifecycle state. The CI `.trivyignore.yaml` expiry validation remains an independent fail-closed control.
+
+### API Surface
+
+| Endpoint | Use |
+|---|---|
+| `POST /api/v1/projects/{projectId}/notification-channels` | Create an encrypted channel. |
+| `GET /api/v1/projects/{projectId}/notification-channels` | List safe channel metadata. |
+| `PATCH /api/v1/projects/{projectId}/notification-channels/{channelId}` | Enable or disable a channel. |
+| `GET /api/v1/projects/{projectId}/notification-deliveries` | Read the delivery ledger. |
+| `POST /api/v1/projects/{projectId}/approvals` | Request a governed human approval. |
+| `GET /api/v1/projects/{projectId}/approvals` | Read project-scoped approval queue. |
+| `POST /api/v1/approvals/{approvalId}/decisions` | Record an immutable approval or rejection. |
+| `POST /api/v1/approvals/{approvalId}/delegation` | Delegate a pending approval. |
+| `POST /api/v1/projects/{projectId}/security-exceptions` | Record a time-bounded security exception. |
+
+### Operations
+
+Set the notification encryption key before enabling any channel. Configure optional email sender settings only when email delivery is required. Review failed delivery receipts, rotate generic-webhook secrets by creating a replacement channel, and disable the old channel after downstream verification. Treat each completed approval decision and delivery receipt as audit evidence subject to the platform's retention policy.
+
+---
+
+## Notification Delivery Contracts
+
+### Purpose
+
+AI-SDLC sends governance notifications only through explicitly configured and enabled channels. Every attempt creates an immutable delivery receipt that records the channel, message identity, destination fingerprint, outcome, HTTP status when applicable, and retry disposition. Channel secrets are never returned by APIs, portal pages, audit event payloads, or delivery receipts.
+
+### Slack Incoming Webhooks
+
+Slack incoming webhooks accept an HTTPS `POST` with a JSON body containing at minimum a `text` value. The webhook URL is itself a secret and must not be committed or exposed. AI-SDLC sends concise plain-text summaries with a stable delivery identifier, treats 2xx as delivered, retries only rate-limit and transient server failures, and marks configuration/authentication failures as terminal. Slack reports actionable errors for malformed payloads, disabled hooks, archived channels, and invalid tokens, so those errors require operator remediation rather than blind retries. [1]
+
+### Microsoft Teams Webhook Workflows
+
+Microsoft recommends Teams Workflows/Power Automate webhook URLs for new deployments because legacy Microsoft 365 connectors are approaching deprecation. A workflow receives an HTTPS `POST` with a JSON payload and can post a message or Adaptive Card. AI-SDLC uses the transport-neutral text payload that Workflow templates accept, with a 28 KB maximum message size. Teams documents a throughput threshold of four requests per second and recommends exponential backoff for HTTP 429 responses; the notification dispatcher therefore applies bounded retry with backoff and never performs unbounded fan-out. [2]
+
+### Security and Operational Rules
+
+| Rule | Requirement |
+|---|---|
+| Destination protection | Store the destination URL encrypted at rest; show only a redacted fingerprint after creation. |
+| Outbound authentication | Every generic outbound webhook receives HMAC SHA-256 headers containing timestamp, delivery ID, and payload signature. |
+| Replay resistance | Receivers must reject timestamps outside their accepted skew window and deduplicate the delivery ID. |
+| Retry discipline | Retry network errors, HTTP 429, and HTTP 5xx only; respect `Retry-After` when present. |
+| Terminal failure | Do not retry malformed payload, authentication, authorization, invalid endpoint, or disabled channel responses. |
+| Audit evidence | Preserve message digest and receipt metadata, never the raw notification secret. |
+
+### References
+
+[1]: https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks "Slack Developer Docs: Sending messages using incoming webhooks"
+[2]: https://learn.microsoft.com/en-us/microsoftteams/platform/webhooks-and-connectors/how-to/add-incoming-webhook "Microsoft Learn: Create Incoming Webhooks"
+
+---
+
+## Evidence & Governance Data Repository Architecture
+
+**Status:** Implemented in the current pre-release. This document defines the storage extension that makes AI-SDLC packages independently integrable while preserving the platform’s audit, authorization and human-decision invariants.
+
+> **Design principle:** PostgreSQL is the source of truth for governance metadata and authorization; S3-compatible object storage is the source of truth for large immutable bytes. A storage object is never made public merely because it exists.
+
+### Module Boundary Contract
+
+The monorepo remains deployable as one control-plane service, but each bounded module exposes a small Java contract package and owns its persistence adapter. A module may depend on `platform-contracts` and published APIs of another module; it must not reach into another module’s JPA repository or entity internals.
+
+| Module | Stable public contract | Owns | May depend on |
+|---|---|---|---|
+| `identity-access` | `ProjectAuthorization`, `PrincipalContext` | Role and project-scope decisions | platform contracts |
+| `audit-ledger` | `AuditAppender`, `AuditVerifier` | Append-only audit records and verification | platform contracts |
+| `governance-catalog` | `PolicyCatalog`, `SpecKitRegistry` | Kits, policies, constitutions, grants and exceptions | access, audit |
+| `validation` | `ValidationIngestor`, `ValidationQuery` | Runs, findings, deterministic evidence links | access, audit, repository |
+| `review-workflow` | `ReviewQueue`, `HumanDecision` | Review requests and final human decisions | access, audit, repository |
+| `quality-insights` | `QualityMetricStore` | Metric snapshots and read models | access |
+| `evidence-repository` | `EvidenceRepository`, `EvidenceObjectStore` | Asset metadata, upload/finalize/download/hold lifecycle | access, audit |
+
+Each module follows the same package shape: `api` for stable records/interfaces, `application` for transactions and use cases, `domain` for policy/state, and `infrastructure` for JPA, S3 and web adapters. This lets a future deployment split a module behind an internal API without rewriting consumers.
+
+### Implemented Scope
+
+The first production-capable slice is deliberately direct: an authenticated client sends one bounded multipart asset to the control plane; the server independently computes SHA-256, stores the bytes through the S3-compatible port, writes project-scoped metadata, and appends an immutable audit event in its database transaction. The metadata migration is `V4__evidence_repository.sql`. If the metadata transaction rolls back after the object upload, the service attempts compensating object deletion; it never exposes a public bucket URL.
+
+| Implemented concern | Behaviour |
+|---|---|
+| Storage boundary | `ObjectStoragePort` isolates application code from AWS SDK, MinIO and provider-specific SDK classes. `S3ObjectStorageAdapter` is the default adapter. |
+| Metadata | `evidence_assets` stores project, optional linked validation evidence, typed classification, filename/content type, byte size, bucket/key, SHA-256, idempotency key, actor, access level, retention and soft-delete timestamp. |
+| Idempotency | `project_id + idempotency_key` is unique. A supplied key must be 8–120 URL-safe characters; an omitted key is deterministically derived from project, type, classification, linked validation evidence and digest. |
+| Access | Upload is available to owner/developer/reviewer. List is project-member scoped. Download honours `PROJECT`, `REVIEWERS` and `OWNERS` classification. Retention and soft delete require owner or reviewer. |
+| Immutability | Retention can only extend. A `COMPLIANCE` lock cannot be downgraded. The S3 adapter maps the chosen mode and timestamp to provider object-lock retention. |
+
+### Repository Data Model
+
+| Table / concept | Key fields | Integrity rule |
+|---|---|---|
+| `evidence_assets` | project, optional `validation_evidence_id`, type, filename, MIME type, byte length, bucket/key, SHA-256, idempotency key, access level, retention, soft-delete timestamp | One asset belongs to exactly one project. `(project_id, idempotency_key)` and `(s3_bucket, s3_key)` are unique. |
+| S3-compatible object | private opaque key `projects/{project-id}/evidence-assets/{uuid}/{sanitized-name}` with SHA-256/project/actor metadata | Object bytes do not reside in PostgreSQL and object names are never client supplied paths. |
+| Append-only audit ledger | actor, project, event type, asset ID and digest/retention metadata | Upload, retention lock and soft deletion always append a governance event in the metadata transaction. |
+
+The database stores no file bytes. A user filename is display metadata only; it is sanitized before use as the tail of an opaque server-generated object key.
+
+### Upload, Verification and Download
+
+An authorized project member uploads one bounded multipart file to the control plane. The server computes SHA-256 from the received bytes and rejects any mismatch with the optional `X-Content-SHA256`. It then persists the private object using server-held credentials, saves provenance metadata and appends an audit event. The current implementation uses a bounded in-memory multipart representation; the configured upload limit must remain appropriate for the management-server memory allocation.
+
+An authorized reader retrieves asset detail. The control plane verifies project membership and classification policy first, then issues a short-lived presigned `GET`; the object store remains private. Presigned URL support is provided by the S3-compatible Java client API.[1]
+
+### Retention, Immutability and Legal Hold
+
+Production buckets use S3 versioning and Object Lock. Object Lock operates per version and requires versioning; a retention period or legal hold protects an individual version, while a simple delete can create a delete marker rather than erase a locked prior version.[2] The implemented retention endpoint applies either `GOVERNANCE` or `COMPLIANCE`; it accepts only a future timestamp that extends the existing retention. Compliance cannot be downgraded. Legal holds are not implemented in this release.
+
+The application-level `retentionUntil` field records the successfully requested storage retention. Object storage credentials are held only by the control plane and bucket policies must deny anonymous listing and reads.
+
+### Configuration and Deployment
+
+The repository uses an `ObjectStoragePort` and configuration keys rather than a MinIO-specific API. Local/integration topology supplies MinIO; production may use MinIO with TLS, AWS S3, or another compatible provider. The required settings are endpoint, region, bucket, access key, secret key, TLS mode, retention mode and default retention duration. No storage credential may enter `.aisdlc.yml`, portal HTML, browser storage or a CLI log.
+
+The Java infrastructure adapter uses the AWS SDK for Java 2.x `bom`, `s3` and `url-connection-client` artifacts. AWS documents the BOM as the version-alignment mechanism and recommends importing only the service modules and HTTP client that an application actually needs.[4] This keeps the repository adapter compatible with Amazon S3 and S3-compatible endpoints without leaking provider classes across module boundaries.
+
+Before enabling a bucket for evidence, bootstrap validates bucket privacy, versioning and Object Lock. The pinned MinIO server image intentionally omits `curl` and `wget`, so a container-local HTTP healthcheck would permanently report an unavailable executable instead of storage health. The pinned MinIO Client uses `mc ready` to retry the official quorum readiness endpoint, after which it creates the Object Lock bucket before the management server starts.[5] MinIO documentation confirms that object locking requires versioning and supports retention and legal holds on object versions.[3] The bootstrap operation is idempotent and refuses to silently weaken an existing bucket configuration. The integration smoke runner separately probes `/minio/health/ready` over HTTP.
+
+### API and Event Contracts
+
+The versioned API surface is intentionally narrow:
+
+| Operation | Path shape | Authorization and audit |
+|---|---|---|
+| Upload bounded multipart asset | `POST /api/v1/projects/{projectId}/evidence-assets` | Owner/developer/reviewer; `file`, `assetType`, optional `accessLevel`/`validationEvidenceId`; accepts `X-Content-SHA256` and `Idempotency-Key`; records `evidence.asset.uploaded`. |
+| List/search metadata | `GET /api/v1/projects/{projectId}/evidence-assets` | Any scoped reader; page/filter bounded. |
+| Retrieve metadata and short-lived download URL | `GET /api/v1/projects/{projectId}/evidence-assets/{assetId}` | Scoped reader plus access-level check. The returned `downloadUrl` is a presigned GET, not an object-store public endpoint. |
+| Extend retention lock | `PUT /api/v1/projects/{projectId}/evidence-assets/{assetId}/retention` | Owner/reviewer; body includes `GOVERNANCE` or `COMPLIANCE` and a future timestamp; writes `evidence.asset.retention.locked`. |
+| Soft delete metadata | `DELETE /api/v1/projects/{projectId}/evidence-assets/{assetId}` | Owner/reviewer; object bytes are not force-deleted, preserving storage retention guarantees; writes `evidence.asset.soft_deleted`. |
+
+Every upload supports idempotency. Domain events `evidence.asset.uploaded`, `evidence.asset.retention.locked`, and `evidence.asset.soft_deleted` are appended to the immutable audit ledger in the same database transaction as metadata state changes. Multipart direct upload is the implemented contract; resumable upload sessions, object version links, legal holds and independent access-event records remain an explicit evolution path rather than implied functionality.
+
+### References
+
+[1] [MinIO AIStor Java Client API — presigned object URL operations](https://docs.min.io/aistor/developers/sdk/java/api/)
+
+[2] [Amazon S3 Object Lock — retention, governance/compliance modes and legal holds](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lock.html)
+
+[3] [MinIO AIStor Object Locking and Immutability](https://docs.min.io/aistor/administration/object-locking-and-immutability/)
+
+[4] [AWS SDK for Java 2.x — Maven setup and service-module dependencies](https://docs.aws.amazon.com/sdk-for-java/latest/developer-guide/setup-project-maven.html)
+
+[5] [MinIO Client — `mc ready` reference](https://docs.min.io/aistor/reference/cli/mc-ready/)
+
+---
+
+## Quality and Risk Intelligence
+
+### Scope
+
+The Risk Cockpit turns persisted AI-SDLC governance evidence into an explainable, bounded prioritization signal. It is not a machine-learning model, a prediction of delivery failure, a compliance verdict, or an automated merge/release gate. A human remains responsible for interpreting the score and approving a delivery.
+
+Every calculated result is a retained `risk_scores` snapshot with a formula version, component map, source-count map, actor, timestamp, and immutable audit event. This makes a score reproducible from the same evidence population.
+
+### `risk.v1` Formula
+
+The score is an integer between 0 and 100. Its components are capped independently, then summed.
+
+| Component | Maximum | Persisted inputs |
+|---|---:|---|
+| Finding risk | 25 | Critical and high validation findings completed in the past 90 days. |
+| Policy risk | 20 | `FAIL` or `ERROR` enforcement policy evaluations in the past 30 days. |
+| Exception risk | 15 | Expired and next-14-day expiring security exceptions. |
+| Evidence risk | 10 | Completed 30-day validation runs that have no `validation_evidences` record. |
+| Workflow risk | 10 | Pending review items and overdue approval requests. |
+| Quality risk | 10 | Latest retained quality snapshot: failure, rework, alignment, queue health, lead/review time, and security debt. |
+| Provenance risk | 10 | Release provenance records still in `DECLARED` verification state. |
+
+The band is derived only from the calculated score:
+
+| Score | Band |
+|---:|---|
+| 0–24 | `LOW` |
+| 25–49 | `MODERATE` |
+| 50–74 | `HIGH` |
+| 75–100 | `CRITICAL` |
+
+The source summary also records agent-session volume, but it does not increase `risk.v1` by itself. This distinction prevents a team from being penalized simply for recording governed AI assistance.
+
+### API and Access Model
+
+| Endpoint | Authority | Result |
+|---|---|---|
+| `POST /api/v1/projects/{projectId}/risk-intelligence/recompute` | Project owner or reviewer | Recomputes and retains an audited snapshot. |
+| `GET /api/v1/projects/{projectId}/risk-intelligence/latest` | Any project member | Returns the latest snapshot. |
+| `GET /api/v1/projects/{projectId}/risk-intelligence/trend` | Any project member | Returns descending, paginated snapshot history. |
+
+The SSR portal exposes the same workflow at **Risk cockpit**. The interactive React Island is an enhancement only: the server-rendered snapshot history, formula version, and evidence summary are available without JavaScript.
+
+### Interpretation and Response
+
+A high score should trigger evidence review, not automatic action. Review the associated source counts in the snapshot, then triage each underlying record through its native workflow: validation findings, policy bundle, security exception, approval request, evidence repository, or provenance verification.
+
+When a formula changes, add a new named formula version rather than changing `risk.v1` in place. Preserve previous scores exactly, document the formula migration, and compare trend lines only within the same formula version unless an analyst explicitly normalizes them.
+
+### Data Quality Safeguards
+
+The service reads only project-scoped database rows and fails closed when it cannot persist the resulting snapshot. It never fabricates a missing metric, calls an AI model, writes decisions into review workflows, or alters the lifecycle of its inputs. A project with no quality metrics receives zero quality-risk points rather than an invented estimate.
+
+---
+
+## Enterprise Multi-Tenancy and Identity Integration
+
+### Design Sources
+
+The implementation follows the SCIM protocol and core schema defined by IETF RFC 7644 and RFC 7643. SCIM is an HTTP protocol for provisioning and managing cross-domain identity resources such as users and groups; RFC 7644 specifies resource endpoints, retrieval, mutation, errors, resource versioning, service-provider configuration, multi-tenancy, TLS, token, and privacy considerations. [1] [2]
+
+Keycloak 26.7.1 supports OpenID Connect, OAuth 2.0, SAML, identity brokering with external OIDC or SAML identity providers, groups, composite roles, and token/claim protocol mappers. The platform therefore stores tenant-specific federation intent and permission mappings, while a Keycloak administrator applies confidential provider credentials and activates the corresponding broker configuration in the identity plane. [3]
+
+### Boundary Model
+
+An AI-SDLC tenant is an enterprise data and governance boundary. A tenant has an immutable external key, display name, lifecycle status, residency code, encryption-key reference, and a legal-hold state. Tenant scope is enforced at the application service boundary and attached to organization/project resources. A tenant must not be inferred from user-controlled request data.
+
+The management server never persists a private key, SAML signing key, raw SCIM bearer token, or raw evidence export secret. SCIM bearer tokens are generated once and stored only as SHA-256 hashes. When a tenant administrator elects to retain an OIDC client secret for a declared federation record, the server encrypts it with the existing AES-256-GCM deployment encryption boundary and never returns it through the API. Key material, signing keys, and Keycloak broker activation remain deployment/identity-plane responsibilities.
+
+### Identity Contracts
+
+The initial SCIM surface is tenant-scoped at `/scim/v2/tenants/{tenantId}/Users`, where `tenantId` is a platform UUID. It requires a tenant-bound provisioning principal whose raw bearer token matches a stored SHA-256 hash. The server supports SCIM `Users` list and create/upsert, with `application/scim+json` envelopes and core User schema URN. Group provisioning, ServiceProviderConfig discovery, bulk operations, password attributes, PATCH, and delete/deactivate operations are intentionally not exposed until their authorization and reconciliation contracts are separately implemented.
+
+SCIM responses use `application/scim+json`, core schema URNs, and list pagination envelopes. Externally supplied subject identifiers are idempotent only inside their tenant. Every mutation emits a tenant-scoped immutable audit event. Clients must use HTTPS and retain the one-time provisioning token in an external secret manager.
+
+Tenant federation configurations support OIDC and SAML metadata declarations. An active federation configuration is a policy record, not an automatic credential rotation or Keycloak mutation. The documented administration runbook requires issuer/entity-ID verification, HTTPS metadata retrieval, certificate pin/fingerprint review, claim-to-subject mapping, approved domain restrictions, explicit group mapping, and a tested break-glass local administrator path before activation.
+
+### Authorization and Legal Hold
+
+Custom permission sets are additive metadata for tenant members and mapped IdP groups. Built-in platform RBAC remains the enforcement authority for current project APIs; future endpoints must explicitly consult mapped tenant permissions before treating a declared permission as an authorization grant. Tenant-admin authority is required for role configuration, federation policy, provisioning, legal hold, and e-discovery export.
+
+Legal hold is a tenant-scoped, auditable control that prevents its own release by an unauthorized actor and records the tenant's active hold state. E-discovery export is permission-gated and writes a JSON manifest to object storage with a SHA-256 digest, a one-year compliance retention lock, and a short-lived presigned download URL. The manifest contains bounded tenant audit and organization audit chain metadata, never secrets, access tokens, client secrets, raw notification destinations, or object bytes.
+
+### Operational API Summary
+
+| Capability | API path | Required tenant role |
+|---|---|---|
+| Tenant bootstrap | `POST /api/v1/tenants` | Platform `admin`; creator becomes `TENANT_ADMIN`. |
+| Membership and custom permission metadata | `/api/v1/tenants/{tenantId}/memberships`, `/permission-sets` | `TENANT_ADMIN`. |
+| OIDC/SAML declaration | `/api/v1/tenants/{tenantId}/federation-configs` | `TENANT_ADMIN` or `IDENTITY_ADMIN`. |
+| One-time SCIM credential | `POST /api/v1/tenants/{tenantId}/scim-service-principals` | `TENANT_ADMIN` or `IDENTITY_ADMIN`. |
+| SCIM User list/upsert | `/scim/v2/tenants/{tenantId}/Users` | Valid tenant SCIM bearer token. |
+| Legal hold | `/api/v1/tenants/{tenantId}/legal-holds` | `TENANT_ADMIN` or `COMPLIANCE_OFFICER`. |
+| E-discovery manifest | `/api/v1/tenants/{tenantId}/e-discovery-exports` | `TENANT_ADMIN`, `COMPLIANCE_OFFICER`, or `AUDITOR`. |
+
+### References
+
+[1] [RFC 7644: System for Cross-domain Identity Management Protocol](https://datatracker.ietf.org/doc/html/rfc7644)
+
+[2] [RFC 7643: System for Cross-domain Identity Management Core Schema](https://datatracker.ietf.org/doc/html/rfc7643)
+
+[3] [Keycloak 26.7.1 Server Administration Guide](https://www.keycloak.org/docs/26.7.1/server_admin/)

@@ -61,7 +61,7 @@ import org.springframework.transaction.TransactionStatus;
  *
  * <p>Each case asserts one half of the platform's degradation model: telemetry fails open and never blocks a valid
  * request, while governance policy, approval delivery, evidence, identity, and runtime AI paths fail closed. The
- * scenarios map to the plan in {@code docs/p3-1-resilience-chaos-test-plan.md} and use the isolated
+ * scenarios map to the plan in {@code docs/observability-and-resilience.md#p31-reliability-resilience-and-chaos-engineering-test-plan} and use the isolated
  * {@link ChaosFaultRegistry} seam, which has no bean outside the explicit {@code chaos} profile.
  */
 class ResilienceScenarioTest {

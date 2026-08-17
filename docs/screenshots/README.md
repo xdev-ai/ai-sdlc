@@ -18,4 +18,4 @@ The screenshot set contains only **real runtime evidence**. It never uses mock U
 
 ## `portal-landing-en.png`
 
-The landing capture verifies the public user-facing controls: governance positioning, the deterministic execution / human authority / immutable evidence model, locale switcher, and control-plane entry point. Full implementation and integration evidence for authenticated features is recorded in [`docs/module-usage-and-verification.md`](../module-usage-and-verification.md) and [`docs/release-verification-report.md`](../release-verification-report.md).
+The landing capture verifies the public user-facing controls: governance positioning, the deterministic execution / human authority / immutable evidence model, locale switcher, and control-plane entry point. Full implementation and integration evidence for authenticated features is recorded in [`integrations-and-sdks.md`](../integrations-and-sdks.md#module-usage-and-verification-guide) and [`verification.md`](../verification.md).

@@ -10,7 +10,7 @@ import java.util.Map;
 import java.util.OptionalDouble;
 
 /**
- * The deterministic forecast described in {@code docs/p3-2-cost-optimization-and-inference-forecasting-design.md}
+ * The deterministic forecast described in {@code docs/cost-governance.md}
  * section 5: an eight-week trailing window, a day-of-week seasonal baseline, empirical residual intervals, and
  * rolling-origin back-testing over the four most recent complete weeks.
  *

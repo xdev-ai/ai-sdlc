@@ -48,7 +48,7 @@ tests:
               journey: policy-decision-latency
             exp_annotations:
               summary: "AI-SDLC policy-decision-latency is rapidly exhausting its 30-day error budget"
-              runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/slo-runbooks.md#policy-decision-latency"
+              runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/observability-and-resilience.md#policy-decision-latency"
               description: "The 5m and 1h error-budget burn rates exceed 14.4. Inspect the authorized trace and audit links; do not paste raw prompt or evidence data into the incident."
 
   # An integrity journey has a target of 1.0. It must never reach a burn-rate alert, whatever its error rate:
@@ -84,7 +84,7 @@ tests:
               environment: production
             exp_annotations:
               summary: "AI-SDLC detected an audit or evidence integrity violation"
-              runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/slo-runbooks.md#governance-integrity"
+              runbook_url: "https://github.com/xdev-ai/ai-sdlc/blob/main/docs/observability-and-resilience.md#governance-integrity"
               description: "Integrity objectives have zero tolerated failures. Preserve the affected audit identifiers and begin the evidence incident procedure."
 
   # Every objective publishes exactly one target series, and the integrity ones are exactly 1.0.

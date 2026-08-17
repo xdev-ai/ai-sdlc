@@ -4,6 +4,24 @@
 
 AI-SDLC is a **governance, traceability, supply-chain evidence, and quality-intelligence platform** for software-development teams that use AI. It separates deterministic validation on developer machines from a centralized control plane, where policy, approval, evidence, and release provenance are authorized and verified.
 
+## Documentation
+
+Eleven documents, indexed in **[docs/README.md](docs/README.md)**:
+
+| Start here | For |
+|---|---|
+| [architecture.md](docs/architecture.md) | Planes, trust boundaries, the control-plane API, and the portal |
+| [governance-platform.md](docs/governance-platform.md) | Validation, policy, approvals, evidence, risk, multi-tenancy |
+| [runtime-ai-governance.md](docs/runtime-ai-governance.md) | Agent workload identity, allowlists, tool grants, provider proxy |
+| [scm-integration.md](docs/scm-integration.md) | Inbound connectors and outbound policy feedback for five providers |
+| [cost-governance.md](docs/cost-governance.md) | Usage ledger, seasonal forecast, budget policies |
+| [operations.md](docs/operations.md) | Local topology, production runbook, backup and recovery, Helm/GitOps |
+| [observability-and-resilience.md](docs/observability-and-resilience.md) | Telemetry, SLOs and burn-rate alerts, fault injection, chaos plan |
+| [security.md](docs/security.md) | Scanning gates, supply-chain provenance, dependency decisions |
+| [integrations-and-sdks.md](docs/integrations-and-sdks.md) | CLI, SDKs, Terraform provider, IDE manifest, module contracts |
+| [verification.md](docs/verification.md) | The end-to-end acceptance suite and dated verification records |
+| [decisions/](docs/decisions/) | Architecture decision records — closed questions and what reopens them |
+
 ## Build 1 components
 
 | Component | Responsibility | Platform |
@@ -23,14 +41,14 @@ AI-SDLC is a **governance, traceability, supply-chain evidence, and quality-inte
 
 | Delivery scope | Implemented capability | Primary evidence/control |
 |---|---|---|
-| P0 SCM/CI | GitHub App webhook ledger, HMAC verification, replay-safe idempotency, repository linking, PR/commit/workflow/release correlation, and policy Check Runs | [`docs/github-scm-integration.md`](docs/github-scm-integration.md) |
-| P0 approvals | Encrypted notification channels, signed generic webhooks, immutable delivery receipts, quorum/delegation/SLA escalation and reminders | [`docs/approval-notification-orchestration.md`](docs/approval-notification-orchestration.md) |
-| P0 supply chain | CycloneDX SBOMs, evidence-linked provenance, release attestations, optional Cosign signing, and human provenance verification | [`docs/supply-chain-security.md`](docs/supply-chain-security.md) |
-| P1 Policy-as-Code | Versioned CEL bundles, typed and Boolean-only evaluation, dry runs, fixtures, lifecycle and retained evaluation evidence | [`docs/policy-as-code.md`](docs/policy-as-code.md) |
-| P1 agent governance | Prompt fingerprints, agent sessions, tool/context digests, generated-change provenance, policy gate and human approval linkage | [`docs/ai-agent-governance.md`](docs/ai-agent-governance.md) |
-| P1 risk intelligence | Explainable `risk.v1` score, components, historical snapshots, SSR fallback and interactive Risk Cockpit | [`docs/risk-intelligence.md`](docs/risk-intelligence.md) |
-| P2 enterprise | Tenant scope, custom permissions, SCIM provisioning, tenant federation metadata, legal holds and e-discovery manifests | [`docs/enterprise-multi-tenancy.md`](docs/enterprise-multi-tenancy.md) |
-| P2 ecosystem | Versioned signed webhook envelopes, Java/TypeScript SDKs, Terraform provider and VS Code integration | [`docs/sdk-reference.md`](docs/sdk-reference.md) |
+| P0 SCM/CI | GitHub App webhook ledger, HMAC verification, replay-safe idempotency, repository linking, PR/commit/workflow/release correlation, and policy Check Runs | [`docs/scm-integration.md#github-scm-integration`](docs/scm-integration.md#github-scm-integration) |
+| P0 approvals | Encrypted notification channels, signed generic webhooks, immutable delivery receipts, quorum/delegation/SLA escalation and reminders | [`docs/governance-platform.md#approval-and-notification-orchestration`](docs/governance-platform.md#approval-and-notification-orchestration) |
+| P0 supply chain | CycloneDX SBOMs, evidence-linked provenance, release attestations, optional Cosign signing, and human provenance verification | [`docs/security.md#supply-chain-security-and-release-provenance`](docs/security.md#supply-chain-security-and-release-provenance) |
+| P1 Policy-as-Code | Versioned CEL bundles, typed and Boolean-only evaluation, dry runs, fixtures, lifecycle and retained evaluation evidence | [`docs/governance-platform.md#policy-as-code`](docs/governance-platform.md#policy-as-code) |
+| P1 agent governance | Prompt fingerprints, agent sessions, tool/context digests, generated-change provenance, policy gate and human approval linkage | [`docs/runtime-ai-governance.md#ai-agent-governance`](docs/runtime-ai-governance.md#ai-agent-governance) |
+| P1 risk intelligence | Explainable `risk.v1` score, components, historical snapshots, SSR fallback and interactive Risk Cockpit | [`docs/governance-platform.md#quality-and-risk-intelligence`](docs/governance-platform.md#quality-and-risk-intelligence) |
+| P2 enterprise | Tenant scope, custom permissions, SCIM provisioning, tenant federation metadata, legal holds and e-discovery manifests | [`docs/governance-platform.md#enterprise-multi-tenancy-and-identity-integration`](docs/governance-platform.md#enterprise-multi-tenancy-and-identity-integration) |
+| P2 ecosystem | Versioned signed webhook envelopes, Java/TypeScript SDKs, Terraform provider and VS Code integration | [`docs/integrations-and-sdks.md#sdk-reference`](docs/integrations-and-sdks.md#sdk-reference) |
 
 ## Security scanning
 
@@ -89,7 +107,7 @@ mechanisms have already been observed here:
 
 The live view is [Security → Code scanning](https://github.com/xdev-ai/ai-sdlc/security/code-scanning). Suppressions
 require a reviewed, time-bounded `.trivyignore.yaml` entry with advisory ID, rationale, owner, and expiry; see
-[`docs/security-scanning.md`](docs/security-scanning.md).
+[`docs/security.md#security-scanning`](docs/security.md#security-scanning).
 
 ## Access architecture
 
@@ -104,11 +122,29 @@ The SSR portal is the public browser entry point. The Management API runs on the
 5. Run `cd sdk/typescript && npm ci --ignore-scripts && npm run build && npm test` to verify the TypeScript SDK.
 6. Run `cd infra/terraform-provider && go test ./... && go build ./...` to verify the Terraform provider, then `cd ide/vscode && node --test test/extension.test.mjs` to check the VS Code integration manifest.
 
-For module-by-module startup, integration, P3 foundation APIs, and the complete release-verification command set, see the [Module Usage and Verification Guide](docs/module-usage-and-verification.md).
+For module-by-module startup, integration, P3 foundation APIs, and the complete release-verification command set, see the [Module Usage and Verification Guide](docs/integrations-and-sdks.md#module-usage-and-verification-guide).
+
+### Running the platform for real
+
+Unit tests never cross an HTTP message converter, touch a real database, pull an image, or start a Collector. Every defect that mattered on this repository was found by one of the runs below rather than by the suite.
+
+```bash
+scripts/integration-smoke.sh
+```
+
+Brings up the full Compose topology — Keycloak, PostgreSQL, MinIO, management server, portal — and drives one project through the whole governed flow: organization → project → repository link → validation evidence → policy bundle → approval quorum → signed webhook → release provenance → audit-chain verification. **32 assertions.**
+
+```bash
+scripts/verify-recovery.sh
+```
+
+Migrates a disposable database, writes a chained ledger, backs it up, restores into a separate database, and requires the restored chain to recompute to the same head digest — then tampers with a restored row to prove the check detects it. **10 assertions.**
+
+Other suites: `scripts/verify-production.sh` (static topology guardrails), `scripts/test-observability-contracts.sh`, `scripts/test-helm-hardening.sh`, `scripts/test-chaos-profile-isolation.sh`, and the Trivy policy scripts. On macOS these need `brew install coreutils` for `gtimeout`; the integration script falls back to Compose's own wait timeout without it.
 
 ## Language policy
 
-Repository-facing material—README, documentation, issue and pull-request content, release notes, API descriptions, and developer-facing code comments—uses English. The portal supports English and Vietnamese; Vietnamese text is deliberately confined to the localization resource that is rendered to end users. See [`docs/localization.md`](docs/localization.md).
+Repository-facing material—README, documentation, issue and pull-request content, release notes, API descriptions, and developer-facing code comments—uses English. The portal supports English and Vietnamese; Vietnamese text is deliberately confined to the localization resource that is rendered to end users. See [`docs/architecture.md#portal-localization-policy`](docs/architecture.md#portal-localization-policy).
 
 ## Version policy
 
@@ -125,7 +161,8 @@ infra/terraform-provider/ Terraform provider source
 ide/vscode/            VS Code integration manifest and tests
 infra/keycloak/       Realm import and identity configuration
 docker-compose.yml    Local production-like topology
-docs/                 Architecture, API, and operating decisions
+scripts/              Verification suites, including the end-to-end and recovery runners
+docs/                 Eleven themed documents plus decision records; see docs/README.md
 ```
 
 ## References

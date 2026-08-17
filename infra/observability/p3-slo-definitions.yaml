@@ -4,7 +4,7 @@
 # file the burn-rate alerts have no denominator and never fire, so both files must be loaded together.
 #
 # Every objective is an INITIAL PROPOSED TARGET, not an observed level. The 28-day observe-only baseline described in
-# docs/p3-reliability-and-runtime-ai-governance-design.md section 4 must complete before paging is enabled, and any
+# docs/runtime-ai-governance.md section 4 must complete before paging is enabled, and any
 # change to a target is a governed change with a recorded rationale.
 #
 # budget_policy separates two kinds of objective:

@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Recovery verification for the PostgreSQL governance ledger.
 #
-# docs/production-operations.md documents how to back up and restore. A documented procedure that has never been
+# docs/operations.md#production-operations-runbook documents how to back up and restore. A documented procedure that has never been
 # executed is a claim, not a control: the specific failure it is supposed to prevent is discovering during an
 # incident that the restore loses the audit hash chain, and no amount of prose detects that.
 #

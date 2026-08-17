@@ -15,7 +15,7 @@ ROUTES="$ROOT/infra/observability/alertmanager-routes.yaml"
 CONTRACT="$ROOT/management-server/src/main/java/ai/xdev/aisdlc/telemetry/TelemetryAttributeContract.java"
 COMPOSE="$ROOT/docker-compose.observability.yml"
 BASE_COMPOSE="$ROOT/docker-compose.yml"
-RUNBOOKS="$ROOT/docs/slo-runbooks.md"
+RUNBOOKS="$ROOT/docs/observability-and-resilience.md"
 
 failures=0
 fail() { echo "FAIL: $1" >&2; failures=$((failures + 1)); }
@@ -87,11 +87,11 @@ want "$BURN" 'budget_policy="error-budget"' "burn-rate alerting excludes integri
 
 # Every journey with a target must have a runbook anchor, or the alert links nowhere.
 for journey in $(grep -oE 'journey: [a-z-]+' "$DEFINITIONS" | awk '{print $2}' | sort -u); do
-  grep -q "^## $journey" "$RUNBOOKS" && pass "runbook section exists for '$journey'" \
-    || fail "docs/slo-runbooks.md has no '## $journey' section for the alert link"
+  grep -q "^### $journey" "$RUNBOOKS" && pass "runbook section exists for '$journey'" \
+    || fail "the SLO runbooks section has no '### $journey' section for the alert link"
 done
-grep -q '^## governance-integrity' "$RUNBOOKS" && pass "runbook section exists for 'governance-integrity'" \
-  || fail "docs/slo-runbooks.md has no '## governance-integrity' section"
+grep -q '^### governance-integrity' "$RUNBOOKS" && pass "runbook section exists for 'governance-integrity'" \
+  || fail "the SLO runbooks section has no '### governance-integrity' section"
 
 # --- Alert routing ------------------------------------------------------------------------------------------------
 want "$ROUTES" 'alert_class = governance-integrity' "integrity violations have a dedicated route"

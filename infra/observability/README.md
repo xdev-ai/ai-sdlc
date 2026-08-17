@@ -17,7 +17,7 @@ This directory contains the OpenTelemetry Collector gateway configuration, Prome
 | `../../scripts/test-observability-contracts.sh` | Offline contract tests for Collector resilience, cardinality, privacy, runbook coverage, and Compose opt-in. |
 | `../../scripts/synthetic-health-journey.sh` | Authenticated synthetic journey emitting the availability SLI as a Prometheus textfile. |
 | `../../scripts/test-chaos-profile-isolation.sh` | Static guardrails proving the chaos seam is reachable only through the isolated profile. |
-| `../../docs/telemetry-configuration-and-trace-context.md` | Application-side contract: `aisdlc.telemetry` configuration model, resource/metric allowlists, and W3C trace-context propagation implemented in the management server. |
+| `../../docs/observability-and-resilience.md` | Application-side contract: `aisdlc.telemetry` configuration model, resource/metric allowlists, and W3C trace-context propagation implemented in the management server. |
 
 
 ## Verified against a running Collector
