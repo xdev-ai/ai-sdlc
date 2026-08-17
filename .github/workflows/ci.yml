@@ -29,6 +29,10 @@ jobs:
         run: mvn --batch-mode --no-transfer-progress verify
       - name: Verify production topology invariants
         run: bash scripts/verify-production.sh
+      # This repository is public, so a confidential file committed by mistake cannot be retracted — it stays in
+      # history, forks and third-party clones. Gate it on every change rather than trusting a convention.
+      - name: Verify no confidential material is tracked
+        run: bash scripts/verify-no-confidential.sh
       - name: Publish JVM test reports on failure
         if: failure()
         uses: actions/upload-artifact@v7

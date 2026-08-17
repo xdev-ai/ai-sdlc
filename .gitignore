@@ -11,3 +11,13 @@ node_modules/
 **/node_modules/
 portal/frontend/dist/
 portal/frontend/node/
+
+# --- Local-only workspace for confidential material -------------------------------------------------------------
+# This repository is PUBLIC. Anything committed here is world-readable and stays in git history, in forks and in
+# third-party clones after deletion — there is no undo. Project documentation that must not be published (customer
+# specifications, hospital records, architecture with real endpoints, anything carrying personal or patient data)
+# belongs under local/ and is never staged. scripts/verify-no-confidential.sh fails the build if it ever is.
+local/
+private/
+**/local-docs/
+*.confidential.*

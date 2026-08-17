@@ -58,4 +58,27 @@ class AuditMigrationTest {
     assertTrue(migration.contains("runtime_ai_tool_grants_redeemed_ck"));
     assertTrue(migration.contains("argument_fingerprint varchar(64) not null"));
   }
+
+  /**
+   * A Spec Kit version is a document version. Immutability that rests on application code never issuing the wrong
+   * UPDATE is weaker than the audit ledger's, which is a database trigger — and the docs describe both as
+   * "immutable". UNIQUE (organization_id, slug, version, layer) stops a duplicate version; it does nothing to stop
+   * the manifest of an existing one being rewritten while its version number stays the same.
+   */
+  @Test
+  void declaresDatabaseEnforcedSpecKitVersionImmutability() throws Exception {
+    String migration = Files.readString(Path.of("src/main/resources/db/migration/V21__spec_kit_version_immutability.sql"));
+
+    assertTrue(migration.contains("spec_kits_no_version_rewrite before update on spec_kits"));
+    assertTrue(migration.contains("spec_kits_no_delete before delete on spec_kits"));
+    // Identity and content are frozen.
+    for (String frozen : new String[] {"slug", "version", "layer", "parent_kit_id", "manifest", "created_at"}) {
+      assertTrue(migration.contains("new." + frozen), "the trigger must compare " + frozen);
+    }
+    // Lifecycle must stay mutable, or a kit could never be pinned or deprecated.
+    for (String mutable : new String[] {"pinned", "lifecycle_status", "deprecation_reason"}) {
+      assertTrue(!migration.contains("new." + mutable + " "), mutable + " must remain mutable");
+    }
+    assertTrue(migration.contains("register a new version instead of rewriting"));
+  }
 }
