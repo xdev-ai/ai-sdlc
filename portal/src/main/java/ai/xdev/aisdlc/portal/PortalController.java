@@ -3,6 +3,8 @@ package ai.xdev.aisdlc.portal;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -26,6 +28,134 @@ public class PortalController {
 
   @GetMapping("/") String landing() { return "landing"; }
   @GetMapping("/session-expired") String sessionExpired() { return "session-expired"; }
+
+  /**
+   * The documentation workspace: spaces, the page tree, one page's text, its version history, and search.
+   *
+   * <p>Deliberately a separate handler from {@link #app}, which issues thirty-one control-plane requests on every
+   * view because one method serves sixteen pages. Opening a document should not also fetch SBOMs, agent sessions and
+   * risk scores. This one requests only what the screen shows, and only when a scope has actually been selected.
+   *
+   * <p>Both {@code /app/knowledge} and {@code /app/{page}} would match this path; Spring prefers the literal mapping,
+   * so this method wins and {@code knowledge} is deliberately absent from {@code PAGES}.
+   */
+  @GetMapping("/app/knowledge")
+  String knowledge(@RequestParam(required = false) UUID org, @RequestParam(required = false) UUID project,
+      @RequestParam(required = false) UUID space, @RequestParam(name = "doc", required = false) UUID doc,
+      @RequestParam(name = "v", required = false) Integer version, @RequestParam(required = false) String q,
+      @AuthenticationPrincipal OidcUser user, @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client,
+      Model model) {
+    if (client == null || client.getAccessToken() == null || client.getAccessToken().getTokenValue().isBlank()) {
+      return "redirect:/session-expired";
+    }
+    String token = client.getAccessToken().getTokenValue();
+    String base = org == null ? null : "/api/v1/organizations/" + org + "/knowledge";
+
+    ManagementApiClient.PageData organizations = api.page("/api/v1/organizations?size=100", token);
+    ManagementApiClient.PageData projects = org == null
+        ? ManagementApiClient.PageData.empty() : api.page("/api/v1/organizations/" + org + "/projects?size=100", token);
+    ManagementApiClient.PageData spaces = base == null
+        ? ManagementApiClient.PageData.empty() : api.page(base + "/spaces?size=100", token);
+
+    // A space must be chosen before a tree can be shown. Falling back to the first space means a fresh visitor sees
+    // documents immediately instead of an empty panel telling them to pick something.
+    UUID activeSpace = space;
+    if (activeSpace == null && !spaces.items().isEmpty()) {
+      Object first = spaces.items().get(0).get("id");
+      if (first != null) activeSpace = UUID.fromString(first.toString());
+    }
+
+    ManagementApiClient.ListData tree = activeSpace == null || base == null
+        ? ManagementApiClient.ListData.empty() : api.list(base + "/spaces/" + activeSpace + "/pages", token);
+
+    // Same reasoning one level down: open the first page of the tree rather than showing a reader with nothing in it.
+    UUID activeDoc = doc;
+    if (activeDoc == null && !tree.items().isEmpty()) {
+      Object first = tree.items().get(0).get("id");
+      if (first != null) activeDoc = UUID.fromString(first.toString());
+    }
+
+    String docPath = base == null || activeDoc == null ? null
+        : base + "/pages/" + activeDoc + (version == null ? "" : "/versions/" + version);
+    ManagementApiClient.ObjectData document = docPath == null
+        ? ManagementApiClient.ObjectData.empty() : api.object(docPath, token);
+    ManagementApiClient.PageData history = base == null || activeDoc == null
+        ? ManagementApiClient.PageData.empty() : api.page(base + "/pages/" + activeDoc + "/versions?size=25", token);
+
+    String query = q == null ? "" : q.strip();
+    ManagementApiClient.ListData hits = base == null || query.isEmpty()
+        ? ManagementApiClient.ListData.empty()
+        : api.list(base + "/search?limit=20&q=" + URLEncoder.encode(query, StandardCharsets.UTF_8), token);
+
+    List<String> apiErrors = errors(organizations.error(), projects.error(), spaces.error(), tree.error(),
+        document.error(), history.error(), hits.error());
+    if (apiErrors.stream().anyMatch(ManagementApiClient::requiresSessionRecovery)) return "redirect:/session-expired";
+
+    model.addAttribute("page", "knowledge");
+    model.addAttribute("pageNumber", 0);
+    model.addAttribute("filter", "");
+    model.addAttribute("selectedRunId", "");
+    model.addAttribute("organizationId", org == null ? "" : org.toString());
+    model.addAttribute("projectId", project == null ? "" : project.toString());
+    model.addAttribute("userName", Optional.ofNullable(user.getFullName()).orElse(user.getPreferredUsername()));
+    model.addAttribute("organizations", organizations.items());
+    model.addAttribute("projects", projects.items());
+    model.addAttribute("spaces", spaces.items());
+    model.addAttribute("spaceId", activeSpace == null ? "" : activeSpace.toString());
+    model.addAttribute("docTree", tree.items());
+    model.addAttribute("docId", activeDoc == null ? "" : activeDoc.toString());
+    model.addAttribute("document", document.value());
+    model.addAttribute("docHistory", history.items());
+    model.addAttribute("searchQuery", query);
+    model.addAttribute("searchHits", hits.items());
+    model.addAttribute("apiErrors", apiErrors);
+    model.addAttribute("keycloakSessionStatus", "CONNECTED");
+    model.addAttribute("reactEntry", reactAssets.entry());
+    return "app";
+  }
+
+  /**
+   * The setup sequence, with the state each step is actually in.
+   *
+   * <p>This platform has a required order — an organization before a project, a registered kit before a pinned one, a
+   * recorded constitution before an activated one — and the sidebar presented sixteen equal doors instead. A new
+   * administrator could not tell which one came first, so the overview now answers that directly.
+   *
+   * <p>The last entry is never "done" and has no link. Validation evidence enters through the CLI or an SCM webhook,
+   * never through this UI, so an administrator who waits for a button will wait forever. Saying so is the single most
+   * useful thing this screen can do.
+   */
+  private static List<Map<String, Object>> setupChecklist(boolean hasOrganizations, boolean scopeSelected,
+      boolean hasProjects, boolean hasMemberships, boolean hasKits, boolean hasPinnedKits,
+      boolean hasActiveConstitution, boolean hasActivePolicy, boolean hasDocuments, boolean hasValidations) {
+    return List.of(
+        step(1, "Tạo tổ chức", "Gốc của mọi dữ liệu. Form nằm ở trang Projects.", hasOrganizations, "/app/projects"),
+        step(2, "Chọn phạm vi tổ chức và dự án", "Thanh chọn ở đầu trang. Chưa chọn thì hầu hết màn hình sẽ trống.", scopeSelected, null),
+        step(3, "Tạo dự án", "Mỗi dự án có bằng chứng và thành viên riêng.", hasProjects, "/app/projects"),
+        step(4, "Mời thành viên", "Cần Keycloak subject của người đó, không phải email.", hasMemberships, "/app/projects"),
+        step(5, "Đăng ký Spec Kit", "Phải tự dán manifest JSON.", hasKits, "/app/kits"),
+        step(6, "Ghim Spec Kit vào dự án", "Không ghim thì xác thực không chạy — hệ thống cố ý không đoán bản mặc định.", hasPinnedKits, "/app/kits"),
+        step(7, "Ban hành và kích hoạt Constitution", "Tạo xong chưa có hiệu lực; phải bấm Activate.", hasActiveConstitution, "/app/governance"),
+        step(8, "Ghi và kích hoạt Policy", "Cũng phải Activate riêng.", hasActivePolicy, "/app/governance"),
+        step(9, "Nạp tài liệu dự án", "Kho tài liệu để AI đọc và trích dẫn được.", hasDocuments, "/app/knowledge"),
+        step(10, hasValidations ? "Bằng chứng xác thực đã có" : "Bằng chứng xác thực chỉ vào bằng CLI",
+            "Không có nút nào trên giao diện tạo lần chạy xác thực. Chạy: aisdlc init → validate → sync, hoặc để webhook SCM đẩy vào.",
+            hasValidations, null));
+  }
+
+  private static Map<String, Object> step(int number, String title, String hint, boolean done, String href) {
+    Map<String, Object> entry = new LinkedHashMap<>();
+    entry.put("number", number);
+    entry.put("title", title);
+    entry.put("hint", hint);
+    entry.put("done", done);
+    entry.put("href", href == null ? "" : href);
+    return entry;
+  }
+
+  private static boolean anyActive(List<Map<String, Object>> items) {
+    return items.stream().anyMatch(item -> Boolean.TRUE.equals(item.get("active")));
+  }
 
   @GetMapping({"/app", "/app/{page}"})
   String app(@PathVariable(required = false) String page, @RequestParam(required = false) UUID org, @RequestParam(required = false) UUID project,
@@ -64,6 +194,9 @@ public class PortalController {
     ManagementApiClient.ObjectData trace = project == null ? ManagementApiClient.ObjectData.empty() : api.trace("/api/v1/projects/" + project + "/traceability", token);
     ManagementApiClient.ObjectData auditVerification = org == null ? ManagementApiClient.ObjectData.empty() : api.object("/api/v1/organizations/" + org + "/audit-events/verify", token);
     ManagementApiClient.ObjectData validationDetail = project == null || run == null ? ManagementApiClient.ObjectData.empty() : api.object("/api/v1/projects/" + project + "/validation-runs/" + run, token);
+    // Only the overview needs this, and only to answer "are there documents yet".
+    ManagementApiClient.PageData knowledgeSpaces = org == null || !view.equals("overview")
+        ? ManagementApiClient.PageData.empty() : api.page("/api/v1/organizations/" + org + "/knowledge/spaces?size=1", token);
 
     List<String> apiErrors = errors(organizations.error(), projects.error(), kits.error(), validations.error(), evidenceAssets.error(), policies.error(), constitutions.error(), reviews.error(), metrics.error(), capabilities.error(), audit.error(), memberships.error(), projectKits.error(), exceptions.error(), scmEvents.error(), scmRepositories.error(), notificationChannels.error(), notificationDeliveries.error(), approvals.error(), securityExceptions.error(), sboms.error(), provenance.error(), policyBundles.error(), agentPromptTemplates.error(), agentSessions.error(), agentEvidence.error(), riskScores.error(), trace.error(), auditVerification.error(), validationDetail.error());
     if (apiErrors.stream().anyMatch(ManagementApiClient::requiresSessionRecovery)) return "redirect:/session-expired";
@@ -74,6 +207,13 @@ public class PortalController {
     model.addAttribute("organizationsPage", organizations); model.addAttribute("projectsPage", projects); model.addAttribute("kitsPage", kits); model.addAttribute("validationsPage", validations); model.addAttribute("evidenceAssetsPage", evidenceAssets); model.addAttribute("policiesPage", policies); model.addAttribute("constitutionsPage", constitutions); model.addAttribute("reviewsPage", reviews); model.addAttribute("metricsPage", metrics); model.addAttribute("capabilitiesPage", capabilities); model.addAttribute("auditPage", audit); model.addAttribute("exceptionsPage", exceptions); model.addAttribute("scmEventsPage", scmEvents); model.addAttribute("notificationDeliveriesPage", notificationDeliveries); model.addAttribute("approvalsPage", approvals); model.addAttribute("securityExceptionsPage", securityExceptions); model.addAttribute("sbomsPage", sboms); model.addAttribute("provenancePage", provenance); model.addAttribute("policyBundlesPage", policyBundles); model.addAttribute("agentPromptTemplatesPage", agentPromptTemplates); model.addAttribute("agentSessionsPage", agentSessions); model.addAttribute("agentEvidencePage", agentEvidence); model.addAttribute("riskScoresPage", riskScores);
     model.addAttribute("trace", trace.value()); model.addAttribute("auditVerification", auditVerification.value()); model.addAttribute("validationDetail", validationDetail.value()); model.addAttribute("selectedRunId", run == null ? "" : run.toString());
     model.addAttribute("apiErrors", apiErrors); model.addAttribute("keycloakSessionStatus", "CONNECTED");
+    List<Map<String, Object>> setupSteps = setupChecklist(!organizations.items().isEmpty(), org != null && project != null,
+        !projects.items().isEmpty(), !memberships.items().isEmpty(), !kits.items().isEmpty(),
+        !projectKits.items().isEmpty(), anyActive(constitutions.items()), anyActive(policies.items()),
+        !knowledgeSpaces.items().isEmpty(), !validations.items().isEmpty());
+    model.addAttribute("setupSteps", setupSteps);
+    model.addAttribute("setupDone", setupSteps.stream().filter(s -> Boolean.TRUE.equals(s.get("done"))).count());
+    model.addAttribute("setupTotal", setupSteps.size());
     model.addAttribute("metricsJson", json(metrics.items())); model.addAttribute("traceJson", json(trace.value())); model.addAttribute("validationsJson", json(validations.items())); model.addAttribute("riskJson", json(riskScores.items()));
     model.addAttribute("reviewIslandJson", json(Map.of("reviews", reviews.items(), "exceptions", exceptions.items(), "organizationId", org == null ? "" : org.toString(), "projectId", project == null ? "" : project.toString())));
     model.addAttribute("reactEntry", reactAssets.entry());

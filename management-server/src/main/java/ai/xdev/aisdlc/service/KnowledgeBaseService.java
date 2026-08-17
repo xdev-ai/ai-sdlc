@@ -180,7 +180,7 @@ public class KnowledgeBaseService {
         """, pageId, tenantOf(spaceId), spaceId, request.parentPageId(), request.slug(),
         nextPosition == null ? 0 : nextPosition, actor);
 
-    writeVersion(organizationId, space, pageId, 1, actor, request.title(), request.body(), request.changeNote());
+    writeVersion(space, pageId, 1, actor, request.title(), request.body(), request.changeNote());
     if (request.labels() != null) {
       for (String label : request.labels().stream().filter(Objects::nonNull).map(String::strip).distinct().toList()) {
         if (!label.isEmpty()) applyLabelRow(pageId, label, actor);
@@ -220,15 +220,20 @@ public class KnowledgeBaseService {
     }
 
     int nextVersion = currentVersion + 1;
-    writeVersion(organizationId, space, pageId, nextVersion, actor, request.title(), request.body(), request.changeNote());
+    writeVersion(space, pageId, nextVersion, actor, request.title(), request.body(), request.changeNote());
     audit.append(organizationId, space.projectId(), actor, "knowledge.page.version_authored", "knowledge_page",
         pageId.toString(), json("version", String.valueOf(nextVersion), "sha256", digest,
             "changeNote", request.changeNote() == null ? "" : request.changeNote()));
     return page(organizationId, pageId);
   }
 
-  /** Writes one version plus its chunks and points the page at it. Shared by creation and editing. */
-  private void writeVersion(UUID organizationId, SpaceView space, UUID pageId, int version, String actor,
+  /**
+   * Writes one version plus its chunks and points the page at it. Shared by creation and editing.
+   *
+   * <p>Takes no organization: the caller has already resolved the space, and a second parameter that is never read
+   * would suggest this method re-checks scope when it does not.
+   */
+  private void writeVersion(SpaceView space, UUID pageId, int version, String actor,
       String title, String body, String changeNote) {
     UUID tenantId = tenantOf(space.id());
     UUID versionId = UUID.randomUUID();
@@ -311,7 +316,7 @@ public class KnowledgeBaseService {
     PageDetail detail = found.get(0);
     return new PageDetail(detail.id(), detail.spaceId(), detail.spaceKey(), detail.slug(), detail.title(),
         detail.body(), detail.version(), detail.pageStatus(), breadcrumb(pageId), labels(pageId),
-        references(organizationId, pageId), detail.authoredBy(), detail.authoredAt(), detail.bodySha256(),
+        references(pageId), detail.authoredBy(), detail.authoredAt(), detail.bodySha256(),
         detail.changeNote(), detail.chunkCount());
   }
 
@@ -420,7 +425,7 @@ public class KnowledgeBaseService {
         request.evidenceAssetId(), request.referenceNote(), actor);
     audit.append(organizationId, null, actor, "knowledge.reference.linked", "knowledge_page", pageId.toString(),
         json("referenceId", referenceId.toString()));
-    return references(organizationId, pageId);
+    return references(pageId);
   }
 
   private void requireOwned(String sql, UUID id, UUID organizationId, String label) {
@@ -586,7 +591,7 @@ public class KnowledgeBaseService {
     return jdbc.queryForList("select label from knowledge_page_labels where page_id = ? order by label", String.class, pageId);
   }
 
-  private List<ReferenceView> references(UUID organizationId, UUID pageId) {
+  private List<ReferenceView> references(UUID pageId) {
     return jdbc.query("""
         select r.id, r.spec_kit_id, r.trace_node_id, r.evidence_asset_id, r.reference_note, r.linked_by, r.linked_at,
                k.slug as kit_slug, k.version as kit_version, n.external_key as node_key, n.label as node_label,

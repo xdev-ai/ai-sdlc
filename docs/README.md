@@ -1,6 +1,12 @@
 # AI-SDLC documentation
 
-Eleven documents, grouped by what you are trying to do. Each one is self-contained and opens with its own table of contents.
+Twelve documents, grouped by what you are trying to do. Each one is self-contained and opens with its own table of contents.
+
+## Start here
+
+| Document | Covers |
+|---|---|
+| [huong-dan-su-dung.md](huong-dan-su-dung.md) | Hướng dẫn tiếng Việt cho người quản trị: mở portal lần đầu thì làm gì, tám bước cấu hình theo đúng thứ tự, kho tài liệu context và cách nạp file Excel, và những chỗ giao diện không làm được. |
 
 ## Understand the system
 
