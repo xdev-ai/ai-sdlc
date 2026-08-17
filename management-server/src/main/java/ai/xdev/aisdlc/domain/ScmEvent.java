@@ -25,6 +25,10 @@ public class ScmEvent {
   @Column(name = "release_tag", length = 300) private String releaseTag;
   @Column(name = "validation_run_id") private UUID validationRunId;
   @Column(name = "policy_check_run_id") private Long policyCheckRunId;
+  @Column(name = "external_key", length = 300) private String externalKey;
+  @Column(name = "policy_feedback_ref", length = 200) private String policyFeedbackRef;
+  @Enumerated(EnumType.STRING) @Column(name = "policy_feedback_state", length = 20) private DomainTypes.ScmFeedbackState policyFeedbackState;
+  @Column(name = "policy_feedback_at") private Instant policyFeedbackAt;
   @Column(name = "payload_sha256", nullable = false, length = 64) private String payloadSha256;
   @JdbcTypeCode(SqlTypes.JSON) @Column(columnDefinition = "jsonb", nullable = false) private String payload;
   @Enumerated(EnumType.STRING) @Column(name = "processing_status", nullable = false, length = 20) private DomainTypes.ScmProcessingStatus processingStatus = DomainTypes.ScmProcessingStatus.RECEIVED;
@@ -54,7 +58,19 @@ public class ScmEvent {
   public void markIgnored(String reason) { processingStatus = DomainTypes.ScmProcessingStatus.IGNORED; processedAt = Instant.now(); failureReason = reason; }
   public void markFailed(String reason) { processingStatus = DomainTypes.ScmProcessingStatus.FAILED; processedAt = Instant.now(); failureReason = reason; }
   public void linkValidationRun(UUID validationRunId) { this.validationRunId = validationRunId; }
-  public void recordPolicyCheckRun(long checkRunId) { this.policyCheckRunId = checkRunId; }
+  public void recordPolicyCheckRun(long checkRunId) { this.policyCheckRunId = checkRunId; recordPolicyFeedback(DomainTypes.ScmFeedbackState.PUBLISHED, Long.toString(checkRunId)); }
+  public void assignExternalKey(String externalKey) { this.externalKey = externalKey; }
+
+  /**
+   * Records the outcome of an outbound publish. A failure is recorded rather than thrown: policy feedback is a
+   * best-effort notification to the provider, and losing it must not roll back an ingested event that is already in
+   * the audit ledger. The state is what makes an undelivered decision visible instead of silent.
+   */
+  public void recordPolicyFeedback(DomainTypes.ScmFeedbackState state, String reference) {
+    this.policyFeedbackState = state;
+    this.policyFeedbackRef = reference == null || reference.isBlank() ? null : reference.substring(0, Math.min(reference.length(), 200));
+    this.policyFeedbackAt = Instant.now();
+  }
   public UUID getId() { return id; }
   public UUID getProjectId() { return projectId; }
   public UUID getRepositoryLinkId() { return repositoryLinkId; }
@@ -71,6 +87,10 @@ public class ScmEvent {
   public String getReleaseTag() { return releaseTag; }
   public UUID getValidationRunId() { return validationRunId; }
   public Long getPolicyCheckRunId() { return policyCheckRunId; }
+  public String getExternalKey() { return externalKey; }
+  public String getPolicyFeedbackRef() { return policyFeedbackRef; }
+  public DomainTypes.ScmFeedbackState getPolicyFeedbackState() { return policyFeedbackState; }
+  public Instant getPolicyFeedbackAt() { return policyFeedbackAt; }
   public String getPayloadSha256() { return payloadSha256; }
   public DomainTypes.ScmProcessingStatus getProcessingStatus() { return processingStatus; }
   public String getFailureReason() { return failureReason; }

@@ -27,18 +27,18 @@ public class ScmIntegrationService {
   private final ScmEventRepository events;
   private final ValidationRunRepository validations;
   private final AuditService audit;
-  private final GitHubPolicyGateService policyGate;
+  private final ScmPolicyFeedbackService policyGate;
   private final ObjectMapper objectMapper;
   private final org.springframework.beans.factory.ObjectProvider<ChaosFaultRegistry> chaosFaults;
   private ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry = ai.xdev.aisdlc.telemetry.GovernanceTelemetry.inert();
   @org.springframework.beans.factory.annotation.Autowired public void setTelemetry(ai.xdev.aisdlc.telemetry.GovernanceTelemetry telemetry) { this.telemetry = telemetry; }
 
-  public ScmIntegrationService(ProjectAccessService access, ScmRepositoryLinkRepository repositoryLinks, ScmEventRepository events, ValidationRunRepository validations, AuditService audit, GitHubPolicyGateService policyGate, ObjectMapper objectMapper) {
+  public ScmIntegrationService(ProjectAccessService access, ScmRepositoryLinkRepository repositoryLinks, ScmEventRepository events, ValidationRunRepository validations, AuditService audit, ScmPolicyFeedbackService policyGate, ObjectMapper objectMapper) {
     this(access, repositoryLinks, events, validations, audit, policyGate, objectMapper, null);
   }
 
   @org.springframework.beans.factory.annotation.Autowired
-  public ScmIntegrationService(ProjectAccessService access, ScmRepositoryLinkRepository repositoryLinks, ScmEventRepository events, ValidationRunRepository validations, AuditService audit, GitHubPolicyGateService policyGate, ObjectMapper objectMapper, org.springframework.beans.factory.ObjectProvider<ChaosFaultRegistry> chaosFaults) {
+  public ScmIntegrationService(ProjectAccessService access, ScmRepositoryLinkRepository repositoryLinks, ScmEventRepository events, ValidationRunRepository validations, AuditService audit, ScmPolicyFeedbackService policyGate, ObjectMapper objectMapper, org.springframework.beans.factory.ObjectProvider<ChaosFaultRegistry> chaosFaults) {
     this.chaosFaults = chaosFaults;
     this.access = access;
     this.repositoryLinks = repositoryLinks;
@@ -82,7 +82,11 @@ public class ScmIntegrationService {
     if (chaosFaults != null) chaosFaults.ifAvailable(registry -> registry.check(ChaosFaultRegistry.Component.SCM_INGRESS));
     ScmEvent event = events.save(new ScmEvent(link.getProjectId(), link.getId(), provider, parsed.deliveryId(), parsed.eventType(),
         parsed.action(), parsed.repositoryFullName(), null, parsed.ref(), parsed.commitSha(), parsed.pullRequestNumber(),
-        null, parsed.externalKey(), sha256(rawPayload), new String(rawPayload, StandardCharsets.UTF_8)));
+        null, null, sha256(rawPayload), new String(rawPayload, StandardCharsets.UTF_8)));
+    // The connector's externalKey — a Jira issue key, for instance — used to be written into releaseTag for want of
+    // a column. It now has its own, which is also how the Jira publisher addresses the issue on the way back out.
+    event.assignExternalKey(parsed.externalKey());
+    if (isPolicyGateEvent(parsed.eventType(), event.getAction())) policyGate.publishRequiredEvidenceGate(link, event);
     event.markProcessed();
     Project project = access.requireProject(link.getProjectId());
     audit.append(project.getOrganizationId(), project.getId(), connector.provider().name().toLowerCase(java.util.Locale.ROOT) + "-connector",
@@ -112,7 +116,7 @@ public class ScmIntegrationService {
           nullableLong(payload.path("installation").path("id")), extractRef(payload, eventType), extractCommitSha(payload, eventType), extractPullRequestNumber(payload),
           nullableLong(payload.path("workflow_run").path("id")), nullableText(payload.path("release"), "tag_name"), sha256(rawPayload), new String(rawPayload, StandardCharsets.UTF_8)));
       if (eventType == ScmEventType.PULL_REQUEST && isPolicyGateAction(event.getAction())) {
-        policyGate.publishRequiredEvidenceGate(link, event).ifPresent(event::recordPolicyCheckRun);
+        policyGate.publishRequiredEvidenceGate(link, event);
       }
       event.markProcessed();
       Project project = access.requireProject(link.getProjectId());
@@ -202,6 +206,19 @@ public class ScmIntegrationService {
   private Long nullableLong(JsonNode value) { return value == null || value.isMissingNode() || value.isNull() ? null : value.asLong(); }
   private String nullableText(JsonNode node, String field) { return node == null || node.path(field).isMissingNode() || node.path(field).isNull() ? null : blankToNull(node.path(field).asText()); }
   private boolean isPolicyGateAction(String action) { return Set.of("opened", "reopened", "synchronize", "ready_for_review").contains(action); }
+
+  /**
+   * Which connector events open a policy gate. GitHub's action vocabulary is not shared: GitLab says {@code open} and
+   * {@code reopen}, Bitbucket {@code created} and {@code updated}, Azure DevOps sends no action at all. Rather than
+   * maintain five vocabularies, any pull request from a connector gates unless its action is one that clearly closes
+   * or merges the change — a spurious blocking status is recoverable, a missing one lets an ungoverned change merge.
+   */
+  private boolean isPolicyGateEvent(ScmEventType eventType, String action) {
+    if (eventType == ScmEventType.WORK_ITEM) return true;
+    if (eventType != ScmEventType.PULL_REQUEST) return false;
+    String normalized = action == null ? "" : action.toLowerCase(java.util.Locale.ROOT);
+    return !Set.of("close", "closed", "merge", "merged", "declined", "fulfilled").contains(normalized);
+  }
   private String normalizeRepository(String value) {
     if (value == null || !value.matches("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")) throw new IllegalArgumentException("Repository must be in owner/name form");
     return value;

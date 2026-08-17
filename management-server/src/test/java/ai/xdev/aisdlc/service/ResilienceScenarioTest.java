@@ -175,7 +175,7 @@ class ResilienceScenarioTest {
     when(links.findByProviderAndRepositoryFullName(eq(ScmProvider.GITHUB), eq("xdev-ai/ai-sdlc"))).thenReturn(Optional.of(link));
     when(events.findByProviderAndDeliveryId(eq(ScmProvider.GITHUB), eq("delivery-1"))).thenReturn(Optional.empty());
     var service = new ScmIntegrationService(mock(ProjectAccessService.class), links, events, mock(ValidationRunRepository.class),
-        mock(AuditService.class), mock(GitHubPolicyGateService.class), new ObjectMapper(), faults);
+        mock(AuditService.class), mock(ScmPolicyFeedbackService.class), new ObjectMapper(), faults);
     byte[] payload = "{\"repository\":{\"full_name\":\"xdev-ai/ai-sdlc\"},\"action\":\"opened\"}".getBytes(StandardCharsets.UTF_8);
 
     inject(ChaosFaultRegistry.Component.SCM_INGRESS);
