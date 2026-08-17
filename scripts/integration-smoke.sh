@@ -24,7 +24,23 @@ cleanup() {
 }
 trap cleanup EXIT
 
-timeout --foreground 420s "${compose[@]}" up --build --wait --wait-timeout 240
+# GNU coreutils `timeout` is absent on macOS, where the whole script previously died at this line with
+# "timeout: command not found" — before starting anything, so a developer could not run the integration suite
+# locally at all. Homebrew installs it as `gtimeout`. If neither exists the run still proceeds: compose's own
+# `--wait-timeout 240` bounds the wait, and an unbounded outer guard is a weaker failure than no local run.
+bound_startup=(timeout --foreground 420s)
+if ! command -v timeout >/dev/null 2>&1; then
+  if command -v gtimeout >/dev/null 2>&1; then
+    bound_startup=(gtimeout --foreground 420s)
+  else
+    echo "warning: neither timeout nor gtimeout found; relying on compose --wait-timeout 240 alone" >&2
+    bound_startup=()
+  fi
+fi
+
+# The ${array[@]+"${array[@]}"} form is required: macOS ships bash 3.2, where `set -u` treats an empty array as an
+# unbound variable and the script dies on the fallback path it was written to support.
+${bound_startup[@]+"${bound_startup[@]}"} "${compose[@]}" up --build --wait --wait-timeout 240
 
 curl --fail --silent --show-error --connect-timeout 5 --max-time 10 --retry 12 --retry-all-errors --retry-delay 2 \
   http://localhost:8180/realms/ai-sdlc/.well-known/openid-configuration >/dev/null

@@ -39,9 +39,31 @@ Each seam sits **before** its side effect, so an injected fault proves the absen
 | `RES-AI-12` | The result is `FAILED` / `PROVIDER_TIMEOUT` with no response body and no transport call. |
 | Isolation | A fault applies to exactly its declared component; clearing it restores every component. |
 
+## Component Coverage Matrix
+
+Every dependency the platform can lose, which tier exercises it, and what the platform is required to do. A component with no in-process seam is listed with the reason, so the gap is visible rather than implied by absence.
+
+| Component | Tier | Seam or harness | Required behaviour | Evidence |
+|---|---|---|---|---|
+| **Policy engine** | unit | `PolicyExpressionEngine.evaluate` | **Fail closed** — the governed action is denied | `RES-POL-05` |
+| **Evidence storage** | unit | `EvidenceRepositoryService.upload` | **Fail closed** — no object, no metadata row, no audit claim | `RES-EVID-04` |
+| **Keycloak / authentication** | unit | `SecurityConfig.chaosAwareDecoder` | **Fail closed** — generic `JwtException`, no cached-principal fallback | `RES-IDP-06` |
+| **SCM ingress** | unit | `ScmIntegrationService.ingestGitHub` | **Fail closed** — full rollback; the sender's retry de-duplicates | `RES-SCM-07` |
+| **Notification provider** | unit | `NotificationService.send` | **Degrade** — retryable `NETWORK_ERROR`, approval outcome unchanged | `RES-NOTIFY-08` |
+| **Runtime AI provider** | unit | `RuntimeAiProviderProxyService` | **Fail closed** — `PROVIDER_TIMEOUT`, no transport call, no response released | `RES-AI-12` |
+| **Telemetry (in-process)** | unit | `TraceContextFilter`, `GovernanceTelemetry` | **Fail open** — request succeeds, no context bound, no thread-local residue | `RES-OTEL-01` |
+| **OpenTelemetry Collector** | disposable chaos | Gateway container stopped or its queue saturated | **Fail open** — the platform serves traffic while spans are dropped | `RES-OTEL-02` — not automated |
+| **Telemetry backend** | disposable chaos | Exporter endpoint refused or throttled | **Fail open** — Collector queue bounds apply, no back-pressure into the application | `RES-OTEL-02` — not automated |
+| **PostgreSQL / audit ledger** | disposable chaos | Database stopped mid-transaction | **Fail closed** — no partial governance state; hash chain still verifies after recovery | `RES-DB-03` — not automated; recovery covered by `scripts/verify-recovery.sh` |
+| **Approval scheduler** | disposable chaos | `GovernanceAutomationScheduler` paused | **Fail closed** — no approval auto-advances while the scheduler is down | `RES-APPROVAL-09` — not automated |
+| **Network partition** | disposable chaos | Container network detached | **Fail closed** on governance, **fail open** on telemetry | `RES-NET-10` — not automated |
+| **Resource pressure** | disposable chaos | Container CPU/memory limits | Bounded degradation, no evidence loss | `RES-CAP-11` — not automated |
+
 ## What Is Not Automated Here
 
-`RES-OTEL-02`, `RES-DB-03`, `RES-APPROVAL-09`, `RES-NET-10`, and `RES-CAP-11` need a running Collector, database, scheduler, or container resource limits. They stay in the disposable-chaos tier and require the approval gate, blast-radius controls, and evidence capture defined in the test plan. Nothing in this implementation enables a destructive action, targets a shared environment, or accepts fault parameters over HTTP.
+The five cases marked *not automated* need a running Collector, database, scheduler, or container resource limits. They stay in the disposable-chaos tier and require the approval gate, blast-radius controls, abort criteria, and evidence capture defined in [the chaos test plan](p3-1-resilience-chaos-test-plan.md). Nothing in this implementation enables a destructive action, targets a shared environment, or accepts fault parameters over HTTP.
+
+One of the five is partly closed by other means: `RES-DB-03` asks whether governance state survives losing PostgreSQL, and `scripts/verify-recovery.sh` answers the recovery half of that on a disposable database — backup, restore, and a hash-chain verification that must reach the same head digest. What it does not answer is behaviour *during* the outage, which still needs a running database to interrupt.
 
 ## Verification
 
