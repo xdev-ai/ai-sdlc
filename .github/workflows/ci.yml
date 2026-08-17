@@ -178,10 +178,6 @@ jobs:
     name: Pull request dependency review
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-24.04
-    # Advisory until Dependency graph is enabled for this repository; see docs/decisions/0002-dependency-review-gate.md.
-    # It has never passed here, and a check that always fails teaches people to merge past red CI. OSV and Trivy
-    # remain the blocking dependency gates and have caught every real advisory so far.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v7
       - uses: actions/dependency-review-action@v5

@@ -32,6 +32,52 @@ AI-SDLC is a **governance, traceability, supply-chain evidence, and quality-inte
 | P2 enterprise | Tenant scope, custom permissions, SCIM provisioning, tenant federation metadata, legal holds and e-discovery manifests | [`docs/enterprise-multi-tenancy.md`](docs/enterprise-multi-tenancy.md) |
 | P2 ecosystem | Versioned signed webhook envelopes, Java/TypeScript SDKs, Terraform provider and VS Code integration | [`docs/sdk-reference.md`](docs/sdk-reference.md) |
 
+## Security scanning
+
+Five independent gates run on every pull request. Four of them block a merge; the counts below are what they
+currently report, not a claim that the repository is clean.
+
+| Gate | Scope | Blocks a merge |
+|---|---|---|
+| **OSV-Scanner** | Maven, npm, and Go dependencies — new findings on the pull request, plus a full-repository sweep | yes |
+| **Trivy** | Repository dependencies, secrets, Dockerfile and Compose configuration, and **both production images** | yes, on HIGH and CRITICAL |
+| **CodeQL** | Java/Kotlin, JavaScript/TypeScript, Go, and GitHub Actions, security-and-quality queries | yes |
+| **Dependency review** | Dependency changes introduced by the pull request | yes |
+| **Dependabot** | Maven, npm, Go modules, Actions, and Docker base images | raises pull requests |
+
+### What the gates have actually caught
+
+These are findings the gates blocked on this repository, not hypotheticals:
+
+| Finding | Severity | Caught by |
+|---|---|---|
+| `opentelemetry-javaagent` 2.16.0 — CVE-2026-33701 | **CRITICAL** | Trivy, on both production images |
+| `opentelemetry-api` 1.51.0 — GHSA-rcgg-9c38-7xpx | Medium | OSV, on the pull request |
+| `httpcore5` 5.4.2 — GHSA-hf6x-8p5f-cgmf | High | OSV, via the AWS SDK BOM |
+| `httpclient5` 5.6.1 — GHSA-hjcp-jmpx-g3qm | Medium | OSV, via the AWS SDK BOM |
+
+Each was introduced by a dependency change that passed the full unit suite. The suite is not a security control.
+
+### Current alert state — 2026-08-17
+
+62 open code-scanning alerts: **51 CodeQL**, **11 Trivy**. By security severity: 5 high, 14 medium, 2 low; the
+remainder are CodeQL quality findings (`note` and `warning`) that carry no security severity. No open Dependabot
+alerts.
+
+Two things this count does **not** mean:
+
+- **It is not 62 live defects.** Alerts are not closed automatically when a fix lands. The single high-severity Trivy
+  alert, `CVE-2026-54291` on `org.postgresql:postgresql`, reports version 42.7.11 and was last seen on 2026-08-16;
+  the repository now pins **42.7.13**, above the 42.7.12 fix. It is stale, and the alert list needs a triage pass.
+- **It is not a backlog of accepted risk.** The high-severity CodeQL findings include
+  `java/spring-disabled-csrf-protection`, which flags a deliberate design decision — the management API is a
+  stateless bearer-token resource server where CSRF does not apply. Findings like that should be dismissed with a
+  recorded reason rather than left open, so the count means something.
+
+The live view is [Security → Code scanning](https://github.com/xdev-ai/ai-sdlc/security/code-scanning). Suppressions
+require a reviewed, time-bounded `.trivyignore.yaml` entry with advisory ID, rationale, owner, and expiry; see
+[`docs/security-scanning.md`](docs/security-scanning.md).
+
 ## Access architecture
 
 The SSR portal is the public browser entry point. The Management API runs on the Compose topology's private service network; Keycloak is the authentication authority behind the portal/API boundary. In production, the portal and Keycloak must sit behind TLS reverse proxies with dedicated hostnames; never expose the Management API port directly.

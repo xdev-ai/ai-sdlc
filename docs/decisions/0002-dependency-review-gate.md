@@ -1,6 +1,6 @@
 # ADR 0002: Dependency review is advisory; OSV and Trivy remain the blocking dependency gates
 
-**Status:** Accepted — decision closed
+**Status:** Superseded by its own revisit trigger on 2026-08-17 — Dependency graph was enabled and the gate is blocking again
 **Date:** 2026-08-17
 
 ## Context
@@ -53,3 +53,20 @@ Reopen when `GET /repos/xdev-ai/ai-sdlc/dependency-graph/sbom` returns an SBOM r
 ```sh
 gh api repos/xdev-ai/ai-sdlc/dependency-graph/sbom --jq '.sbom.name'
 ```
+
+
+## Outcome, 2026-08-17
+
+The revisit trigger fired the same day. Dependency graph was enabled for the repository and
+`dependency-review` now reports **success**, so `continue-on-error` has been removed and the job blocks again.
+
+One correction worth recording: the trigger in this ADR named the SBOM endpoint, and that was the wrong probe.
+`GET /repos/xdev-ai/ai-sdlc/dependency-graph/sbom` still returns `404` while the graph is demonstrably on. The
+endpoint `dependency-review-action` actually calls is
+
+```sh
+gh api "repos/xdev-ai/ai-sdlc/dependency-graph/compare/$(git rev-parse HEAD~1)...$(git rev-parse HEAD)" --silent -i | head -1
+```
+
+which returns `HTTP 200`. Checking SBOM produced three false negatives in a row and wasted two CI reruns before the
+right endpoint settled it.
