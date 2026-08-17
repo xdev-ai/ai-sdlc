@@ -6,6 +6,7 @@ import ai.xdev.aisdlc.repo.Repositories.RiskScoreRepository;
 import ai.xdev.aisdlc.web.PageResponse;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.sql.Timestamp;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -79,7 +80,24 @@ public class RiskIntelligenceService {
   public RiskScoreView latest(UUID projectId, String actor) { access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER); return scores.findTopByProjectIdOrderByCalculatedAtDesc(projectId).map(this::view).orElse(null); }
   public PageResponse<RiskScoreView> trend(UUID projectId, String actor, int page, int size) { access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER); var result = scores.findByProjectIdOrderByCalculatedAtDesc(projectId, PageRequest.of(page, size)); return PageResponse.of(result.getContent().stream().map(this::view).toList(), result.getNumber(), result.getSize(), result.getTotalElements()); }
 
-  private long count(String sql, Object... arguments) { Long value = jdbc.queryForObject(sql, Long.class, arguments); return value == null ? 0 : value; }
+  private long count(String sql, Object... arguments) { Long value = jdbc.queryForObject(sql, Long.class, bindable(arguments)); return value == null ? 0 : value; }
+
+  /**
+   * Converts {@link Instant} arguments to {@link Timestamp} before they reach the driver.
+   *
+   * <p>The PostgreSQL driver cannot infer a SQL type for a positionally bound {@code java.time.Instant} and throws
+   * {@code Can't infer the SQL type to use for an instance of java.time.Instant}. Every one of the eleven counting
+   * queries here passes a 30- or 90-day cutoff, so the whole recompute failed on its first query and the endpoint
+   * had never returned a score. Converting inside this one helper fixes all of them and stops the next query from
+   * reintroducing it.
+   */
+  private static Object[] bindable(Object... arguments) {
+    Object[] converted = arguments.clone();
+    for (int index = 0; index < converted.length; index++) {
+      if (converted[index] instanceof Instant instant) converted[index] = Timestamp.from(instant);
+    }
+    return converted;
+  }
   private Map<String, Object> latestQuality(UUID projectId) { var rows = jdbc.queryForList("select deployment_frequency, lead_time_hours, change_failure_rate, pr_review_time_delta_hours, rework_rate, review_queue_health, spec_alignment_score, security_debt_score, model_use_distribution from quality_metric_snapshots where project_id = ? order by period_end desc limit 1", projectId); return rows.isEmpty() ? Map.of() : rows.getFirst(); }
   private int qualityRisk(Map<String, Object> quality) {
     if (quality.isEmpty()) return 0;

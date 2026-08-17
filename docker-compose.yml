@@ -118,6 +118,9 @@ services:
       AISDLC_EVIDENCE_S3_FORCE_PATH_STYLE: "true"
       # Inbound webhook verification. Empty means the connector refuses every delivery rather than trusting it.
       AISDLC_GITHUB_WEBHOOK_SECRET: ${AISDLC_GITHUB_WEBHOOK_SECRET:-}
+      # AES-256-GCM key for notification destinations and webhook signing secrets. Never reached the container before,
+      # so every notification-channel create in this topology failed with HTTP 409 "must be a 32-byte base64url value".
+      AISDLC_NOTIFICATION_ENCRYPTION_KEY: ${AISDLC_NOTIFICATION_ENCRYPTION_KEY:-}
       AISDLC_TELEMETRY_ENABLED: ${AISDLC_TELEMETRY_ENABLED:-false}
       AISDLC_TELEMETRY_EXPORTER_ENDPOINT: ${AISDLC_TELEMETRY_EXPORTER_ENDPOINT:-}
       AISDLC_TELEMETRY_TRACE_SAMPLE_RATIO: ${AISDLC_TELEMETRY_TRACE_SAMPLE_RATIO:-0.1}

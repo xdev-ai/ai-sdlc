@@ -3,6 +3,10 @@
 
   var locale = document.documentElement.lang === "vi" ? "vi" : "en";
   var vi = {
+    "A disciplined control plane for specifications, validation, human decisions and release-ready traceability. Built for teams that need the speed of AI without surrendering accountability.": "Một hệ thống quản trị có kỷ luật cho đặc tả, xác thực, quyết định của con người và truy vết sẵn sàng phát hành. Dành cho đội ngũ cần tốc độ của AI mà không đánh đổi trách nhiệm giải trình.",
+    "Validation remains local, reproducible and model-pinned.": "Xác thực chạy cục bộ, tái lập được và ghim đúng mô hình.",
+    "Review and phase gates retain deliberate approval.": "Rà soát và cổng giai đoạn giữ quyền phê duyệt có chủ đích.",
+    "Every meaningful action joins an append-only audit chain.": "Mọi hành động có ý nghĩa đều nối vào chuỗi kiểm toán chỉ-ghi-thêm.",
     "Control plane online": "Hệ thống quản trị đang trực tuyến",
     "CONTROL PLANE": "HỆ THỐNG QUẢN TRỊ",
     "Overview": "Tổng quan",

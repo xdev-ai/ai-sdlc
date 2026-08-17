@@ -13,6 +13,9 @@ export CLI_CLIENT_SECRET="ci-placeholder-cli-not-a-production-secret"
 export AGENT_RUNTIME_CLIENT_SECRET="ci-placeholder-agent-not-a-production-secret"
 export LOCAL_ADMIN_PASSWORD="aisdlc_ci_ephemeral_portal_admin"
 export AISDLC_GITHUB_WEBHOOK_SECRET="aisdlc_ci_ephemeral_webhook_secret"
+# 32 bytes, base64url. Without it every notification-channel create returns 409 and the feature is untestable —
+# which is how it reached main unnoticed in the first place.
+export AISDLC_NOTIFICATION_ENCRYPTION_KEY="YWlzZGxjLWNpLWVwaGVtZXJhbC1ub3RpZmljYXRpb24"
 export AISDLC_EVIDENCE_S3_ACCESS_KEY="aisdlc_ci_minio"
 export AISDLC_EVIDENCE_S3_SECRET_KEY="aisdlc_ci_minio_ephemeral_password"
 export AISDLC_EVIDENCE_S3_BUCKET="aisdlc-evidence-ci"
@@ -58,3 +61,12 @@ echo "Compose integration smoke test passed: identity, object storage, readiness
 AISDLC_ACCEPTANCE_NETWORK="aisdlc-ci_platform" \
 AISDLC_ACCEPTANCE_KEYCLOAK_URL="http://localhost:8180" \
   bash "$(dirname -- "$0")/end-to-end-acceptance.sh"
+
+# The governed spine is not the whole platform. Sweep the features the acceptance run does not touch — evidence
+# upload into real object storage, risk intelligence, notification channels, the cost ledger, the runtime AI
+# boundary, and the paging contract. Five defects reached main because nothing exercised these against a live
+# stack: two Instant parameters the driver cannot bind, an int overflow in the paging envelope, an internal error
+# surfacing as 403 insufficient_scope, and an encryption key that never reached the container.
+AISDLC_ACCEPTANCE_NETWORK="aisdlc-ci_platform" \
+AISDLC_ACCEPTANCE_KEYCLOAK_URL="http://localhost:8180" \
+  bash "$(dirname -- "$0")/feature-sweep.sh"

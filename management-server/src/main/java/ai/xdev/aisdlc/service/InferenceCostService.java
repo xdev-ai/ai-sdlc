@@ -3,6 +3,7 @@ package ai.xdev.aisdlc.service;
 import ai.xdev.aisdlc.domain.DomainTypes.MembershipRole;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.sql.Timestamp;
 import java.time.*;
 import java.util.HexFormat;
 import java.util.List;
@@ -28,12 +29,20 @@ public class InferenceCostService {
                              String explanation, Double backtestWape, Double backtestIntervalCoverage) {}
   private final JdbcTemplate jdbc; private final ProjectAccessService access; private final AuditService audit; private final BudgetEnforcementService budgets;
   public InferenceCostService(JdbcTemplate jdbc, ProjectAccessService access, AuditService audit, BudgetEnforcementService budgets) { this.jdbc = jdbc; this.access = access; this.audit = audit; this.budgets = budgets; }
+  /**
+   * Ingests one immutable usage claim.
+   *
+   * <p>{@code occurredAt} is bound as a {@link Timestamp}. The PostgreSQL driver cannot infer a SQL type for
+   * {@code java.time.Instant} passed positionally to {@code JdbcTemplate} and throws
+   * {@code Can't infer the SQL type to use for an instance of java.time.Instant} — so this endpoint returned an
+   * error for every call until a live request exercised it. Unit tests mock the template and never bind a parameter.
+   */
   @Transactional
   public UsageView ingest(UUID projectId, String actor, String sourceEventKey, String provider, String model, String version, Instant occurredAt, long input, long output, String currency, long costMinor, String sourceClaimSha256) {
     var project = access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER);
     require(sourceEventKey, 240); require(provider, 160); require(model, 240); if (input < 0 || output < 0 || costMinor < 0) throw new IllegalArgumentException("Usage and cost must be non-negative");
     String c = requireCurrency(currency); requireDigest(sourceClaimSha256); UUID id = UUID.randomUUID();
-    int inserted = jdbc.update("insert into inference_usage_events(id,project_id,source_event_key,provider,model_name,model_version,occurred_at,input_tokens,output_tokens,currency_code,source_cost_minor,source_claim_sha256,recorded_by) values(?,?,?,?,?,?,?, ?,?,?, ?,?,?) on conflict(project_id,source_event_key) do nothing", id, projectId, sourceEventKey.trim(), provider.trim(), model.trim(), blank(version,240), occurredAt == null ? Instant.now() : occurredAt, input, output, c, costMinor, sourceClaimSha256.toLowerCase(Locale.ROOT), actor);
+    int inserted = jdbc.update("insert into inference_usage_events(id,project_id,source_event_key,provider,model_name,model_version,occurred_at,input_tokens,output_tokens,currency_code,source_cost_minor,source_claim_sha256,recorded_by) values(?,?,?,?,?,?,?, ?,?,?, ?,?,?) on conflict(project_id,source_event_key) do nothing", id, projectId, sourceEventKey.trim(), provider.trim(), model.trim(), blank(version,240), Timestamp.from(occurredAt == null ? Instant.now() : occurredAt), input, output, c, costMinor, sourceClaimSha256.toLowerCase(Locale.ROOT), actor);
     if (inserted == 0) return existing(projectId, sourceEventKey);
     String evidence = sha256(projectId + "|" + sourceEventKey + "|" + c + "|" + costMinor);
     jdbc.update("insert into inference_cost_allocations(id,usage_event_id,project_id,allocation_key,currency_code,allocated_cost_minor,allocation_method,allocation_evidence_sha256) values(?,?,?,?,?,?,?,?)", UUID.randomUUID(), id, projectId, "project:" + projectId, c, costMinor, "SOURCE_COST_EXACT", evidence);

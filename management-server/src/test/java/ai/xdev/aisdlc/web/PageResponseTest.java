@@ -6,6 +6,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 /** The envelope is computed from caller-supplied paging parameters, so its arithmetic must survive hostile ones. */
 class PageResponseTest {
@@ -16,6 +19,17 @@ class PageResponseTest {
 
     assertFalse(response.hasNext());
     assertEquals(3, response.totalPages());
+  }
+
+  @Test void theSameOverflowIsNotReintroducedThroughASpringDataPage() {
+    // from() delegated hasNext to Page.hasNext(), which is getNumber() + 1 < getTotalPages() in int arithmetic. Fixing
+    // of() alone left the wrap live on every endpoint that builds its envelope from a Page — the audit ledger included.
+    // The live API returned {"page":2147483647,"totalPages":15,"hasNext":true} while this class's of() test passed.
+    Page<String> lastPage = new PageImpl<>(List.of(), PageRequest.of(0, 1), 15) {
+      @Override public int getNumber() { return Integer.MAX_VALUE; }
+    };
+
+    assertFalse(PageResponse.from(lastPage).hasNext());
   }
 
   @Test void totalPagesSaturatesRatherThanWrappingWhenItExceedsAnInt() {
