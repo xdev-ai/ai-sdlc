@@ -22,15 +22,15 @@ public class GovernanceController {
 
   public GovernanceController(GovernanceCatalogService governance, AuditVerificationService audit) { this.governance = governance; this.audit = audit; }
 
-  record KitInput(@NotBlank @Pattern(regexp = "[a-z0-9-]{3,100}") String slug, @NotBlank @Size(max = 160) String version, @NotNull KitLayer layer, @NotBlank @Size(max = 100000) String manifest) {}
-  record PolicyInput(UUID projectId, @NotBlank @Pattern(regexp = "[a-z0-9._-]{3,160}") String key, @NotBlank @Size(max = 160) String version, @NotBlank @Size(max = 100000) String rule) {}
-  record ConstitutionInput(UUID projectId, @NotBlank @Size(max = 160) String version, @NotBlank @Size(max = 100000) String content) {}
+  record KitInput(@NotBlank @Pattern(regexp = "[a-z0-9-]{3,100}") String slug, @NotBlank @Size(max = 80) String version, @NotNull KitLayer layer, @NotBlank @Size(max = 100000) String manifest) {}
+  record PolicyInput(UUID projectId, @NotBlank @Pattern(regexp = "[a-z0-9._-]{3,160}") String key, @NotBlank @Size(max = 80) String version, @NotBlank @Size(max = 100000) String rule) {}
+  record ConstitutionInput(UUID projectId, @NotBlank @Size(max = 80) String version, @NotBlank @Size(max = 100000) String content) {}
   record CapabilityInput(@NotBlank @Size(max = 120) String subject, @NotBlank @Pattern(regexp = "[a-z0-9._:-]{3,160}") String capability, Instant expiresAt) {}
   record ExceptionInput(@NotBlank @Pattern(regexp = "[a-z0-9._-]{3,160}") String policyKey, @NotBlank @Size(max = 8000) String rationale) {}
   record ExceptionDecisionInput(@NotNull ReviewStatus decision, @Size(max = 4000) String note, Instant expiresAt) {}
-  record TraceNodeInput(@NotNull TraceNodeType type, @NotBlank @Size(max = 160) String externalKey, @NotBlank @Size(max = 500) String label, @Size(max = 100) String status) {}
-  record TraceEdgeInput(@NotNull UUID sourceNodeId, @NotNull UUID targetNodeId, @NotBlank @Size(max = 120) String relation) {}
-  record ReviewInput(@NotNull ReviewType type, @NotBlank @Size(max = 500) String title) {}
+  record TraceNodeInput(@NotNull TraceNodeType type, @NotBlank @Size(max = 160) String externalKey, @NotBlank @Size(max = 300) String label, @Size(max = 50) String status) {}
+  record TraceEdgeInput(@NotNull UUID sourceNodeId, @NotNull UUID targetNodeId, @NotBlank @Size(max = 80) String relation) {}
+  record ReviewInput(@NotNull ReviewType type, @NotBlank @Size(max = 300) String title) {}
   record DecisionInput(@NotNull ReviewStatus decision, @Size(max = 4000) String note) {}
   record MetricsInput(@NotNull Instant periodStart, @NotNull Instant periodEnd, BigDecimal deploymentFrequency, BigDecimal leadTimeHours, BigDecimal changeFailureRate, BigDecimal prReviewTimeDeltaHours, BigDecimal reworkRate, BigDecimal reviewQueueHealth, BigDecimal specAlignmentScore) {}
   record DeprecateKitInput(@NotBlank @Size(max = 4000) String reason) {}
