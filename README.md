@@ -60,19 +60,32 @@ Each was introduced by a dependency change that passed the full unit suite. The 
 
 ### Current alert state — 2026-08-17
 
-62 open code-scanning alerts: **51 CodeQL**, **11 Trivy**. By security severity: 5 high, 14 medium, 2 low; the
+59 open code-scanning alerts: **49 CodeQL**, **10 Trivy**. By security severity: 2 high, 14 medium, 2 low; the
 remainder are CodeQL quality findings (`note` and `warning`) that carry no security severity. No open Dependabot
 alerts.
 
-Two things this count does **not** mean:
+Both remaining high-severity alerts are assessed, and neither is a live defect:
 
-- **It is not 62 live defects.** Alerts are not closed automatically when a fix lands. The single high-severity Trivy
-  alert, `CVE-2026-54291` on `org.postgresql:postgresql`, reports version 42.7.11 and was last seen on 2026-08-16;
-  the repository now pins **42.7.13**, above the 42.7.12 fix. It is stale, and the alert list needs a triage pass.
-- **It is not a backlog of accepted risk.** The high-severity CodeQL findings include
-  `java/spring-disabled-csrf-protection`, which flags a deliberate design decision — the management API is a
-  stateless bearer-token resource server where CSRF does not apply. Findings like that should be dismissed with a
-  recorded reason rather than left open, so the count means something.
+| Alert | Rule | Assessment |
+|---|---|---|
+| #13 | `java/spring-disabled-csrf-protection` | By design. The management API is a stateless bearer-token resource server, where CSRF does not apply. |
+| #135 | `java/user-controlled-bypass` | False positive. Every branch that short-circuits `authorizeScim` throws 401, so `ScimController.authorize` is fail-closed; the token is resolved by SHA-256 index lookup, never string-compared. |
+
+Both should be dismissed with a recorded reason rather than left open, so the count means something.
+
+**What the count does not mean.** Alerts are not closed automatically when a fix lands, and two distinct staleness
+mechanisms have already been observed here:
+
+- **A fix landing does not close the alert until the scanner re-runs on the default branch.** `java/tainted-arithmetic`
+  on `PageResponse` and `ScimController` stayed open until the post-merge CodeQL analysis on `main` reported them
+  fixed — roughly two minutes after the merge, not at merge time.
+- **An alert whose analysis category stops being uploaded stays open forever.** Trivy originally uploaded under the
+  default category `.github/workflows/ci.yml:trivy`; it was later split into `trivy-filesystem`,
+  `trivy-management-server`, and `trivy-portal`. `CVE-2026-54291` on `org.postgresql:postgresql` was frozen open under
+  the abandoned category, still reporting version 42.7.11, while the repository had moved to **42.7.13** — above the
+  42.7.12 fix. No live analysis could ever close it, because nothing uploads to that category any more. It was
+  resolved by deleting the orphaned analysis, not by changing any dependency. **When splitting or renaming a scanner
+  category, delete the analyses under the old one, or its alerts become permanent.**
 
 The live view is [Security → Code scanning](https://github.com/xdev-ai/ai-sdlc/security/code-scanning). Suppressions
 require a reviewed, time-bounded `.trivyignore.yaml` entry with advisory ID, rationale, owner, and expiry; see
