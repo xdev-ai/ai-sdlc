@@ -17,6 +17,20 @@ import org.thymeleaf.web.servlet.JakartaServletWebApplication;
 class PortalTemplateRenderTest {
   @Test
   void rendersOverviewWithoutLiveDataOrJavaScript() {
+    String html = render(Map.of("intact", true, "verifiedEvents", 24));
+
+    assertTrue(html.contains("AI—SDLC"));
+    assertTrue(html.contains("Make every delivery"));
+    assertTrue(html.contains("browser never stores API tokens"));
+    assertTrue(html.contains("Keycloak session connected"));
+    assertTrue(html.contains("action=\"/logout\""));
+    // The overview badge renders "verified"; the audit page renders "hash chain verified". Either way the
+    // value has to come from the map, which is what the empty-map case below could not do.
+    assertTrue(html.contains("verified"), "a verified chain must render its verified state");
+    assertTrue(!html.contains("select org"), "a scoped, verified chain must not show the unscoped state");
+  }
+
+  private static String render(Map<String, Object> auditVerification) {
     ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
     resolver.setPrefix("templates/");
     resolver.setSuffix(".html");
@@ -39,17 +53,28 @@ class PortalTemplateRenderTest {
         Map.entry("projectsPage", Map.of("page", 0, "totalPages", 0)),
         Map.entry("validationsPage", Map.of("page", 0, "totalPages", 0)),
         Map.entry("auditPage", Map.of("page", 0, "totalPages", 0)),
-        Map.entry("auditVerification", Map.of("valid", false)),
+        Map.entry("auditVerification", auditVerification),
         Map.entry("trace", Map.of("nodes", List.of(), "edges", List.of())));
     var application = JakartaServletWebApplication.buildApplication(new MockServletContext());
     WebContext context = new WebContext(application.buildExchange(new MockHttpServletRequest(), new MockHttpServletResponse()), Locale.ROOT, variables);
 
-    String html = engine.process("app", context);
+    return engine.process("app", context);
+  }
 
-    assertTrue(html.contains("AI—SDLC"));
-    assertTrue(html.contains("Make every delivery"));
-    assertTrue(html.contains("browser never stores API tokens"));
-    assertTrue(html.contains("Keycloak session connected"));
-    assertTrue(html.contains("action=\"/logout\""));
+  /**
+   * The state every user is in immediately after their first login: no organization selected, so
+   * {@code ManagementApiClient.ObjectData.empty().value()} puts an <em>empty</em> map in the model.
+   *
+   * <p>This is the case that made {@code /app} return 500 for every user on every load. Spring's {@code MapAccessor}
+   * only reads a property when the map actually contains that key; for a missing key SpEL falls through and throws
+   * {@code EL1008E: Property or field 'intact' cannot be found}. The template therefore has to index the map rather
+   * than treat it as a bean. The previous fixture hid this by seeding a key the API never returns.
+   */
+  @Test
+  void rendersOverviewBeforeAnyOrganisationIsSelected() {
+    String html = render(Map.of());
+
+    assertTrue(html.contains("AI—SDLC"), "the shell must render with no verification data at all");
+    assertTrue(html.contains("select org"), "the unscoped state is shown rather than failing");
   }
 }

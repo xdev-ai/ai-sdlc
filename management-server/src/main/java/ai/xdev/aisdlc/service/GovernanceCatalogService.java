@@ -72,7 +72,7 @@ public class GovernanceCatalogService {
 
   public List<Map<String, Object>> projectKits(UUID projectId, String actor) {
     access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
-    return jdbc.queryForList("select sk.id, sk.slug, sk.version, sk.layer, sk.lifecycle_status, pk.precedence, pk.created_at as pinned_at from project_kits pk join spec_kits sk on sk.id = pk.spec_kit_id where pk.project_id = ? order by pk.precedence asc, sk.slug asc", projectId);
+    return jdbc.queryForList("select sk.id, sk.slug, sk.version, sk.layer, sk.lifecycle_status, pk.precedence, pk.pinned_at from project_kits pk join spec_kits sk on sk.id = pk.spec_kit_id where pk.project_id = ? order by pk.precedence asc, sk.slug asc", projectId);
   }
 
   @Transactional
@@ -216,7 +216,7 @@ public class GovernanceCatalogService {
 
   public Map<String, List<Map<String, Object>>> traceability(UUID projectId, String actor) {
     access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
-    return Map.of("nodes", jdbc.queryForList("select id, node_type, external_key, label, status, created_at from trace_nodes where project_id = ? order by created_at", projectId), "edges", jdbc.queryForList("select id, source_node_id, target_node_id, relation, created_at from trace_edges where project_id = ? order by created_at", projectId));
+    return Map.of("nodes", jdbc.queryForList("select id, node_type, external_key, label, status, created_at from trace_nodes where project_id = ? order by created_at", projectId), "edges", jdbc.queryForList("select id, source_node_id, target_node_id, relation from trace_edges where project_id = ? order by id", projectId));
   }
 
   @Transactional
@@ -271,7 +271,7 @@ public class GovernanceCatalogService {
   public PageResponse<Map<String, Object>> metrics(UUID projectId, String actor, int page, int size) {
     access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
     return page("select count(*) from quality_metric_snapshots where project_id = ?", new Object[]{projectId},
-        "select id, period_start, period_end, deployment_frequency, lead_time_hours, change_failure_rate, pr_review_time_delta_hours, rework_rate, review_queue_health, spec_alignment_score, created_at from quality_metric_snapshots where project_id = ? order by period_end desc limit ? offset ?", new Object[]{projectId}, page, size);
+        "select id, period_start, period_end, deployment_frequency, lead_time_hours, change_failure_rate, pr_review_time_delta_hours, rework_rate, review_queue_health, spec_alignment_score, calculated_at from quality_metric_snapshots where project_id = ? order by period_end desc limit ? offset ?", new Object[]{projectId}, page, size);
   }
 
   private PageResponse<Map<String, Object>> page(String countSql, Object[] countParameters, String pageSql, Object[] pageParameters, int page, int size) {

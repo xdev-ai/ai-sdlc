@@ -18,9 +18,20 @@ spring:
             scope: openid,profile,email
         provider:
           keycloak:
+            # The browser is redirected to the public host; every server-to-server call uses the internal one.
             authorization-uri: ${KEYCLOAK_PUBLIC_BASE_URL:http://auth.localhost:8180}/realms/ai-sdlc/protocol/openid-connect/auth
             token-uri: ${KEYCLOAK_INTERNAL_BASE_URL:http://auth.localhost:8180}/realms/ai-sdlc/protocol/openid-connect/token
             user-info-uri: ${KEYCLOAK_INTERNAL_BASE_URL:http://auth.localhost:8180}/realms/ai-sdlc/protocol/openid-connect/userinfo
+            # Required. Without it Spring Security has no JWS verifier for the ID token and every login fails after a
+            # successful code exchange with "[missing_signature_verifier] Failed to find a Signature Verifier for
+            # Client Registration", redirecting to /session-expired. Keycloak reported LOGIN and CODE_TO_TOKEN with no
+            # error, so the failure was invisible from the identity provider's side and the loop could not be escaped
+            # by signing in again. No test caught it because nothing logged into the portal — the integration smoke
+            # only asserted that GET / returns 200.
+            jwk-set-uri: ${KEYCLOAK_INTERNAL_BASE_URL:http://auth.localhost:8180}/realms/ai-sdlc/protocol/openid-connect/certs
+            # The id_token `iss` claim carries the public issuer, because that is the host the browser authorized
+            # against. It must be stated explicitly here rather than inferred from the internal jwk-set-uri.
+            issuer-uri: ${KEYCLOAK_PUBLIC_BASE_URL:http://auth.localhost:8180}/realms/ai-sdlc
             user-name-attribute: preferred_username
 management:
   endpoints:
