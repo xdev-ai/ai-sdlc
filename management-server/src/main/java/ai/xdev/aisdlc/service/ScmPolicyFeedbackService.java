@@ -93,10 +93,26 @@ public class ScmPolicyFeedbackService {
         try { event.recordPolicyCheckRun(Long.parseLong(reference.get())); } catch (NumberFormatException ignored) { /* non-numeric references stay in the neutral column */ }
       }
     } catch (RuntimeException error) {
-      // Provider identity and status only. Provider error text can echo the submitted request.
-      log.warn("Policy feedback to {} for event {} failed: {}", link.getProvider(), externalId, error.getMessage());
+      // Provider identity and status only, and every interpolated value is either platform-controlled or sanitised.
+      // externalId falls back to the delivery id, which is a value copied out of a provider's webhook header, and
+      // error messages from the GitHub path wrap an exception this class did not construct.
+      log.warn("Policy feedback to {} for event {} failed: {}",
+          link.getProvider(), event.getId(), logSafe(error.getMessage()));
       event.recordPolicyFeedback(ScmFeedbackState.FAILED, null);
     }
+  }
+
+  /**
+   * Strips control characters and bounds the length before a value reaches a log line.
+   *
+   * <p>The structured encoder JSON-escapes the message field, so a newline cannot forge a whole log entry today. That
+   * is a property of the current appender, not of this call site: a plain-text appender, a log shipper that re-parses
+   * the message, or a console during an incident all read the raw bytes. Sanitising here does not depend on which.
+   */
+  private static String logSafe(String message) {
+    if (message == null || message.isBlank()) return "no detail";
+    String collapsed = message.replaceAll("\\p{Cntrl}+", " ").trim();
+    return collapsed.length() <= 200 ? collapsed : collapsed.substring(0, 200) + "…";
   }
 
   /** Maps the provider enum onto the {@code aisdlc.scm.connectors.<key>} configuration key the connectors already use. */

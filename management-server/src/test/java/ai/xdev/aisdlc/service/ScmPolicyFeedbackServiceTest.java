@@ -1,7 +1,9 @@
 package ai.xdev.aisdlc.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -10,6 +12,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import ai.xdev.aisdlc.config.ScmConnectorProperties;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import ai.xdev.aisdlc.domain.DomainTypes.ScmEventType;
 import ai.xdev.aisdlc.domain.DomainTypes.ScmFeedbackState;
 import ai.xdev.aisdlc.domain.DomainTypes.ScmProvider;
@@ -20,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 /** Dispatch, isolation between providers, and what happens to an event when the provider will not take the decision. */
 class ScmPolicyFeedbackServiceTest {
@@ -50,6 +56,31 @@ class ScmPolicyFeedbackServiceTest {
 
     assertEquals(ScmFeedbackState.FAILED, event.getPolicyFeedbackState());
     assertNull(event.getPolicyFeedbackRef());
+  }
+
+  @Test void aProviderErrorMessageCannotForgeLogLines() {
+    // CodeQL java/log-injection, alert #186. Two tainted values reached the failure log: the fallback external id,
+    // which is copied out of a provider's webhook header, and a message from an exception this class did not build.
+    ScmFeedbackPublisher gitlab = publisher(ScmProvider.GITLAB, true);
+    String forged = "503\nWARN  Policy feedback to GITHUB for event 00000000 succeeded";
+    when(gitlab.publish(any(), any(), any())).thenThrow(new ScmFeedbackPublisher.ScmFeedbackException(forged));
+    ScmEvent event = event(ScmProvider.GITLAB);
+
+    Logger logger = (Logger) LoggerFactory.getLogger(ScmPolicyFeedbackService.class);
+    ListAppender<ILoggingEvent> appender = new ListAppender<>();
+    appender.start();
+    logger.addAppender(appender);
+    try {
+      service(gitlab).publishRequiredEvidenceGate(link(ScmProvider.GITLAB), event);
+    } finally {
+      logger.detachAppender(appender);
+    }
+
+    assertEquals(1, appender.list.size());
+    String rendered = appender.list.get(0).getFormattedMessage();
+    assertFalse(rendered.contains("\n"), "a newline in provider text must not split the log entry");
+    assertTrue(rendered.contains("503"), "the useful detail is kept, only the control characters are removed");
+    assertEquals(ScmFeedbackState.FAILED, event.getPolicyFeedbackState());
   }
 
   @Test void aProviderWithNoOutboundCredentialIsSkippedRatherThanFailed() {
