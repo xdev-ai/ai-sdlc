@@ -43,6 +43,25 @@ Container-image scan results are retained as CI evidence. Base-image findings mu
 
 ---
 
+### Customer identifiers must not reach a public repository
+
+Every repository in the `xdev-ai` organisation is public, and publication is not reversible by
+deletion: a removed branch keeps its commits reachable through the API, and anything merged stays
+in history. The rule therefore covers commit messages, PR titles and bodies, comments, javadoc and
+test fixtures — not only committed files, which is the gap that let real customer document codes
+into three commit messages while a path-only gate reported clean.
+
+Illustrate designs with invented identifiers (`SPEC-042`, `DOC-001`). `scripts/verify-no-confidential.sh`
+enforces this: it refuses tracked or staged files under `local/` and `private/`, and scans staged
+content, unpushed commit messages and a prepared commit message against an operator-maintained term
+list at `local/confidential-terms.txt` (gitignored — it lists the strings being protected). Install
+`git config core.hooksPath .githooks` so the check runs before a commit exists; the CI job is the
+backstop that cannot be skipped.
+
+The term check is deliberately an explicit list rather than a heuristic. A scanner with false
+positives gets switched off, and one with false negatives is worse than none because it turns an
+unchecked risk into a checked box.
+
 ## Supply-Chain Security and Release Provenance
 
 ### Scope

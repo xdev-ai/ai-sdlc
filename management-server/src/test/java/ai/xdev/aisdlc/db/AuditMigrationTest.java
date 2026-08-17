@@ -81,4 +81,31 @@ class AuditMigrationTest {
     }
     assertTrue(migration.contains("register a new version instead of rewriting"));
   }
+
+  /**
+   * A requirement's governing document version is a history, not a field.
+   *
+   * <p>The traceability graph and the Spec Kit registry existed side by side with nothing joining them, so a
+   * requirement could not answer which analysis document specifies it — the column an external requirement sheet
+   * carries as {@code analysis document}. A {@code spec_kit_id} column on {@code trace_nodes} would have been
+   * overwritten on every revision, destroying the one fact document change management exists to keep.
+   */
+  @Test
+  void declaresRequirementToDocumentLinksAsAnAppendOnlyHistory() throws Exception {
+    String migration = Files.readString(Path.of("src/main/resources/db/migration/V22__requirement_specification_links.sql"));
+
+    assertTrue(migration.contains("create table requirement_specifications"));
+    // Exactly one current link per requirement, with superseded rows leaving the index so history accumulates.
+    assertTrue(migration.contains("requirement_specification_current_uq"));
+    assertTrue(migration.contains("(trace_node_id) where superseded_at is null"));
+    // Superseding must name who did it and cannot predate the link.
+    assertTrue(migration.contains("requirement_specification_supersede_ck"));
+    assertTrue(migration.contains("requirement_specification_order_ck"));
+    // Identity is frozen; only the supersede columns may move.
+    assertTrue(migration.contains("requirement_specifications_no_rewrite before update"));
+    assertTrue(migration.contains("requirement_specifications_no_delete before delete"));
+    assertTrue(migration.contains("supersede the link instead of rewriting it"));
+    // The original document code is kept verbatim, because spec_kits.slug cannot hold it.
+    assertTrue(migration.contains("source_document_code"));
+  }
 }
