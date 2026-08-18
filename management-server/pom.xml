@@ -44,7 +44,7 @@
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-flyway</artifactId></dependency>
     <dependency><groupId>org.flywaydb</groupId><artifactId>flyway-database-postgresql</artifactId></dependency>
     <dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><scope>runtime</scope></dependency>
-    <dependency><groupId>software.amazon.awssdk</groupId><artifactId>s3</artifactId><exclusions><exclusion><groupId>software.amazon.awssdk</groupId><artifactId>netty-nio-client</artifactId></exclusion><exclusion><groupId>software.amazon.awssdk</groupId><artifactId>apache-client</artifactId></exclusion></exclusions></dependency>
+    <dependency><groupId>software.amazon.awssdk</groupId><artifactId>s3</artifactId><exclusions><exclusion><groupId>software.amazon.awssdk</groupId><artifactId>netty-nio-client</artifactId></exclusion><exclusion><groupId>software.amazon.awssdk</groupId><artifactId>apache-client</artifactId></exclusion><exclusion><groupId>software.amazon.awssdk</groupId><artifactId>apache5-client</artifactId></exclusion></exclusions></dependency>
     <dependency><groupId>software.amazon.awssdk</groupId><artifactId>url-connection-client</artifactId></dependency>
     <dependency><groupId>io.opentelemetry</groupId><artifactId>opentelemetry-api</artifactId></dependency>
     <dependency><groupId>com.nimbusds</groupId><artifactId>nimbus-jose-jwt</artifactId><version>10.9.1</version></dependency>
@@ -52,5 +52,21 @@
     <dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-test</artifactId><scope>test</scope></dependency>
     <dependency><groupId>org.springframework.security</groupId><artifactId>spring-security-test</artifactId><scope>test</scope></dependency>
   </dependencies>
-  <build><plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin></plugins></build>
+  <build><plugins><plugin><groupId>org.springframework.boot</groupId><artifactId>spring-boot-maven-plugin</artifactId></plugin>
+    <!-- The S3 client pins its HTTP implementation explicitly, so any other AWS HTTP client on the classpath is dead
+         weight in the production image and noise in every vulnerability scan. Naming one artifact to exclude was not
+         enough: the SDK renamed its Apache client from apache-client to apache5-client and the unused client came
+         back unnoticed. These patterns are wildcards so a rename cannot do that again. -->
+    <plugin><groupId>org.apache.maven.plugins</groupId><artifactId>maven-enforcer-plugin</artifactId>
+      <executions><execution><id>one-aws-http-client</id><goals><goal>enforce</goal></goals>
+        <configuration><rules><bannedDependencies>
+          <searchTransitive>true</searchTransitive>
+          <excludes>
+            <exclude>software.amazon.awssdk:*apache*</exclude>
+            <exclude>software.amazon.awssdk:*netty*</exclude>
+          </excludes>
+          <message>Only url-connection-client may be on the classpath: S3ObjectStorageAdapter pins it explicitly, so any other AWS HTTP client ships unused. Exclude the new artifact on the software.amazon.awssdk:s3 dependency.</message>
+        </bannedDependencies></rules></configuration>
+      </execution></executions>
+    </plugin></plugins></build>
 </project>
