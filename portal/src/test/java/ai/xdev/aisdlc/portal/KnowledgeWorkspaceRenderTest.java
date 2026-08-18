@@ -124,7 +124,10 @@ class KnowledgeWorkspaceRenderTest {
     assertTrue(html.contains("PRJDOCS"), "the space key identifies which space is open");
     assertTrue(html.contains("15 trang"), "the space must report how many pages it holds");
     assertTrue(html.contains("Tiếp nhận người bệnh"), "the document title must render");
-    assertTrue(html.contains("Nhân viên kiểm tra giấy tờ."), "the body text must render");
+    assertTrue(html.contains("<p>Nhân viên kiểm tra giấy tờ.</p>"),
+        "the body must render as prose, not only inside the raw-source block");
+    assertTrue(html.contains("<h3>Tiếp nhận người bệnh</h3>"), "a markdown heading must become a real heading");
+    assertTrue(html.contains("Xem nguồn Markdown"), "the exact stored source must stay available");
     assertTrue(html.contains("v2 · DRAFT"), "the version and status chip must render");
     assertTrue(html.contains("4 đoạn cho AI"), "a reader should see how many chunks an AI receives");
     assertTrue(html.contains("thêm bước xác minh"), "the reason for the edit must be visible");
@@ -201,6 +204,8 @@ class KnowledgeWorkspaceRenderTest {
     // What matters is that no *element* or *attribute* is created. The characters "onerror=alert(1)" legitimately
     // survive as escaped text — asserting on that substring alone would be testing the wrong thing, since text inside
     // an escaped node cannot execute no matter what it spells.
+    // The page now renders prose through th:utext, so this is the assertion that matters most on the whole screen:
+    // a hostile body must still not create an element, in the prose or in the raw-source block.
     assertFalse(html.contains("<script>window.stolen"), "a script tag from a page body must not reach the DOM");
     assertFalse(html.contains("<img src=x"), "nor an img element carrying an inline event handler");
     assertTrue(html.contains("&lt;script&gt;window.stolen"), "the script must appear as escaped text instead");
@@ -263,7 +268,14 @@ class KnowledgeWorkspaceRenderTest {
     variables.put("pageNumber", 0);
     variables.put("selectedRunId", "");
     variables.put("reactEntry", "");
+    variables.put("documentHtml", "");
     variables.putAll(knowledge);
+    // The controller derives this from the body; deriving it here too keeps the fixture honest about what the page
+    // receives. Seeding an empty string would let a content assertion pass off the raw-source <details> block instead.
+    Object document = variables.get("document");
+    if (document instanceof Map<?, ?> map && map.get("body") != null) {
+      variables.put("documentHtml", MarkdownToSafeHtml.render(map.get("body").toString()));
+    }
 
     var application = JakartaServletWebApplication.buildApplication(new MockServletContext());
     WebContext context = new WebContext(

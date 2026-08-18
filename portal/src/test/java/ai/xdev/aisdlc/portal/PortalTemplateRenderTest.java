@@ -20,7 +20,9 @@ class PortalTemplateRenderTest {
     String html = render(Map.of("intact", true, "verifiedEvents", 24));
 
     assertTrue(html.contains("AI—SDLC"));
-    assertTrue(html.contains("Make every delivery"));
+    // The overview headline was marketing copy in English sitting above a Vietnamese checklist, and it consumed the
+    // space where the answer to "what do I do first" belongs. The assertion now names the page's subject.
+    assertTrue(html.contains("Bắt đầu ở đâu"), "the overview must name what it is for");
     assertTrue(html.contains("browser never stores API tokens"));
     assertTrue(html.contains("Keycloak session connected"));
     assertTrue(html.contains("action=\"/logout\""));

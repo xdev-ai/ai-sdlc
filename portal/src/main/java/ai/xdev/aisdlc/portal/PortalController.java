@@ -105,6 +105,10 @@ public class PortalController {
     model.addAttribute("docTree", tree.items());
     model.addAttribute("docId", activeDoc == null ? "" : activeDoc.toString());
     model.addAttribute("document", document.value());
+    // Rendered here, not in the template: the conversion escapes first and only then adds its own tags, so the
+    // template can safely use th:utext. A page body is user-authored, and this is the one place it becomes markup.
+    Object body = document.value().get("body");
+    model.addAttribute("documentHtml", body == null ? "" : MarkdownToSafeHtml.render(body.toString()));
     model.addAttribute("docHistory", history.items());
     model.addAttribute("searchQuery", query);
     model.addAttribute("searchHits", hits.items());
