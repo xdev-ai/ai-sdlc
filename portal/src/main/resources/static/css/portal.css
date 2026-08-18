@@ -123,3 +123,6 @@ a:focus-visible,button:focus-visible,select:focus-visible,input:focus-visible,te
 .doc-source pre{margin:var(--s3) 0 0;padding:var(--s4);background:var(--surface-2);border:1px solid var(--border);
   border-radius:var(--r-2);font:var(--t-2)/1.6 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;
   max-height:46vh;overflow-y:auto}
+
+/* Traceability actions sit beside the node count, so adding a link is where the graph is read. */
+.trace-actions{display:flex;align-items:center;gap:var(--s4)}

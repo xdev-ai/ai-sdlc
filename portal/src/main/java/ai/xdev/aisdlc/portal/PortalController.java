@@ -337,6 +337,39 @@ public class PortalController {
     return "redirect:" + signedUrl;
   }
 
+  /**
+   * Create a traceability node.
+   *
+   * <p>The graph was read-only in the portal while the API had accepted writes all along, so the screen showed
+   * "awaiting governed links" with no way to add one and the only route in was the CLI or a raw API call. A link is a
+   * deliberate human assertion — the platform never infers one — so a form is the right shape for it.
+   */
+  @PostMapping("/app/projects/{projectId}/trace/nodes")
+  String createTraceNode(@PathVariable UUID projectId, @RequestParam UUID org, @RequestParam String type,
+      @RequestParam String externalKey, @RequestParam String label,
+      @RequestParam(required = false) String status,
+      @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client, RedirectAttributes redirect) {
+    Map<String, Object> payload = new LinkedHashMap<>();
+    payload.put("type", type);
+    payload.put("externalKey", externalKey);
+    payload.put("label", label);
+    // Status is optional. An empty form field is omitted rather than sent as "": the API accepts an empty string
+    // (@Size(max = 50) permits it, verified against the running service), so this is not about avoiding a rejection —
+    // it is so an unset status is stored as absent instead of as a value that happens to be empty.
+    if (status != null && !status.isBlank()) payload.put("status", status);
+    return mutate("/api/v1/projects/" + projectId + "/trace/nodes", payload, client,
+        traceTarget(org, projectId), redirect);
+  }
+
+  @PostMapping("/app/projects/{projectId}/trace/edges")
+  String createTraceEdge(@PathVariable UUID projectId, @RequestParam UUID org, @RequestParam UUID sourceNodeId,
+      @RequestParam UUID targetNodeId, @RequestParam String relation,
+      @RegisteredOAuth2AuthorizedClient("keycloak") OAuth2AuthorizedClient client, RedirectAttributes redirect) {
+    return mutate("/api/v1/projects/" + projectId + "/trace/edges",
+        Map.of("sourceNodeId", sourceNodeId, "targetNodeId", targetNodeId, "relation", relation), client,
+        traceTarget(org, projectId), redirect);
+  }
+
   private String mutate(String path, Map<String, Object> payload, OAuth2AuthorizedClient client, String target, RedirectAttributes redirect) { return finishMutation(api.post(path, client.getAccessToken().getTokenValue(), payload), target, redirect); }
   private String mutatePut(String path, Map<String, Object> payload, OAuth2AuthorizedClient client, String target, RedirectAttributes redirect) { return finishMutation(api.put(path, client.getAccessToken().getTokenValue(), payload), target, redirect); }
   private String mutateDelete(String path, OAuth2AuthorizedClient client, String target, RedirectAttributes redirect) { return finishMutation(api.delete(path, client.getAccessToken().getTokenValue()), target, redirect); }
@@ -345,6 +378,7 @@ public class PortalController {
   private List<String> errors(String... values) { return Arrays.stream(values).filter(Objects::nonNull).distinct().toList(); }
   private String optional(String key, String value) { return value == null || value.isBlank() ? "" : "&" + key + "=" + value; }
   private String validationDetailTarget(UUID org, UUID project, UUID run) { return "/app/validations?org=" + org + "&project=" + project + "&run=" + run; }
+  private String traceTarget(UUID org, UUID project) { return "/app/traceability?org=" + org + "&project=" + project; }
   private String evidenceTarget(UUID org, UUID project) { return "/app/evidence" + (org == null ? "" : "?org=" + org + "&project=" + project); }
   private String notificationTarget(UUID org, UUID project) { return "/app/notifications?org=" + org + "&project=" + project; }
   private String supplyChainTarget(UUID org, UUID project) { return "/app/supply-chain?org=" + org + "&project=" + project; }

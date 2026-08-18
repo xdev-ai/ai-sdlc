@@ -46,6 +46,7 @@ class PortalPreviewGeneratorTest {
     written.put("knowledge.html", write("knowledge.html", knowledgeModel()));
     written.put("knowledge-search.html", write("knowledge-search.html", searchModel()));
     written.put("projects.html", write("projects.html", projectsModel()));
+    written.put("traceability.html", write("traceability.html", traceabilityModel()));
 
     written.forEach((name, size) ->
         assertTrue(size > 4_000, name + " rendered only " + size + " bytes, which cannot be a full page"));
@@ -242,6 +243,30 @@ class PortalPreviewGeneratorTest {
         Map.of("id", "m1", "subject", "b81f0d28-a37a-49cb-939b-830396c058c5", "role", "OWNER", "createdAt", "2026-08-10T08:00:00Z"),
         Map.of("id", "m2", "subject", "c92a1e39-b48b-4ade-a4ac-941407d169e6", "role", "DEVELOPER", "createdAt", "2026-08-12T09:30:00Z")));
     model.put("projectsPage", Map.of("page", 0, "totalPages", 1));
+    return model;
+  }
+
+  private static Map<String, Object> traceNode(String id, String type, String key, String label) {
+    Map<String, Object> node = new HashMap<>();
+    node.put("id", id);
+    node.put("node_type", type);
+    node.put("external_key", key);
+    node.put("label", label);
+    node.put("status", "ACTIVE");
+    node.put("created_at", "2026-08-18T04:00:00Z");
+    return node;
+  }
+
+  /** The traceability screen with enough nodes that both write forms are offered. */
+  private static Map<String, Object> traceabilityModel() {
+    Map<String, Object> model = new HashMap<>();
+    model.put("page", "traceability");
+    model.put("trace", Map.of(
+        "nodes", List.of(
+            traceNode("n1", "REQUIREMENT", "REQ-1", "Lưu hồ sơ theo mã người bệnh"),
+            traceNode("n2", "SPEC", "SPEC-1", "Đặc tả lưu hồ sơ"),
+            traceNode("n3", "TEST", "TEST-1", "Kiểm thử lưu hồ sơ")),
+        "edges", List.of(Map.of("id", "e1", "source_node_id", "n1", "target_node_id", "n2", "relation", "SPECIFIED_BY"))));
     return model;
   }
 
