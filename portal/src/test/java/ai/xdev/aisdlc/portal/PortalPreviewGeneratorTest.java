@@ -47,6 +47,12 @@ class PortalPreviewGeneratorTest {
     written.put("knowledge-search.html", write("knowledge-search.html", searchModel()));
     written.put("projects.html", write("projects.html", projectsModel()));
     written.put("traceability.html", write("traceability.html", traceabilityModel()));
+    // Alpine is not loaded in a preview, so every collapsed form stays hidden and the screens that matter most —
+    // the ones with a form — cannot be looked at. Each page also gets an "-open" variant with the toggles stripped.
+    // This used to be done by hand-editing the HTML, which meant the file existed only until it was deleted.
+    written.put("traceability-open.html", writeExpanded("traceability.html", "traceability-open.html"));
+    written.put("projects-open.html", writeExpanded("projects.html", "projects-open.html"));
+    written.put("knowledge-open.html", writeExpanded("knowledge.html", "knowledge-open.html"));
 
     written.forEach((name, size) ->
         assertTrue(size > 4_000, name + " rendered only " + size + " bytes, which cannot be a full page"));
@@ -63,6 +69,22 @@ class PortalPreviewGeneratorTest {
   private static long write(String name, Map<String, Object> model) throws IOException {
     String html = render(model);
     Path target = OUTPUT.resolve(name);
+    Files.writeString(target, html, StandardCharsets.UTF_8);
+    return Files.size(target);
+  }
+
+  /**
+   * The same page with Alpine's visibility attributes removed, so collapsed forms render.
+   *
+   * <p>{@code x-show} does nothing without Alpine and {@code x-cloak} is hidden by the stylesheet, so a preview of a
+   * page whose main content is a form shows an empty panel. Stripping both is a display concession for looking at the
+   * design; it changes no behaviour in the real portal, where Alpine drives the toggles.
+   */
+  private static long writeExpanded(String from, String to) throws IOException {
+    String html = Files.readString(OUTPUT.resolve(from), StandardCharsets.UTF_8)
+        .replaceAll("x-show=\"[^\"]*\"", "")
+        .replace("x-cloak", "");
+    Path target = OUTPUT.resolve(to);
     Files.writeString(target, html, StandardCharsets.UTF_8);
     return Files.size(target);
   }

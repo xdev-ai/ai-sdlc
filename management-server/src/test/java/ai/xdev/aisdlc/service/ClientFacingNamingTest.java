@@ -29,11 +29,21 @@ class ClientFacingNamingTest {
   private static final Path SERVICES = Path.of("src", "main", "java", "ai", "xdev", "aisdlc", "service");
 
   /**
-   * Services whose {@code queryForList}/{@code queryForMap} rows are read in Java by snake_case key rather than
-   * returned as-is. Verified by grepping for {@code .get("some_column")} in each.
+   * Services whose rows are consumed in Java rather than returned, so their column names are SQL identifiers and
+   * should stay snake_case to match the schema they are read against.
+   *
+   * <p>Each was checked two ways: its controller returns typed records only, and its rows are read by
+   * {@code .get("some_column")} inside the service. Renaming those would need both sides moved together for no
+   * observable gain, and string keys give the compiler nothing to catch if one side is missed.
+   *
+   * <p>The exemption is per service, which is its weakness: {@code RiskIntelligenceService} sat on this list while
+   * one of its queries was embedded verbatim in an API response as {@code sourceSummary.latestQuality}, hidden inside
+   * a {@code Map} field of an otherwise typed record and invisible whenever no quality period had been recorded. It
+   * is no longer exempt. Before adding a service here, check whether any response record carries a {@code Map} that a
+   * row is placed into, and populate it before concluding the response is clean.
    */
   private static final List<String> INTERNAL_READERS = List.of(
-      "AgentRulesService.java", "RiskIntelligenceService.java", "RuntimeAiBrokerService.java",
+      "AgentRulesService.java", "RuntimeAiBrokerService.java",
       "RuntimeAiToolBrokerService.java", "KnowledgeBaseService.java", "PolicyEvaluationService.java",
       "RuntimeAiGovernanceService.java", "RuntimeAiProviderProxyService.java", "BudgetEnforcementService.java",
       "InferenceCostService.java");
@@ -48,12 +58,13 @@ class ClientFacingNamingTest {
         // The Java literal contains escaped quotes once a column is aliased (as \\"nodeType\\"), so a pattern that
         // stops at the first quote reads only the head of the statement and misses every column after it — which made
         // the first version of this guard pass while the alias it was written for had been removed.
-        // Every select literal, not only the ones handed to queryForList: most list endpoints build their SQL for a
-        // paged helper instead, and scanning just the direct calls is why the first version of this guard reported a
-        // clean service while twenty-seven columns were still going out as snake_case.
-        Matcher queries = Pattern.compile("\"(select(?:[^\"\\\\]|\\\\.)*)\"").matcher(source);
+        // Both string forms. A text block is the natural way to write a long query, and scanning only quoted
+        // literals meant a snake_case column inside one sailed past unnoticed — four services here use text blocks.
+        Matcher queries = Pattern.compile(
+            "\"\"\"(.*?)\"\"\"|\"(select(?:[^\"\\\\]|\\\\.)*)\"", Pattern.DOTALL).matcher(source);
         while (queries.find()) {
-          String select = queries.group(1);
+          String select = queries.group(1) != null ? queries.group(1) : queries.group(2);
+          if (select == null || !select.strip().toLowerCase().startsWith("select")) continue;
           int from = select.toLowerCase().indexOf(" from ");
           if (from < 0) continue;
           for (String column : select.substring("select".length(), from).split(",")) {

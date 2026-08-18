@@ -98,13 +98,21 @@ public class RiskIntelligenceService {
     }
     return converted;
   }
-  private Map<String, Object> latestQuality(UUID projectId) { var rows = jdbc.queryForList("select deployment_frequency, lead_time_hours, change_failure_rate, pr_review_time_delta_hours, rework_rate, review_queue_health, spec_alignment_score, security_debt_score, model_use_distribution from quality_metric_snapshots where project_id = ? order by period_end desc limit 1", projectId); return rows.isEmpty() ? Map.of() : rows.getFirst(); }
+  /**
+   * This row is embedded in the risk snapshot as {@code sourceSummary.latestQuality}, so its column names were the
+   * last snake_case keys reaching a client anywhere in the API — hidden inside a {@code Map} field of an otherwise
+   * typed record, and invisible whenever no quality period had been recorded yet.
+   *
+   * <p>The aliases and the {@code quality.get(...)} reads below have to move together: nothing would fail to compile
+   * if they diverged, and the score would quietly compute from zeros instead.
+   */
+  private Map<String, Object> latestQuality(UUID projectId) { var rows = jdbc.queryForList("select deployment_frequency as \"deploymentFrequency\", lead_time_hours as \"leadTimeHours\", change_failure_rate as \"changeFailureRate\", pr_review_time_delta_hours as \"prReviewTimeDeltaHours\", rework_rate as \"reworkRate\", review_queue_health as \"reviewQueueHealth\", spec_alignment_score as \"specAlignmentScore\", security_debt_score as \"securityDebtScore\", model_use_distribution as \"modelUseDistribution\" from quality_metric_snapshots where project_id = ? order by period_end desc limit 1", projectId); return rows.isEmpty() ? Map.of() : rows.getFirst(); }
   private int qualityRisk(Map<String, Object> quality) {
     if (quality.isEmpty()) return 0;
-    double failure = decimal(quality.get("change_failure_rate")); double rework = decimal(quality.get("rework_rate"));
-    double alignmentGap = 1 - decimal(quality.get("spec_alignment_score")); double queueGap = 1 - decimal(quality.get("review_queue_health"));
-    double lead = Math.min(decimal(quality.get("lead_time_hours")) / 168d, 1d); double review = Math.min(decimal(quality.get("pr_review_time_delta_hours")) / 168d, 1d);
-    double debt = decimal(quality.get("security_debt_score"));
+    double failure = decimal(quality.get("changeFailureRate")); double rework = decimal(quality.get("reworkRate"));
+    double alignmentGap = 1 - decimal(quality.get("specAlignmentScore")); double queueGap = 1 - decimal(quality.get("reviewQueueHealth"));
+    double lead = Math.min(decimal(quality.get("leadTimeHours")) / 168d, 1d); double review = Math.min(decimal(quality.get("prReviewTimeDeltaHours")) / 168d, 1d);
+    double debt = decimal(quality.get("securityDebtScore"));
     return cap(Math.round((float) (failure * 7 + rework * 3 + alignmentGap * 4 + queueGap * 3 + lead * 2 + review * 2 + debt * 4)), 10);
   }
   private double decimal(Object value) { return value instanceof BigDecimal d ? d.doubleValue() : value instanceof Number n ? n.doubleValue() : 0d; }
