@@ -19,6 +19,7 @@ All notable changes to the AI-SDLC platform are documented in this file. The rep
 
 ### Added
 
+- **Requirement specifications have an API.** `V22` created `requirement_specifications` and nothing used it, so a requirement could not answer which version of which analysis document specifies it. Links are append-only with one open link per requirement, so superseding closes the old link and opens a new one in one transaction, keeping the reason it stopped governing. Six project-scoped endpoints, including a gap report of requirements nothing currently specifies and a reverse read of what a document version governs. A deprecated document version cannot be newly assigned, though history keeps pointing at it.
 - P0 GitHub SCM governance: signed GitHub App webhook ingestion, idempotent delivery ledger, repository links, pull-request/commit/workflow/release correlation, policy Check Run publication, SSR administration workflow, and `aisdlc link-pr`.
 - P0 notification and approval orchestration: encrypted email/Slack/Teams/generic-webhook channels, signed versioned generic webhook delivery, immutable receipts, bounded retry/reconciliation, quorum, delegation, SLA reminders, escalation, and retained security-exception expiry notices.
 - P0 supply-chain controls: aggregate CycloneDX SBOM generation, SBOM evidence ingest, release provenance ledger, human verification workflow, GitHub artifact attestations, and optional keyless Cosign signature for checksum manifests.

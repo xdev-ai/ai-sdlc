@@ -367,6 +367,59 @@ Legal hold is a tenant-scoped, auditable control that prevents its own release b
 
 [3] [Keycloak 26.7.1 Server Administration Guide](https://www.keycloak.org/docs/26.7.1/server_admin/)
 
+## Requirement Specifications: Which Document Version Governs a Requirement
+
+The traceability graph records requirement → spec → task → test → evidence, and `spec_kits` records immutable document
+versions, but until now nothing connected the two. A requirement could not answer "which version of which analysis
+document specifies me" — the column an external requirement sheet carries as its analysis-document column.
+
+### Why a table and not a column
+
+A `spec_kit_id` column on `trace_nodes` would be overwritten every time a requirement is re-specified by a newer
+document, which destroys the one fact this exists for: when the governing document changed, who changed it, and what it
+was before. Document change management *is* the history, so the history is the schema. Links are append-only; a database
+trigger refuses both `DELETE` and any `UPDATE` that touches a column other than the supersede columns.
+
+A partial unique index permits exactly one **open** link per requirement, so superseding is close-then-insert in one
+transaction. The service does both statements itself rather than letting a client sequence them: a close without an
+insert leaves a requirement unspecified, and an insert without a close violates the index, so one failed request could
+otherwise leave the ledger in either state.
+
+### API Surface
+
+All endpoints are project scoped. Writes require owner or developer; reads accept viewer.
+
+| Endpoint | Method | Use |
+|---|---|---|
+| `/api/v1/projects/{projectId}/requirement-specifications` | `POST` | Link a requirement to a document version, superseding whatever governed it before. |
+| `/api/v1/projects/{projectId}/requirement-specifications` | `GET` | Paged list of the current specification of every requirement. |
+| `/api/v1/projects/{projectId}/requirement-specifications/close` | `POST` | Close the current link without opening another, for a withdrawn document. |
+| `/api/v1/projects/{projectId}/requirement-specifications/history/{traceNodeId}` | `GET` | Every link a requirement has ever had, current first, with the reason each was replaced. |
+| `/api/v1/projects/{projectId}/requirement-specifications/unspecified` | `GET` | Requirements nothing currently specifies. |
+| `/api/v1/projects/{projectId}/requirement-specifications/by-document/{specKitId}` | `GET` | Which requirements a document version currently governs, for impact analysis before revising it. |
+
+`sourceDocumentCode` is deliberately unconstrained beyond a length bound: it carries the document code exactly as the
+issuing system writes it. `spec_kits.slug` is restricted to `[a-z0-9-]`, so a code like `SPEC-042_v1.0` cannot
+round-trip through it, and losing the original reference breaks the link back to the authority that issued the document.
+
+### Refusals
+
+A **deprecated** document version cannot be assigned as a current specification (`409`), though superseded links keep
+pointing at it — history must stay readable. Superseding an existing link without a stated reason is refused (`400`), as
+is closing a link with a blank reason, closing a requirement that has no current link, and linking a requirement or a
+document that belongs elsewhere.
+
+### Verification
+
+Covered by 24 assertions in `scripts/feature-sweep.sh`, which runs in CI: the document code surviving verbatim, a
+revision opening a new link rather than editing the old one, the closed row still pointing at the version that used to
+govern along with the reason it stopped, the gap report flipping as links open and close, and a second close being
+refused rather than silently accepted. `RequirementSpecificationServiceTest` covers the refusals at the unit level.
+
+The five schema invariants were verified by attacking the live database directly, not only through the service: the
+rewrite trigger, the delete trigger, the partial unique index on open links, the constraint requiring the supersede
+columns to move together, and the constraint requiring `superseded_at >= linked_at`. All five refused.
+
 ## Knowledge Base: Project Documentation an AI Can Read
 
 Governance artifacts describe what was released. They do not hold the prose that explains a system — the analysis documents, process descriptions and operating procedures a team actually writes. Without somewhere to put that, an AI asked a question about the project has nothing to ground an answer in, and the documentation lives in a shared drive where no version, author or reason is recorded.

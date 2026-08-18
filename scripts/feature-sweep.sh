@@ -99,6 +99,87 @@ SCIM="$(inapi -o /dev/null -w '%{http_code}' "$API/scim/v2/tenants/00000000-0000
 SCIMBAD="$(inapi -o /dev/null -w '%{http_code}' -H 'Authorization: Bearer not-a-real-token' "$API/scim/v2/tenants/00000000-0000-0000-0000-000000000001/Users")"
 [ "$SCIMBAD" = "401" ] && ok "SCIM with a wrong token is refused (HTTP 401)" || bad "SCIM accepted a wrong token (HTTP $SCIMBAD)"
 
+step "Requirement specifications — which document version governs a requirement"
+# V22 created requirement_specifications and nothing used it, so this surface had no API and no coverage at all.
+# What matters here is the history: superseding must close the old link and open a new one in one transaction, and the
+# closed row must keep pointing at the document that used to govern, with the reason it stopped.
+REQ_KEY="REQ-SWEEP-$SUFFIX"
+NODE="$(authpost "/api/v1/projects/$PROJECT/trace/nodes" "{\"type\":\"REQUIREMENT\",\"externalKey\":\"$REQ_KEY\",\"label\":\"Requirement under sweep\",\"status\":\"OPEN\"}" | jq_ "d.get('id','')")"
+[ -n "$NODE" ] && ok "requirement node created" || bad "could not create a requirement node"
+KIT1="$(authpost "/api/v1/organizations/$ORG/spec-kits" "{\"slug\":\"sweep-analysis-$SUFFIX\",\"version\":\"1.0\",\"layer\":\"EXTENSION\",\"manifest\":\"{}\"}" | jq_ "d.get('id','')")"
+KIT2="$(authpost "/api/v1/organizations/$ORG/spec-kits" "{\"slug\":\"sweep-analysis-$SUFFIX\",\"version\":\"2.0\",\"layer\":\"EXTENSION\",\"manifest\":\"{}\"}" | jq_ "d.get('id','')")"
+[ -n "$KIT1" ] && [ -n "$KIT2" ] && ok "two document versions registered" || bad "could not register document versions"
+
+RS_BASE="/api/v1/projects/$PROJECT/requirement-specifications"
+LINK1="$(authpost "$RS_BASE" "{\"traceNodeId\":\"$NODE\",\"specKitId\":\"$KIT1\",\"sourceDocumentCode\":\"SPEC-042_v1.0\"}" | jq_ "d.get('id','')")"
+[ -n "$LINK1" ] && ok "requirement linked to a document version" || bad "linking failed"
+
+# The document code must survive verbatim: spec_kits.slug is [a-z0-9-] only, so SPEC-042_v1.0 cannot round-trip
+# through it, and losing it breaks the reference back to the issuing authority.
+CODE_BACK="$(authget "$RS_BASE?page=0&size=25" | jq_ "next((r['sourceDocumentCode'] for r in (d.get('items') or []) if r['id']=='$LINK1'), '')")"
+[ "$CODE_BACK" = "SPEC-042_v1.0" ] && ok "the source document code is stored case- and character-intact" || bad "document code came back as '$CODE_BACK'"
+
+# One current link per requirement is a partial unique index, so replacing must be close-then-insert, not insert.
+CODE="$(postcode "$RS_BASE" "{\"traceNodeId\":\"$NODE\",\"specKitId\":\"$KIT2\",\"sourceDocumentCode\":\"SPEC-042_v2.0\"}")"
+[ "$CODE" = "400" ] && ok "superseding without a stated reason is refused (HTTP 400)" || bad "expected 400 for a supersede with no reason, got $CODE"
+LINK2="$(authpost "$RS_BASE" "{\"traceNodeId\":\"$NODE\",\"specKitId\":\"$KIT2\",\"sourceDocumentCode\":\"SPEC-042_v2.0\",\"supersedeReason\":\"analysis document revised\"}" | jq_ "d.get('id','')")"
+[ -n "$LINK2" ] && [ "$LINK2" != "$LINK1" ] && ok "a revision opens a new link rather than editing the old one" || bad "supersede returned '$LINK2'"
+
+CURRENT="$(authget "$RS_BASE?page=0&size=50" | jq_ "len([r for r in (d.get('items') or []) if r['traceNodeId']=='$NODE'])")"
+[ "$CURRENT" = "1" ] && ok "exactly one current specification per requirement" || bad "the requirement has $CURRENT current specifications"
+
+if authget "$RS_BASE/history/$NODE" | python3 -c "
+import json,sys
+rows=json.load(sys.stdin)
+by={r['id']:r for r in rows}
+print(('OK ' if len(rows)==2 else 'BAD ')+'the history keeps both links (%d rows)' % len(rows))
+old=by.get('$LINK1',{}); new=by.get('$LINK2',{})
+print(('OK ' if old.get('supersededAt') else 'BAD ')+'the replaced link is marked superseded')
+print(('OK ' if old.get('supersedeReason')=='analysis document revised' else 'BAD ')+'the reason it stopped governing is retained')
+print(('OK ' if old.get('documentVersion')=='1.0' else 'BAD ')+'the closed link still points at the version that used to govern')
+print(('OK ' if not new.get('supersededAt') else 'BAD ')+'the new link is open')
+print(('OK ' if rows and rows[0].get('id')=='$LINK2' else 'BAD ')+'history returns the current link first')
+" > /tmp/aisdlc-rs-history.txt 2>&1; then
+  while read -r line; do case "$line" in "OK "*) ok "${line#OK }";; "BAD "*) bad "${line#BAD }";; esac; done < /tmp/aisdlc-rs-history.txt
+else
+  bad "history read failed: $(tr '\n' ' ' < /tmp/aisdlc-rs-history.txt)"
+fi
+
+# Reverse read, for impact analysis before revising a document.
+GOVERNS="$(authget "$RS_BASE/by-document/$KIT2" | jq_ "len([r for r in d if r['traceNodeId']=='$NODE'])")"
+[ "$GOVERNS" = "1" ] && ok "the document version reports the requirement it governs" || bad "by-document returned $GOVERNS rows"
+GOVERNED_OLD="$(authget "$RS_BASE/by-document/$KIT1" | jq_ "len([r for r in d if r['traceNodeId']=='$NODE'])")"
+[ "$GOVERNED_OLD" = "0" ] && ok "the superseded version no longer reports it as current" || bad "the old version still claims $GOVERNED_OLD current requirements"
+
+# A deprecated document must not become the current authority, though history may still point at it.
+authpost "/api/v1/organizations/$ORG/spec-kits/$KIT1/deprecate" '{"reason":"superseded by 2.0"}' >/dev/null
+NODE2="$(authpost "/api/v1/projects/$PROJECT/trace/nodes" "{\"type\":\"REQUIREMENT\",\"externalKey\":\"$REQ_KEY-B\",\"label\":\"Second requirement\",\"status\":\"OPEN\"}" | jq_ "d.get('id','')")"
+CODE="$(postcode "$RS_BASE" "{\"traceNodeId\":\"$NODE2\",\"specKitId\":\"$KIT1\",\"sourceDocumentCode\":\"SPEC-042_v1.0\"}")"
+[ "$CODE" = "409" ] && ok "a deprecated document version cannot be assigned (HTTP 409)" || bad "expected 409 for a deprecated document, got $CODE"
+
+# The gap report: a matrix listing only what is linked reads as complete when it is not.
+UNSPEC="$(authget "$RS_BASE/unspecified" | jq_ "len([r for r in d if r['externalKey']=='$REQ_KEY-B'])")"
+[ "$UNSPEC" = "1" ] && ok "an unspecified requirement is reported as a gap" || bad "the unspecified requirement was not reported"
+UNSPEC_LINKED="$(authget "$RS_BASE/unspecified" | jq_ "len([r for r in d if r['externalKey']=='$REQ_KEY'])")"
+[ "$UNSPEC_LINKED" = "0" ] && ok "a specified requirement is not reported as a gap" || bad "a linked requirement appeared in the gap report"
+
+# Closing without replacing is a real state and must be stated deliberately.
+CODE="$(postcode "$RS_BASE/close" "{\"traceNodeId\":\"$NODE\",\"reason\":\"\"}")"
+[ "$CODE" = "400" ] && ok "closing a link with a blank reason is refused (HTTP 400)" || bad "expected 400 for a blank close reason, got $CODE"
+CODE="$(postcode "$RS_BASE/close" "{\"traceNodeId\":\"$NODE\",\"reason\":\"document withdrawn\"}")"
+[ "$CODE" = "204" ] && ok "the current link closes" || bad "expected 204 closing the link, got $CODE"
+AFTER="$(authget "$RS_BASE/unspecified" | jq_ "len([r for r in d if r['externalKey']=='$REQ_KEY'])")"
+[ "$AFTER" = "1" ] && ok "after closing, the requirement shows as a gap" || bad "the closed requirement did not appear as a gap"
+CODE="$(postcode "$RS_BASE/close" "{\"traceNodeId\":\"$NODE\",\"reason\":\"again\"}")"
+[ "$CODE" = "400" ] && ok "closing an already-closed requirement is refused, not silently accepted (HTTP 400)" || bad "expected 400 on a second close, got $CODE"
+
+# Append-only is enforced by a database trigger, not only by the service. Nothing deletes history.
+HISTORY_KEPT="$(authget "$RS_BASE/history/$NODE" | jq_ "len(d)")"
+[ "$HISTORY_KEPT" = "2" ] && ok "closing kept both links; nothing was deleted" || bad "history now holds $HISTORY_KEPT rows"
+
+CODE="$(inapi -o /dev/null -w '%{http_code}' "$API$RS_BASE")"
+[ "$CODE" = "401" ] && ok "an anonymous caller is refused (HTTP 401)" || bad "expected 401 without a token, got $CODE"
+
 step "Paging contract"
 P="$(authget "/api/v1/organizations/$ORG/audit-events?page=0&size=5")"
 printf '%s' "$P" | grep -q '"totalItems"' && ok "paged envelope returned" || bad "no paging envelope"
