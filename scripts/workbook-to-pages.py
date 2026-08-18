@@ -164,6 +164,36 @@ def escape(text):
     return text.replace("\\", "\\\\").replace("\n", " ").replace("\r", " ").replace("|", "\\|").strip()
 
 
+def is_ordinal(value):
+    return re.fullmatch(r"[0-9]+(\.[0-9]+)*", value) is not None
+
+
+def row_key(row, columns):
+    """The heading a citation will show for this row, so it has to identify the row to a reader.
+
+    Taking the first non-empty cell is the obvious choice and it was wrong on a real import: where the first column
+    is a sequence number, 90% of the sections ended up cited as "<sheet> > 1" — a reference that tells the reader
+    nothing about what the row says, which defeats the point of citing a section at all.
+
+    The ordinal is still worth keeping, because it is how a person finds the row back in the spreadsheet. So a numeric
+    first cell becomes a prefix on the first cell that carries words: "1 · <the row's own wording>".
+
+    A row whose every cell is a number is usually a total line. There the number means nothing without the column it
+    sits under, so the column name is borrowed as the label: "<column> 140".
+    """
+    cells = [(columns[index] if index < len(columns) else "", escape(value))
+             for index, value in enumerate(row) if str(value).strip()]
+    cells = [(label, value) for label, value in cells if value]
+    if not cells:
+        return ""
+    ordinal = cells[0][1] if is_ordinal(cells[0][1]) else None
+    for _, value in cells[1:] if ordinal else cells:
+        if not is_ordinal(value):
+            return "%s · %s" % (ordinal, value) if ordinal else value
+    # Every cell is numeric. The bare figures identify nothing on their own, so qualify them with their columns.
+    return " · ".join(("%s %s" % (label, value)).strip() for label, value in cells[:2])
+
+
 def sheet_to_markdown(name, rows):
     header_index, header = pick_header(rows)
     if header is None:
@@ -177,7 +207,7 @@ def sheet_to_markdown(name, rows):
     for row in rows[header_index + 1:]:
         if not any(row):
             continue
-        key = next((escape(value) for value in row if value), "")
+        key = row_key(row, columns)
         if not key:
             continue
         written += 1

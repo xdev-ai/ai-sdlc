@@ -48,6 +48,8 @@ sheet1 = sheet([
     [],
     [('i', 'REQ-2'), ('s', 5), ('i', 'line one&#10;line two')],
     [('i', 'REQ-3'), ('i', 'Tra cứu'), ('n', '12.0')],
+    [('n', '7'), ('i', 'Dòng bắt đầu bằng số thứ tự'), ('i', 'x')],
+    [None, None, ('n', '140')],
 ])
 # Sheet 2: same name as sheet 1 after slugification, to force a distinct slug.
 sheet2 = sheet([
@@ -110,8 +112,14 @@ check('**Mã**' in body, 'the real header row on line 2 was not used for column 
 
 # Every data row becomes its own section. Three data rows: REQ-1, REQ-2, REQ-3. The empty row must not.
 sections = re.findall(r'^## (.+)$', body, re.M)
-check(len(sections) == 3, 'expected 3 row sections, got %d: %r' % (len(sections), sections))
-check(sections == ['REQ-1', 'REQ-2', 'REQ-3'], 'sections are keyed wrongly: %r' % sections)
+check(len(sections) == 5, 'expected 5 row sections, got %d: %r' % (len(sections), sections))
+check(sections[:3] == ['REQ-1', 'REQ-2', 'REQ-3'], 'sections are keyed wrongly: %r' % sections)
+# A row whose first cell is a sequence number must still cite as something a reader recognises: the ordinal is kept
+# as a prefix rather than becoming the whole heading. Taking the first cell verbatim made 90% of one real import cite
+# as "<sheet> > 1", which identifies nothing.
+check(sections[3] == '7 · Dòng bắt đầu bằng số thứ tự', 'a numeric first cell became the whole heading: %r' % sections[3])
+# A total row carries only figures. A citation of "§ 140" identifies nothing, so the column name is borrowed.
+check(sections[4] == 'Ghi chú 140', 'an all-numeric row was cited by the bare figure: %r' % sections[4])
 
 # A row must be interpretable alone, which means its column names travel with it.
 third = body.split('## REQ-3')[1]
