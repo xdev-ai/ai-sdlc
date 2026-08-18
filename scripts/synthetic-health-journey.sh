@@ -57,8 +57,15 @@ if [ "$status" = "200" ]; then
     status="$(curl -sS -m "$TIMEOUT" -o /dev/null -w '%{http_code}' "$AISDLC_SYNTHETIC_API_BASE_URL/actuator/health/readiness" || echo 000)"
     if [ "$status" = "200" ]; then
       stage="authorized-read"
+      # /api/v1/organizations, not /api/v1/projects: there is no unscoped project list — project listing is
+      # organization-scoped at /api/v1/organizations/{organizationId}/projects. The probe read a route that does not
+      # exist, so it returned 404 on a perfectly healthy platform and this availability SLI reported "bad" on every
+      # single pass. An indicator that is always red is an indicator nobody acts on.
+      #
+      # Organizations is the right read for a probe: it exists, it requires a token, and it needs no identifier the
+      # probe would otherwise have to be configured with.
       status="$(curl -sS -m "$TIMEOUT" -o /dev/null -w '%{http_code}' \
-        -H "Authorization: Bearer $ACCESS_TOKEN" "$AISDLC_SYNTHETIC_API_BASE_URL/api/v1/projects?page=0&size=1" || echo 000)"
+        -H "Authorization: Bearer $ACCESS_TOKEN" "$AISDLC_SYNTHETIC_API_BASE_URL/api/v1/organizations?page=0&size=1" || echo 000)"
       case "$status" in 200|204) outcome="good" ;; esac
     fi
   fi

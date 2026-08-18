@@ -47,8 +47,16 @@ ${bound_startup[@]+"${bound_startup[@]}"} "${compose[@]}" up --build --wait --wa
 
 curl --fail --silent --show-error --connect-timeout 5 --max-time 10 --retry 12 --retry-all-errors --retry-delay 2 \
   http://localhost:8180/realms/ai-sdlc/.well-known/openid-configuration >/dev/null
-curl --fail --silent --show-error --connect-timeout 5 --max-time 10 --retry 12 --retry-all-errors --retry-delay 2 \
-  http://localhost:18081/actuator/health/readiness >/dev/null
+# Readiness is read from inside the container, not through a published port.
+#
+# This used to curl http://localhost:18081, which required the integration overlay to publish the management API to
+# the host — in the same run whose step 10 asserts that the API must never be on the host. The contradiction went
+# unnoticed only because that assertion probed port 8081 while the exposure was on 18081, so it reported "not
+# published" about an API that was published. Removing the need for the port removes the contradiction, and now the
+# suite's own topology satisfies the property it checks.
+"${compose[@]}" exec -T management-server sh -lc \
+  'for attempt in $(seq 1 24); do wget -qO- http://localhost:8081/actuator/health/readiness 2>/dev/null | grep -q UP && exit 0; sleep 2; done; exit 1' \
+  >/dev/null
 curl --fail --silent --show-error --connect-timeout 5 --max-time 10 --retry 12 --retry-all-errors --retry-delay 2 \
   http://localhost:19000/minio/health/ready >/dev/null
 curl --fail --silent --show-error --connect-timeout 5 --max-time 10 --retry 12 --retry-all-errors --retry-delay 2 \

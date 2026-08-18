@@ -1,7 +1,8 @@
 services:
-  management-server:
-    ports:
-      - "18081:8081"
+  # The management API is deliberately absent here. It used to publish 18081:8081 so the smoke script could read
+  # readiness from the host, which exposed the control plane on the CI host while the same run asserted it must not be
+  # exposed. The script now reads readiness inside the container, so the port is no longer needed and the test
+  # topology no longer contradicts the property under test.
   minio:
     ports:
       - "19000:9000"

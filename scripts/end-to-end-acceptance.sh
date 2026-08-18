@@ -160,10 +160,35 @@ COUNT="$(authget "/api/v1/organizations/$ORG/audit-events?page=0&size=50" | jq_ 
 [ "${COUNT:-0}" -ge 10 ] && ok "audit ledger recorded ${COUNT} events for this run" || bad "expected at least 10 audit events across the full flow, saw ${COUNT:-0}"
 
 step "10  Confirm the management API stays off the host network"
-if curl -s -m 5 -o /dev/null http://localhost:8081/actuator/health 2>/dev/null; then
-  bad "the management API answered on the host; it must stay on the private network"
+
+# Asserted against the container's actual port bindings, not by probing a port number.
+#
+# The previous version checked whether anything answered on http://localhost:8081. That was wrong in both directions.
+# It produced a false failure on any machine where another project happens to occupy 8081 — which happened, against a
+# different Spring Boot application that answers /actuator/health with the same shape and /api/v1/* with the same 401,
+# so no response-based check could have told them apart. Worse, it only ever looked at one port: had the management
+# API been published on any other host port, the check would have passed while the property it guards was broken.
+#
+# The binding list is the property itself, so that is what gets read.
+MS_CONTAINER="$(docker ps --filter "network=$NETWORK" --filter "name=management-server" --format '{{.Names}}' | head -1)"
+if [ -z "$MS_CONTAINER" ]; then
+  bad "could not find the management-server container on network $NETWORK, so its exposure is unverified"
 else
-  ok "the management API is not published to the host"
+  HOST_BINDINGS="$(docker inspect "$MS_CONTAINER" \
+    --format '{{range $port, $binds := .NetworkSettings.Ports}}{{if $binds}}{{$port}}{{range $binds}} -> {{.HostIp}}:{{.HostPort}}{{end}}{{"\n"}}{{end}}{{end}}' 2>/dev/null)"
+  if [ -z "$(printf '%s' "$HOST_BINDINGS" | tr -d '[:space:]')" ]; then
+    ok "the management API publishes no port to the host ($MS_CONTAINER)"
+  else
+    bad "the management API is published to the host: $(printf '%s' "$HOST_BINDINGS" | tr '\n' ' ')"
+  fi
+
+  # A second, independent reading: if something does answer on the host, say whether it is even this service, so the
+  # next person is not sent chasing an unrelated process.
+  if curl -s -m 5 -o /dev/null http://localhost:8081/actuator/health 2>/dev/null; then
+    OWNER="$(docker ps --filter 'publish=8081' --format '{{.Names}} ({{.Image}})' | head -1)"
+    printf '  \033[33m--\033[0m    something answers on host:8081 — %s. Not this stack; the binding check above is authoritative.\n' \
+      "${OWNER:-unidentified process}"
+  fi
 fi
 
 printf '\n=== summary ===\n%d passed, %d failed\n' "$pass" "$fail"
