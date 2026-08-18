@@ -52,11 +52,24 @@ echo "organization $ORG / space key $KEY"
 # ---------------------------------------------------------------------------------------------------------------
 step "Spaces"
 
+# An early failure used to leave its space behind, un-archived, where it then showed up in every later listing and in
+# the agent-rules bundle as a real documentation space with no pages. A sweep that litters the environment it measures
+# makes the next run harder to read, so the space is archived on any exit path.
+CREATED_SPACE=""
+cleanup_space() {
+  if [ -n "$CREATED_SPACE" ]; then
+    delcode "/api/v1/organizations/$ORG/knowledge/spaces/$CREATED_SPACE" >/dev/null 2>&1 || true
+    printf '  \033[33m--\033[0m    archived the sweep space on exit (%s)\n' "$CREATED_SPACE"
+  fi
+}
+trap cleanup_space EXIT
+
 SPACE_JSON="$(authpost "/api/v1/organizations/$ORG/knowledge/spaces" \
   "{\"spaceKey\":\"$KEY\",\"name\":\"Sweep space\",\"description\":\"created by knowledge-sweep.sh\"}")"
 SPACE="$(printf '%s' "$SPACE_JSON" | jq_ "d.get('id','')")"
 [ -n "$SPACE" ] && ok "space created ($SPACE)" || bad "space create failed: $(printf '%s' "$SPACE_JSON" | head -c 300)"
 [ -z "$SPACE" ] && { echo "cannot continue without a space"; exit 1; }
+CREATED_SPACE="$SPACE"
 
 DUP="$(postcode "/api/v1/organizations/$ORG/knowledge/spaces" "{\"spaceKey\":\"$KEY\",\"name\":\"Duplicate\"}")"
 [ "$DUP" = "409" ] && ok "a duplicate space key is refused (409)" || bad "duplicate space key returned $DUP, expected 409"
@@ -282,10 +295,54 @@ UPPER="$(postcode "/api/v1/organizations/$ORG/knowledge/spaces/$SPACE/pages" \
   || bad "uppercase slug returned $UPPER"
 
 # ---------------------------------------------------------------------------------------------------------------
+step "Governing rules an AI agent is handed"
+
+# The rules bundle is what every AI assistant on every developer machine reads. If it drifts, agents on different
+# machines work to different rules, which is the one failure this endpoint exists to prevent.
+RULES_PROJECT="$(authget "/api/v1/organizations/$ORG/projects?page=0&size=1" | jq_ "d['items'][0]['id'] if d.get('items') else ''")"
+if [ -z "$RULES_PROJECT" ]; then
+  bad "no project in this organization, so the agent-rules bundle is untested"
+else
+  RULES="$(authget "/api/v1/projects/$RULES_PROJECT/agent-rules")"
+  INVARIANTS="$(printf '%s' "$RULES" | jq_ "len(d.get('invariants',[]))")"
+  [ "${INVARIANTS:-0}" -ge 5 ] && ok "the bundle carries the platform invariants ($INVARIANTS)" \
+    || bad "invariants missing from the rules bundle: $(printf '%s' "$RULES" | head -c 200)"
+
+  ORGID="$(printf '%s' "$RULES" | jq_ "d.get('organizationId','')")"
+  [ "$ORGID" = "$ORG" ] && ok "it carries organizationId, so a client knowing only a project can reach the docs" \
+    || bad "organizationId is '$ORGID', expected $ORG"
+
+  COMPLETENESS="$(printf '%s' "$RULES" | jq_ "d.get('completeness','')")"
+  case "$COMPLETENESS" in
+    COMPLETE|PARTIAL|UNCONFIGURED) ok "configuration state is reported as $COMPLETENESS, not left for the caller to guess" ;;
+    *) bad "completeness is '$COMPLETENESS'" ;;
+  esac
+
+  SPACES="$(printf '%s' "$RULES" | jq_ "len(d.get('knowledgeSpaces',[]))")"
+  [ "${SPACES:-0}" -ge 1 ] && ok "documentation spaces are listed for retrieval ($SPACES)" \
+    || bad "the bundle lists no documentation space, though this sweep created one"
+
+  MD="$(authget "/api/v1/projects/$RULES_PROJECT/agent-rules/markdown")"
+  case "$MD" in
+    *"Platform invariants"*) ok "the Markdown rendering is produced by the server, not by each client" ;;
+    *) bad "markdown bundle looks wrong: $(printf '%s' "$MD" | head -c 160)" ;;
+  esac
+  case "$MD" in
+    *"lexical, not semantic"*) ok "the Markdown states that retrieval is lexical, where an agent will read it" ;;
+    *) bad "the lexical caveat is absent from the agent-facing text" ;;
+  esac
+
+  FOREIGN="$(authcode "/api/v1/projects/00000000-0000-0000-0000-0000000000ff/agent-rules")"
+  [ "$FOREIGN" = "400" ] || [ "$FOREIGN" = "404" ] \
+    && ok "an unknown project is refused (HTTP $FOREIGN)" || bad "unknown project returned $FOREIGN"
+fi
+
+# ---------------------------------------------------------------------------------------------------------------
 step "Archiving"
 
 ARCHIVED="$(delcode "/api/v1/organizations/$ORG/knowledge/spaces/$SPACE")"
 [ "$ARCHIVED" = "200" ] && ok "space archived" || bad "archive returned $ARCHIVED"
+CREATED_SPACE=""
 
 AFTER="$(postcode "/api/v1/organizations/$ORG/knowledge/spaces/$SPACE/pages" \
   '{"slug":"too-late","title":"x","body":"y"}')"

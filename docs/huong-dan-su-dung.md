@@ -9,6 +9,7 @@ Nó viết cho người quản trị (`admin`) mở portal lần đầu. Mọi b
 - [Tám bước cấu hình](#tám-bước-cấu-hình)
 - [Bước 9: dữ liệu vào bằng CLI](#bước-9-dữ-liệu-vào-bằng-cli)
 - [Sau khi có dữ liệu](#sau-khi-có-dữ-liệu)
+- [Cho AI trên máy bạn dùng kho này](#cho-ai-trên-máy-bạn-dùng-kho-này)
 - [Những chỗ dễ mắc](#những-chỗ-dễ-mắc)
 
 ## Luật chơi, nói trước
@@ -92,6 +93,37 @@ Sau khi `sync` xong, dữ liệu mới xuất hiện ở Validations, Traceabili
 - **Evidence repository** — tải hiện vật lên, khoá lưu trữ (`GOVERNANCE` hoặc `COMPLIANCE`). Máy chủ tự tính SHA-256; gửi kèm digest thì nó đối chiếu.
 - **Review queue** — tạo mục rà soát và quyết định `APPROVED`/`REJECTED`.
 - **Audit ledger** — chuỗi băm chỉ-ghi-thêm; có nút kiểm tra tính toàn vẹn.
+
+## Cho AI trên máy bạn dùng kho này
+
+Đây là phần biến kho tài liệu thành thứ mà AI đang chạy trên máy lập trình viên đọc được.
+
+Mỗi máy cài **một** thứ: chính binary `aisdlc` đã có. Nó chạy thêm được một MCP server, nên bất kỳ trợ lý AI nào nói
+MCP (Claude Code, Claude Desktop, Cursor, Windsurf...) đều dùng được kho tài liệu và **bộ luật** của dự án.
+
+```bash
+aisdlc login --token-url https://auth.example/realms/ai-sdlc/protocol/openid-connect/token --client-secret <secret>
+claude mcp add aisdlc -- aisdlc mcp --api-url https://control.example.com --project <project-uuid>
+```
+
+Không cần khai organization — server tự suy ra từ project.
+
+AI sẽ có 4 công cụ:
+
+| Công cụ | Dùng để |
+|---|---|
+| `aisdlc_get_rules` | Đọc luật: constitution đang hiệu lực, policy đang bật, Spec Kit đã ghim, và các bất biến của nền tảng |
+| `aisdlc_search_docs` | Tìm mục tài liệu, có bỏ dấu, kèm đường dẫn tiêu đề để trích dẫn |
+| `aisdlc_get_context` | Lấy đúng lượng ngữ cảnh vừa prompt, mỗi đoạn có trích dẫn |
+| `aisdlc_read_page` | Đọc trọn một trang ở phiên bản hiện tại |
+
+Điểm quan trọng nhất: **bộ luật do server phát ra**, không phải mỗi máy tự ghép. Nếu để client tự ghép, hai máy chạy
+hai phiên bản client sẽ hiểu luật khác nhau — mà luật khác nhau theo máy thì không còn là luật. Bản Markdown cũng do
+server tạo, vì client nào định dạng được luật thì cũng làm nhẹ luật được.
+
+Bundle này còn báo `completeness` là `COMPLETE` / `PARTIAL` / `UNCONFIGURED` kèm danh sách thiếu, để AI phân biệt
+"không có luật nào áp dụng" với "chưa ai cấu hình luật". Chỗ chưa có constitution nó nói thẳng: *đừng tự nghĩ ra một
+cái.*
 
 ## Những chỗ dễ mắc
 

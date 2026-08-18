@@ -3,6 +3,7 @@
 Everything that talks to the control plane from outside: the CLI, the language SDKs, the Terraform provider, the IDE manifest, and the module contracts that let a package be adopted on its own.
 
 - [AI-SDLC CLI](#ai-sdlc-cli)
+- [MCP server: the knowledge base inside an AI assistant](#mcp-server-the-knowledge-base-inside-an-ai-assistant)
 - [SDK Reference](#sdk-reference)
 - [Terraform Provider](#terraform-provider)
 - [IDE Integration](#ide-integration)
@@ -85,6 +86,97 @@ The supported asset types are `VALIDATION`, `SPECIFICATION`, `REVIEW`, `GOVERNAN
 Use `aisdlc status --json` for a local, non-network diagnostic of config and the last JSON validation result.
 
 ---
+
+## MCP server: the knowledge base inside an AI assistant
+
+An AI assistant on a developer's machine cannot use governed documentation it has no way to read. `aisdlc mcp` is a
+Model Context Protocol server on stdio, so any assistant that speaks MCP — Claude Code, Claude Desktop, Cursor,
+Windsurf, and others — can retrieve this project's documentation with citations and read the rules it must work under.
+
+### Why it lives in the CLI binary
+
+One install, one credential path, one thing to update. `aisdlc` is already installed to validate and sync, already
+authenticates, and already stores a token at `~/.config/aisdlc/token.json`. A separate binary or an npm package would
+mean a second install, a second login, and a second place for a bearer token to leak.
+
+The protocol is implemented against the Go standard library. The CLI module has **no external dependencies and no
+`go.sum`**, which is worth keeping for a process that runs on every developer machine and holds a credential: the
+supply chain is the standard library. MCP is JSON-RPC 2.0 over newline-delimited stdio, and a tools-only server needs
+a small enough subset that a dependency would cost more than it saves.
+
+### Tools it exposes
+
+| Tool | Returns |
+|---|---|
+| `aisdlc_get_rules` | The governing bundle as Markdown: active constitution, active policies, pinned Spec Kits, available documentation, and the platform invariants. |
+| `aisdlc_search_docs` | Matching sections with the heading path that cites each one. Accent-insensitive: `tiep nhan` finds `tiếp nhận`. |
+| `aisdlc_get_context` | A prompt-sized bundle for a question, every section carrying a citation, with the character budget stated. |
+| `aisdlc_read_page` | One page in full at its current version. |
+
+Failures arrive as tool content flagged `isError`, not as transport errors, so the model reads the message and can
+correct itself. An expired credential says `run aisdlc login again` rather than returning nothing — an MCP server that
+fails quietly presents inside an editor as tools that mysteriously return empty.
+
+An empty search result is worded deliberately: *no wording matched, which is not evidence that the documentation omits
+the subject.* Retrieval is lexical, and an agent that conflates "no match" with "not documented" will confidently
+report that a requirement does not exist.
+
+### Install
+
+Log in once, then register the server with the assistant.
+
+```bash
+aisdlc login --token-url https://auth.example/realms/ai-sdlc/protocol/openid-connect/token --client-secret <secret>
+```
+
+Claude Code:
+
+```bash
+claude mcp add aisdlc -- aisdlc mcp --api-url https://control.example.com --project <project-uuid>
+```
+
+Anything that reads a JSON config (Claude Desktop, Cursor, Windsurf):
+
+```json
+{
+  "mcpServers": {
+    "aisdlc": {
+      "command": "aisdlc",
+      "args": ["mcp", "--api-url", "https://control.example.com", "--project", "<project-uuid>"]
+    }
+  }
+}
+```
+
+The organization is **not** configured: the server resolves it from the project through the rules endpoint and
+remembers it. A value nobody can derive is a value people paste wrongly.
+
+`--api-url`, `--project` and `--token` each fall back to `.aisdlc.yml`, then to `AISDLC_API_URL`, `AISDLC_PROJECT` and
+`AISDLC_ACCESS_TOKEN`. Diagnostics go to stderr, never stdout: stdout is the protocol transport, and one stray log line
+there corrupts the stream into an unhelpful "server disconnected".
+
+### The rules bundle is composed by the server
+
+`GET /api/v1/projects/{projectId}/agent-rules` returns the bundle as JSON, and `/agent-rules/markdown` returns the text
+an agent is handed. Both are assembled server-side on purpose.
+
+Every part of it already exists as its own endpoint, so a client could fetch four things and combine them — and then
+two machines running two client versions would disagree about what the rules are. Rules that differ per machine are not
+rules. The Markdown is rendered server-side for the same reason: a client that formats the rules can also quietly
+soften them.
+
+The bundle reports `completeness` as `COMPLETE`, `PARTIAL` or `UNCONFIGURED` with a `missing` list, because "no rules
+apply here" and "nobody has configured the rules yet" are different situations and an agent must not treat the second
+as the first. Where a constitution is absent it says so explicitly: *do not invent one.*
+
+`invariants` are statements about how this platform behaves, each enforced somewhere in the codebase — validation never
+calls a model; evidence enters through the CLI or a webhook, never the UI; only pinned kits apply; a finding closed as
+`FALSE_POSITIVE` needs a rationale; retrieval is lexical; traceability is never inferred. An agent that does not know
+these produces confidently wrong work, such as telling a human to look for a button that does not exist.
+
+Verified by `scripts/knowledge-sweep.sh` against the live stack, and by the Go tests in `cli/internal/mcp`, which
+exercise the handshake, notification handling, malformed input, argument validation, credential failure, and the
+organization resolution being cached rather than repeated.
 
 ## SDK Reference
 

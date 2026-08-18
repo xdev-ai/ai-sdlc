@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/xdev-ai/ai-sdlc/cli/internal/engine"
+	"github.com/xdev-ai/ai-sdlc/cli/internal/mcp"
 )
 
 const version = "0.1.0"
@@ -37,6 +38,8 @@ func main() {
 		upload(os.Args[2:])
 	case "link-pr":
 		linkPullRequest(os.Args[2:])
+	case "mcp":
+		serveMCP(os.Args[2:])
 	case "version", "--version", "-v":
 		fmt.Println(version)
 	default:
@@ -236,7 +239,63 @@ func status(args []string) {
 	fmt.Printf("configured=%t project=%s api=%s last_validation=%s findings=%d\n", report.Configured, report.Project, report.APIURL, report.LastValidation, report.FindingCount)
 }
 
+// serveMCP runs the Model Context Protocol server on stdin/stdout so any AI assistant that supports MCP can read this
+// project's documentation and its governing rules.
+//
+// It writes nothing to stdout except protocol messages. An MCP transport is the process's stdout, so a stray log line
+// there corrupts the stream and the assistant reports an unhelpful "server disconnected"; diagnostics go to stderr.
+func serveMCP(args []string) {
+	fs := flag.NewFlagSet("mcp", flag.ExitOnError)
+	configPath := fs.String("config", engine.DefaultConfigPath, "AI-SDLC configuration path")
+	apiURL := fs.String("api-url", "", "Control-plane base URL (defaults to the configured one)")
+	project := fs.String("project", "", "Project UUID (defaults to the configured one)")
+	organization := fs.String("org", "", "Organization UUID (resolved from the project when omitted)")
+	token := fs.String("token", "", "Access token (defaults to the stored login, then AISDLC_ACCESS_TOKEN)")
+	_ = fs.Parse(args)
+
+	config, _ := engine.LoadConfigIfPresent(*configPath)
+	resolvedAPI := firstNonEmpty(*apiURL, os.Getenv("AISDLC_API_URL"), config.APIURL)
+	resolvedProject := firstNonEmpty(*project, os.Getenv("AISDLC_PROJECT"), config.Project)
+	resolvedToken := firstNonEmpty(*token, storedAccessToken(), os.Getenv("AISDLC_ACCESS_TOKEN"))
+	resolvedOrg := firstNonEmpty(*organization, os.Getenv("AISDLC_ORGANIZATION"))
+
+	server, err := mcp.New(mcp.Options{
+		APIBaseURL:     resolvedAPI,
+		Token:          resolvedToken,
+		ProjectID:      resolvedProject,
+		OrganizationID: resolvedOrg,
+		Version:        version,
+	})
+	if err != nil {
+		fatal(err)
+	}
+	fmt.Fprintf(os.Stderr, "aisdlc mcp: serving %s project=%s\n", resolvedAPI, resolvedProject)
+	if serveErr := server.Serve(os.Stdin, os.Stdout); serveErr != nil {
+		fatal(serveErr)
+	}
+}
+
+// storedAccessToken returns the token saved by `aisdlc login`, or empty when there is none. A missing or unreadable
+// token file is not an error here: the caller falls through to the environment and then reports one message that
+// names every place it looked.
+func storedAccessToken() string {
+	stored, err := engine.LoadToken(engine.DefaultTokenPath())
+	if err != nil {
+		return ""
+	}
+	return stored.AccessToken
+}
+
+func firstNonEmpty(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
+}
+
 func usage() {
-	fmt.Fprintln(os.Stderr, "AI-SDLC deterministic validator\n\nCommands:\n  aisdlc init --project <uuid> --api-url https://control.example.com --model provider/model@revision\n  aisdlc login --token-url https://auth.example/realms/ai-sdlc/protocol/openid-connect/token --client-secret <secret>\n  aisdlc validate --config .aisdlc.yml --format json|junit|sarif --out validation-result.json\n  aisdlc sync --config .aisdlc.yml --result validation-result.json --idempotency-key <key>\n  aisdlc upload ./evidence.json --project <uuid> --asset-type VALIDATION --json\n  aisdlc link-pr --project <uuid> --scm-event <uuid> --validation-run <uuid>\n  aisdlc status --config .aisdlc.yml --json")
+	fmt.Fprintln(os.Stderr, "AI-SDLC deterministic validator\n\nCommands:\n  aisdlc init --project <uuid> --api-url https://control.example.com --model provider/model@revision\n  aisdlc login --token-url https://auth.example/realms/ai-sdlc/protocol/openid-connect/token --client-secret <secret>\n  aisdlc validate --config .aisdlc.yml --format json|junit|sarif --out validation-result.json\n  aisdlc sync --config .aisdlc.yml --result validation-result.json --idempotency-key <key>\n  aisdlc upload ./evidence.json --project <uuid> --asset-type VALIDATION --json\n  aisdlc link-pr --project <uuid> --scm-event <uuid> --validation-run <uuid>\n  aisdlc status --config .aisdlc.yml --json\n  aisdlc mcp   (Model Context Protocol server on stdio, for AI assistants)")
 }
 func fatal(err error) { fmt.Fprintln(os.Stderr, "error:", err); os.Exit(2) }
