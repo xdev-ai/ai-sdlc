@@ -85,7 +85,7 @@ public class ValidationService {
   }
 
   private ValidationRunListItem toListItem(ValidationRun run) {
-    return new ValidationRunListItem(run.getId(), run.getStatus(), run.getCliVersion(), run.getKitVersion(), run.getModelPin(), run.getActorSubject(), run.getCompletedAt(), findings.findByValidationRunId(run.getId()).size());
+    return new ValidationRunListItem(run.getId(), run.getStatus(), run.getIdempotencyKey(), run.getCliVersion(), run.getKitVersion(), run.getModelPin(), run.getActorSubject(), run.getCompletedAt(), findings.findByValidationRunId(run.getId()).size());
   }
 
   private FindingDetailView toFindingDetail(Finding finding) { return new FindingDetailView(finding.getId(), finding.getSeverity(), finding.getCode(), finding.getMessage(), finding.getPath(), finding.getLine(), finding.getEvidenceUri(), finding.getTriageStatus(), finding.getTriagedBy(), finding.getTriagedAt(), finding.getTriageNote()); }
