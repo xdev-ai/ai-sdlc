@@ -177,6 +177,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Start hardened topology and verify public health surfaces
+        env:
+          # The harness evidence-forwarder plugin is not in this repository. Point this repository variable at a built
+          # plugin directory and integration-smoke.sh also runs scripts/agent-evidence-acceptance.sh; leave it unset
+          # and the run reports that the plugin suite was skipped. The agent-governance API contract is covered either
+          # way by scripts/agent-governance-sweep.sh.
+          AISDLC_EVIDENCE_LIB_DIR: ${{ vars.AISDLC_EVIDENCE_LIB_DIR }}
         run: bash scripts/integration-smoke.sh
       - name: Publish Compose diagnostics on failure
         if: failure()

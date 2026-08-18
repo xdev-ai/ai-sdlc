@@ -336,6 +336,25 @@ All endpoints are project scoped and require a JWT subject with project membersh
 
 The SSR portal exposes the same controls at **AI-agent governance**. Browser forms are authenticated server side; access tokens are not stored in the browser.
 
+#### How this surface is verified
+
+`scripts/agent-governance-sweep.sh` runs 35 assertions against the live stack and is wired into
+`scripts/integration-smoke.sh`, so it runs in CI. It covers what unit tests cannot see: that a re-declared fingerprint
+returns the same session rather than a second one, that the same digest sent in uppercase resolves to that same session,
+that a malformed fingerprint, an out-of-range tool count, a blank agent identity and a prompt template from another
+project are each refused with `400`, that a policy-failed change cannot open a human approval, that a completed session
+refuses further evidence, and that the approval it opens starts `PENDING`.
+
+It was written because this surface had no live coverage at all, and its first run found one: the service validated
+digests with a lowercase-only pattern while the controller published `^[a-fA-F0-9]{64}$`, so a caller formatting digests
+with `%X` was told a valid SHA-256 was invalid. `DigestCaseConsistencyTest` now fails on any lowercase-only digest
+pattern in main source.
+
+`scripts/agent-evidence-acceptance.sh` covers the complementary half — the harness evidence-forwarder plugin's own
+digest computation, spool file and behaviour on a rejected credential. That plugin is not in this repository, so the
+suite runs only when `AISDLC_EVIDENCE_LIB_DIR` points at a built copy; set the repository variable of the same name to
+enable it in CI. When it is unset, `integration-smoke.sh` says so rather than passing quietly.
+
 ### Operational Guidance
 
 Use a provider-neutral `agentIdentity` that identifies the accountable automation configuration, not a human actor. Always capture an immutable model version where the provider supports it. Keep source prompt content in the approved source/evidence repository and store only its fingerprint in this ledger. For sensitive context, use only a digest and classify the prompt template conservatively.

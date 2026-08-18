@@ -87,3 +87,29 @@ AISDLC_ACCEPTANCE_KEYCLOAK_URL="http://localhost:8180" \
 AISDLC_ACCEPTANCE_NETWORK="aisdlc-ci_platform" \
 AISDLC_ACCEPTANCE_KEYCLOAK_URL="http://localhost:8180" \
   bash "$(dirname -- "$0")/knowledge-sweep.sh"
+
+# Agent governance had no live coverage at all: agent-evidence-acceptance.sh covers it, but only by driving a plugin
+# that lives outside this repository and is not published anywhere CI can reach, so it never ran here. Unit tests never
+# see the JSON the controller accepts — which is how a service-side digest validator came to reject the uppercase hex
+# the controller's own @Pattern allows, telling callers a valid SHA-256 was invalid.
+AISDLC_ACCEPTANCE_NETWORK="aisdlc-ci_platform" \
+AISDLC_ACCEPTANCE_KEYCLOAK_URL="http://localhost:8180" \
+  bash "$(dirname -- "$0")/agent-governance-sweep.sh"
+
+# The plugin-side half of agent governance — digest computation, the spool file, and what the forwarder does when the
+# control plane rejects its credential — can only be exercised by the harness evidence-forwarder plugin, which is not
+# in this repository. Set AISDLC_EVIDENCE_LIB_DIR to a built plugin directory (index.js, digest.js, live.mjs, and a
+# node_modules carrying @deepseek-ai/schemastery) and it runs here, inside the same topology.
+#
+# When it is unset the run says so out loud instead of passing quietly. That matters because the two suites cover
+# different things: agent-governance-sweep.sh above covers the API contract and always runs, so an absent plugin leaves
+# the plugin's own behaviour uncovered — not the control plane's.
+if [ -n "${AISDLC_EVIDENCE_LIB_DIR:-}" ]; then
+  AISDLC_ACCEPTANCE_NETWORK="aisdlc-ci_platform" \
+  AISDLC_ACCEPTANCE_KEYCLOAK_URL="http://localhost:8180" \
+    bash "$(dirname -- "$0")/agent-evidence-acceptance.sh"
+else
+  echo "note: AISDLC_EVIDENCE_LIB_DIR is unset, so the evidence-forwarder plugin suite did not run." >&2
+  echo "      The agent-governance API contract IS covered above by agent-governance-sweep.sh; what is not covered" >&2
+  echo "      is the plugin's own digest, spool and rejection behaviour. See scripts/agent-evidence-acceptance.sh." >&2
+fi

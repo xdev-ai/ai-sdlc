@@ -12,7 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AgentGovernanceService {
-  private static final String SHA256 = "^[a-f0-9]{64}$";
+  // Uppercase hex is a valid SHA-256, and the controller's own @Pattern accepts it, as does every other service in
+  // this module. This constant alone rejected it, so a client formatting digests with %X was told its perfectly good
+  // digest was "invalid" — and the .toLowerCase(Locale.ROOT) normalisation below could never fire, because nothing
+  // uppercase ever got this far.
+  private static final String SHA256 = "^[a-fA-F0-9]{64}$";
   private static final String TEMPLATE_KEY = "^[a-z0-9._-]{3,160}$";
   private static final String SEMVER = "^[0-9]+\\.[0-9]+\\.[0-9]+([-.+][0-9A-Za-z.-]+)?$";
   private final ProjectAccessService access; private final PromptTemplateRepository templates; private final AgentSessionRepository sessions; private final AgentEvidenceRepository evidence; private final ValidationRunRepository validations; private final EvidenceAssetRepository assets; private final ApprovalRequestRepository approvals; private final ApprovalDecisionRepository decisions; private final ApprovalOrchestrationService approvalOrchestration; private final AuditService audit;
