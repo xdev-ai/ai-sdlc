@@ -4,9 +4,13 @@ COPY pom.xml ./
 COPY management-server/pom.xml management-server/pom.xml
 COPY portal/pom.xml portal/pom.xml
 COPY sdk/pom.xml sdk/pom.xml
+# The cache mount belongs on BOTH Maven steps. A BuildKit cache mount is not part of the image layer, so the
+# dependency:go-offline above warmed a directory that the package step below could not see: /root/.m2 was empty
+# again and every build re-downloaded the whole dependency set. The prefetch step accomplished nothing, and the
+# integration job started timing out at 420s with a single 339s package step.
 RUN --mount=type=cache,target=/root/.m2 mvn -q -pl management-server -am dependency:go-offline
 COPY management-server/src management-server/src
-RUN mvn -q -pl management-server -am -DskipTests package
+RUN --mount=type=cache,target=/root/.m2 mvn -q -pl management-server -am -DskipTests package
 
 # Pinned OpenTelemetry Java agent. The digest is verified at build time so a compromised or truncated download
 # fails the build instead of shipping an unverified agent into a governed runtime.

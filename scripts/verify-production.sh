@@ -40,7 +40,16 @@ require docker-compose.yml '/health/ready HTTP/1.0' 'Keycloak must expose a priv
 require docker-compose.yml 'condition: service_healthy' 'identity gateway and control plane must wait for dependent service readiness'
 require infra/postgres/init-keycloak-db.sql '^CREATE DATABASE keycloak;$' 'PostgreSQL init must create the Keycloak database'
 forbid infra/postgres/init-keycloak-db.sql 'GRANT .* TO aisdlc' 'PostgreSQL init must not assume a hard-coded database role'
-require scripts/integration-smoke.sh 'timeout --foreground 420s' 'integration smoke must bound Compose startup duration'
+# The property is that startup IS bounded, not that it is bounded at one particular number. Pinning the literal 420s
+# meant raising the guard — after it began killing builds that were working — failed this check, which says nothing
+# about production topology.
+#
+# Two assertions, not one, because the first alone does not detect removal: the script carries a `gtimeout` fallback for
+# hosts without GNU coreutils, and a bare 'timeout --foreground [0-9]+s' pattern matches that fallback line as a
+# substring. Deleting the real bound therefore left this check green — verified by deleting it. So the bound must be
+# assigned, and it must be applied to the `compose up` that it exists to bound.
+require scripts/integration-smoke.sh '^bound_startup=\(timeout --foreground [0-9]+s\)$' 'integration smoke must bound Compose startup duration'
+require scripts/integration-smoke.sh 'bound_startup\[@\].*compose\[@\].*up --build' 'the startup bound must be applied to the Compose up it exists to bound'
 require scripts/integration-smoke.sh '--connect-timeout 5 --max-time 10' 'integration smoke must bound health probe duration'
 
 echo 'Production topology static verification passed.'

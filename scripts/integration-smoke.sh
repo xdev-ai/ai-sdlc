@@ -31,10 +31,14 @@ trap cleanup EXIT
 # "timeout: command not found" — before starting anything, so a developer could not run the integration suite
 # locally at all. Homebrew installs it as `gtimeout`. If neither exists the run still proceeds: compose's own
 # `--wait-timeout 240` bounds the wait, and an unbounded outer guard is a weaker failure than no local run.
-bound_startup=(timeout --foreground 420s)
+# 420s was below the real cold-build time and the job started failing with exit 124 on a build that was working: one
+# Maven step alone took 339s. This guard exists to stop a hung startup from occupying a runner for six hours, not to
+# enforce a build budget, so it is set with headroom rather than close to the measured time. The cause of that 339s is
+# fixed separately — both Dockerfiles now carry the Maven cache mount on the package step, not only on the prefetch.
+bound_startup=(timeout --foreground 900s)
 if ! command -v timeout >/dev/null 2>&1; then
   if command -v gtimeout >/dev/null 2>&1; then
-    bound_startup=(gtimeout --foreground 420s)
+    bound_startup=(gtimeout --foreground 900s)
   else
     echo "warning: neither timeout nor gtimeout found; relying on compose --wait-timeout 240 alone" >&2
     bound_startup=()
