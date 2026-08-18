@@ -9,7 +9,7 @@
   <artifactId>management-server</artifactId>
   <name>AI-SDLC Management Server</name>
   <properties>
-    <aws.java.sdk.version>2.52.1</aws.java.sdk.version>
+    <aws.java.sdk.version>2.53.0</aws.java.sdk.version>
   </properties>
   <dependencyManagement>
     <dependencies>
