@@ -161,6 +161,54 @@ public class PortalController {
     return items.stream().anyMatch(item -> Boolean.TRUE.equals(item.get("active")));
   }
 
+  /**
+   * Which page needs which dataset.
+   *
+   * <p>One method serves sixteen pages, and it used to fetch all thirty-one datasets on every one of them: opening a
+   * document also pulled SBOMs, agent sessions, provenance records and risk scores. Every entry here was derived by
+   * reading which model attributes each {@code th:if="${page == ...}"} section of the template actually references,
+   * not from memory, and {@code PortalPageDataTest} re-derives it from the template so the two cannot drift apart.
+   *
+   * <p>Over-declaring is harmless and under-declaring breaks a page, so where a reference could belong to either of
+   * two adjacent sections it is granted to both.
+   */
+  private static final Map<String, Set<String>> PAGE_DATASETS = Map.ofEntries(
+      Map.entry("agentEvidence", Set.of("agent-governance")),
+      Map.entry("agentPromptTemplates", Set.of("agent-governance")),
+      Map.entry("agentSessions", Set.of("agent-governance")),
+      Map.entry("approvals", Set.of("notifications")),
+      Map.entry("audit", Set.of("audit")),
+      Map.entry("auditVerification", Set.of("audit", "overview")),
+      Map.entry("capabilities", Set.of("projects")),
+      Map.entry("constitutions", Set.of("governance")),
+      Map.entry("evidenceAssets", Set.of("evidence")),
+      Map.entry("exceptions", Set.of("governance", "reviews")),
+      Map.entry("kits", Set.of("kits")),
+      Map.entry("knowledgeSpaces", Set.of("overview")),
+      Map.entry("memberships", Set.of("projects")),
+      Map.entry("metrics", Set.of("quality")),
+      Map.entry("notificationChannels", Set.of("notifications")),
+      Map.entry("notificationDeliveries", Set.of("notifications")),
+      Map.entry("policies", Set.of("governance")),
+      Map.entry("policyBundles", Set.of("policy-as-code")),
+      Map.entry("projectKits", Set.of("kits")),
+      Map.entry("provenance", Set.of("supply-chain")),
+      Map.entry("reviews", Set.of("reviews")),
+      Map.entry("riskScores", Set.of("risk-intelligence")),
+      Map.entry("sboms", Set.of("supply-chain")),
+      Map.entry("scmEvents", Set.of("scm")),
+      Map.entry("scmRepositories", Set.of("scm")),
+      Map.entry("securityExceptions", Set.of("notifications")),
+      Map.entry("trace", Set.of("traceability")),
+      Map.entry("validationDetail", Set.of("projects")),
+      Map.entry("validations", Set.of("overview", "scm", "validations")));
+
+  /** Organizations and projects feed the scope selector in the shared chrome, so they are always fetched. */
+  private static boolean needs(String view, String dataset) {
+    Set<String> pages = PAGE_DATASETS.get(dataset);
+    return pages == null || pages.contains(view);
+  }
+
   @GetMapping({"/app", "/app/{page}"})
   String app(@PathVariable(required = false) String page, @RequestParam(required = false) UUID org, @RequestParam(required = false) UUID project,
       @RequestParam(defaultValue = "0") int p, @RequestParam(required = false) String filter, @RequestParam(required = false) UUID run,
@@ -170,34 +218,34 @@ public class PortalController {
     String token = client.getAccessToken().getTokenValue();
     ManagementApiClient.PageData organizations = api.page("/api/v1/organizations?size=100", token);
     ManagementApiClient.PageData projects = org == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/organizations/" + org + "/projects?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData kits = org == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/organizations/" + org + "/spec-kits?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData validations = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/validation-runs?page=" + p + "&size=25" + optional("status", filter), token);
-    ManagementApiClient.PageData evidenceAssets = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/evidence-assets?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData policies = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/policies?page=" + p + "&size=25&includeInactive=true", token);
-    ManagementApiClient.PageData constitutions = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/constitutions?page=" + p + "&size=25&includeInactive=true", token);
-    ManagementApiClient.PageData reviews = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/review-items?page=" + p + "&size=25" + optional("status", filter), token);
-    ManagementApiClient.PageData metrics = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/quality-metrics?page=0&size=24", token);
-    ManagementApiClient.PageData capabilities = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/capability-grants?page=0&size=25&includeExpired=true", token);
-    ManagementApiClient.PageData audit = org == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/organizations/" + org + "/audit-events?page=" + p + "&size=25" + optional("action", filter), token);
-    ManagementApiClient.ListData memberships = project == null ? ManagementApiClient.ListData.empty() : api.list("/api/v1/projects/" + project + "/memberships", token);
-    ManagementApiClient.ListData projectKits = project == null ? ManagementApiClient.ListData.empty() : api.list("/api/v1/projects/" + project + "/spec-kits", token);
-    ManagementApiClient.PageData exceptions = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/exception-requests?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData scmEvents = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/scm-events?page=" + p + "&size=25", token);
-    ManagementApiClient.ListData scmRepositories = project == null ? ManagementApiClient.ListData.empty() : api.list("/api/v1/projects/" + project + "/scm-repositories", token);
-    ManagementApiClient.ListData notificationChannels = project == null ? ManagementApiClient.ListData.empty() : api.list("/api/v1/projects/" + project + "/notification-channels", token);
-    ManagementApiClient.PageData notificationDeliveries = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/notification-deliveries?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData approvals = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/approvals?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData securityExceptions = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/security-exceptions?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData sboms = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/supply-chain/sboms?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData provenance = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/supply-chain/provenance?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData policyBundles = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/policy-bundles?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData agentPromptTemplates = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/agent-governance/prompt-templates?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData agentSessions = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/agent-governance/sessions?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData agentEvidence = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/agent-governance/evidence?page=" + p + "&size=25", token);
-    ManagementApiClient.PageData riskScores = project == null ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/risk-intelligence/trend?page=0&size=30", token);
-    ManagementApiClient.ObjectData trace = project == null ? ManagementApiClient.ObjectData.empty() : api.trace("/api/v1/projects/" + project + "/traceability", token);
-    ManagementApiClient.ObjectData auditVerification = org == null ? ManagementApiClient.ObjectData.empty() : api.object("/api/v1/organizations/" + org + "/audit-events/verify", token);
-    ManagementApiClient.ObjectData validationDetail = project == null || run == null ? ManagementApiClient.ObjectData.empty() : api.object("/api/v1/projects/" + project + "/validation-runs/" + run, token);
+    ManagementApiClient.PageData kits = org == null || !needs(view, "kits") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/organizations/" + org + "/spec-kits?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData validations = project == null || !needs(view, "validations") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/validation-runs?page=" + p + "&size=25" + optional("status", filter), token);
+    ManagementApiClient.PageData evidenceAssets = project == null || !needs(view, "evidenceAssets") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/evidence-assets?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData policies = project == null || !needs(view, "policies") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/policies?page=" + p + "&size=25&includeInactive=true", token);
+    ManagementApiClient.PageData constitutions = project == null || !needs(view, "constitutions") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/constitutions?page=" + p + "&size=25&includeInactive=true", token);
+    ManagementApiClient.PageData reviews = project == null || !needs(view, "reviews") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/review-items?page=" + p + "&size=25" + optional("status", filter), token);
+    ManagementApiClient.PageData metrics = project == null || !needs(view, "metrics") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/quality-metrics?page=0&size=24", token);
+    ManagementApiClient.PageData capabilities = project == null || !needs(view, "capabilities") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/capability-grants?page=0&size=25&includeExpired=true", token);
+    ManagementApiClient.PageData audit = org == null || !needs(view, "audit") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/organizations/" + org + "/audit-events?page=" + p + "&size=25" + optional("action", filter), token);
+    ManagementApiClient.ListData memberships = project == null || !needs(view, "memberships") ? ManagementApiClient.ListData.empty() : api.list("/api/v1/projects/" + project + "/memberships", token);
+    ManagementApiClient.ListData projectKits = project == null || !needs(view, "projectKits") ? ManagementApiClient.ListData.empty() : api.list("/api/v1/projects/" + project + "/spec-kits", token);
+    ManagementApiClient.PageData exceptions = project == null || !needs(view, "exceptions") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/exception-requests?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData scmEvents = project == null || !needs(view, "scmEvents") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/scm-events?page=" + p + "&size=25", token);
+    ManagementApiClient.ListData scmRepositories = project == null || !needs(view, "scmRepositories") ? ManagementApiClient.ListData.empty() : api.list("/api/v1/projects/" + project + "/scm-repositories", token);
+    ManagementApiClient.ListData notificationChannels = project == null || !needs(view, "notificationChannels") ? ManagementApiClient.ListData.empty() : api.list("/api/v1/projects/" + project + "/notification-channels", token);
+    ManagementApiClient.PageData notificationDeliveries = project == null || !needs(view, "notificationDeliveries") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/notification-deliveries?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData approvals = project == null || !needs(view, "approvals") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/approvals?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData securityExceptions = project == null || !needs(view, "securityExceptions") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/security-exceptions?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData sboms = project == null || !needs(view, "sboms") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/supply-chain/sboms?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData provenance = project == null || !needs(view, "provenance") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/supply-chain/provenance?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData policyBundles = project == null || !needs(view, "policyBundles") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/policy-bundles?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData agentPromptTemplates = project == null || !needs(view, "agentPromptTemplates") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/agent-governance/prompt-templates?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData agentSessions = project == null || !needs(view, "agentSessions") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/agent-governance/sessions?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData agentEvidence = project == null || !needs(view, "agentEvidence") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/agent-governance/evidence?page=" + p + "&size=25", token);
+    ManagementApiClient.PageData riskScores = project == null || !needs(view, "riskScores") ? ManagementApiClient.PageData.empty() : api.page("/api/v1/projects/" + project + "/risk-intelligence/trend?page=0&size=30", token);
+    ManagementApiClient.ObjectData trace = project == null || !needs(view, "trace") ? ManagementApiClient.ObjectData.empty() : api.trace("/api/v1/projects/" + project + "/traceability", token);
+    ManagementApiClient.ObjectData auditVerification = org == null || !needs(view, "auditVerification") ? ManagementApiClient.ObjectData.empty() : api.object("/api/v1/organizations/" + org + "/audit-events/verify", token);
+    ManagementApiClient.ObjectData validationDetail = project == null || run == null || !needs(view, "validationDetail") ? ManagementApiClient.ObjectData.empty() : api.object("/api/v1/projects/" + project + "/validation-runs/" + run, token);
     // Only the overview needs this, and only to answer "are there documents yet".
     ManagementApiClient.PageData knowledgeSpaces = org == null || !view.equals("overview")
         ? ManagementApiClient.PageData.empty() : api.page("/api/v1/organizations/" + org + "/knowledge/spaces?size=1", token);
