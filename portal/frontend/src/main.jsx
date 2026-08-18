@@ -32,7 +32,7 @@ function QualityAnalytics({ rows }) {
       animationDuration: 180,
       tooltip: { trigger: 'axis' },
       grid: { top: 26, left: 42, right: 18, bottom: 42 },
-      xAxis: { type: 'category', data: ordered.map(row => String(row.period_end || 'period').slice(0, 10)) },
+      xAxis: { type: 'category', data: ordered.map(row => String(row.periodEnd || 'period').slice(0, 10)) },
       yAxis: { type: 'value' },
       series: [{ name: active[1], type: 'line', smooth: true, showSymbol: false, data: ordered.map(row => num(row[active[0]])), lineStyle: { color: active[2], width: 2 }, itemStyle: { color: active[2] } }]
     });
@@ -50,8 +50,8 @@ function TraceabilityExplorer({ trace }) {
   useEffect(() => {
     if (!graphRef.current || !window.cytoscape || !trace.nodes?.length) return undefined;
     const cy = window.cytoscape({ container: graphRef.current, elements: [
-      ...trace.nodes.map(node => ({ data: { id: String(node.id), label: node.label || node.external_key, type: node.node_type || 'NODE', key: node.external_key || '', status: node.status || 'UNSPECIFIED' } })),
-      ...(trace.edges || []).map(edge => ({ data: { id: String(edge.id), source: String(edge.source_node_id), target: String(edge.target_node_id), label: edge.relation || 'links' } }))
+      ...trace.nodes.map(node => ({ data: { id: String(node.id), label: node.label || node.externalKey, type: node.nodeType || 'NODE', key: node.externalKey || '', status: node.status || 'UNSPECIFIED' } })),
+      ...(trace.edges || []).map(edge => ({ data: { id: String(edge.id), source: String(edge.sourceNodeId), target: String(edge.targetNodeId), label: edge.relation || 'links' } }))
     ], style: [{ selector: 'node', style: { 'background-color': '#5f846f', label: 'data(label)', color: '#19342d', 'font-size': 11, 'text-valign': 'bottom', 'text-margin-y': 8, width: 30, height: 30 } }, { selector: 'edge', style: { width: 1.5, 'line-color': '#9aa99a', 'target-arrow-color': '#9aa99a', 'target-arrow-shape': 'triangle', label: 'data(label)', color: '#5d7063', 'font-size': 9, 'text-rotation': 'autorotate', 'curve-style': 'bezier' } }, { selector: ':selected', style: { 'background-color': '#c8e879' } }], layout: { name: 'breadthfirst', directed: true, padding: 28, spacingFactor: 1.2 } });
     const announce = node => { cy.elements().unselect(); node.select(); setSelected({ type: node.data('type'), label: node.data('label'), key: node.data('key'), status: node.data('status') }); };
     cy.on('tap', 'node', event => announce(event.target));
@@ -84,7 +84,7 @@ function ReviewGuardrail({ reviews, exceptions, organizationId, projectId }) {
       else setState({ busy: '', message: t('Decision was not accepted. The server-rendered review form below remains available.') });
     } catch (_) { setState({ busy: '', message: t('Network error. Use the server-rendered review form below.') }); }
   }
-  return <div className="react-workspace review-guardrail"><strong>{pending.length} {t('pending review decisions')} · {pendingExceptions.length} {t('pending exceptions')}</strong><span>{t('Every decision remains server-authorized, CSRF-protected and appended to the immutable audit ledger. Exception approvals also require an explicit UTC expiry.')}</span>{pending.slice(0, 3).map(review => <div className="react-review-row" key={review.id}><span>{review.title || review.review_type}</span><div><button type="button" disabled={state.busy === review.id} onClick={() => decide(review, 'APPROVED')}>{t('Approve')}</button><button type="button" disabled={state.busy === review.id} onClick={() => decide(review, 'REJECTED')}>{t('Reject')}</button></div></div>)}{state.message && <span role="alert">{state.message}</span>}</div>;
+  return <div className="react-workspace review-guardrail"><strong>{pending.length} {t('pending review decisions')} · {pendingExceptions.length} {t('pending exceptions')}</strong><span>{t('Every decision remains server-authorized, CSRF-protected and appended to the immutable audit ledger. Exception approvals also require an explicit UTC expiry.')}</span>{pending.slice(0, 3).map(review => <div className="react-review-row" key={review.id}><span>{review.title || review.reviewType}</span><div><button type="button" disabled={state.busy === review.id} onClick={() => decide(review, 'APPROVED')}>{t('Approve')}</button><button type="button" disabled={state.busy === review.id} onClick={() => decide(review, 'REJECTED')}>{t('Reject')}</button></div></div>)}{state.message && <span role="alert">{state.message}</span>}</div>;
 }
 
 function RiskCockpit({ scores }) {

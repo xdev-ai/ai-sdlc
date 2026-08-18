@@ -29,11 +29,11 @@ class TraceabilityFormRenderTest {
   private static Map<String, Object> node(String id, String type, String key, String label) {
     Map<String, Object> node = new HashMap<>();
     node.put("id", id);
-    node.put("node_type", type);
-    node.put("external_key", key);
+    node.put("nodeType", type);
+    node.put("externalKey", key);
     node.put("label", label);
     node.put("status", "ACTIVE");
-    node.put("created_at", "2026-08-18T04:00:00Z");
+    node.put("createdAt", "2026-08-18T04:00:00Z");
     return node;
   }
 

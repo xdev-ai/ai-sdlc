@@ -44,7 +44,7 @@
         tooltip: { trigger: "axis" },
         legend: { type: "scroll", bottom: 0, textStyle: { color: "#42524a", fontFamily: "Manrope" } },
         grid: { top: 28, left: 42, right: 26, bottom: 68 },
-        xAxis: { type: "category", data: chronologicallyOrdered.map(function (row) { return String(row.period_end || "period").slice(0, 10); }), axisLabel: { color: "#68766d" } },
+        xAxis: { type: "category", data: chronologicallyOrdered.map(function (row) { return String(row.periodEnd || "period").slice(0, 10); }), axisLabel: { color: "#68766d" } },
         yAxis: { type: "value", axisLabel: { color: "#68766d" }, splitLine: { lineStyle: { color: "#e4e6de" } } },
         series: fields.map(function (field) { return { name: field[1], type: "line", smooth: true, showSymbol: false, data: chronologicallyOrdered.map(function (row) { return asNumber(row[field[0]]); }), lineStyle: { color: field[2], width: 2 }, itemStyle: { color: field[2] } }; })
       });
@@ -62,8 +62,8 @@
       var cy = window.cytoscape({
         container: element,
         elements: [
-          ...trace.nodes.map(function (node) { return { data: { id: String(node.id), label: node.label || node.external_key, type: node.node_type || "NODE", key: node.external_key || "" } }; }),
-          ...trace.edges.map(function (edge) { return { data: { id: String(edge.id), source: String(edge.source_node_id), target: String(edge.target_node_id), label: edge.relation || "links" } }; })
+          ...trace.nodes.map(function (node) { return { data: { id: String(node.id), label: node.label || node.externalKey, type: node.nodeType || "NODE", key: node.externalKey || "" } }; }),
+          ...trace.edges.map(function (edge) { return { data: { id: String(edge.id), source: String(edge.sourceNodeId), target: String(edge.targetNodeId), label: edge.relation || "links" } }; })
         ],
         style: [
           { selector: "node", style: { "background-color": "#5f846f", "label": "data(label)", "font-family": "Manrope", "font-size": 11, "color": "#19342d", "text-valign": "bottom", "text-margin-y": 8, "width": 30, "height": 30 } },

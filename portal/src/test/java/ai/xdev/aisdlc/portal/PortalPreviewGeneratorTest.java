@@ -249,11 +249,11 @@ class PortalPreviewGeneratorTest {
   private static Map<String, Object> traceNode(String id, String type, String key, String label) {
     Map<String, Object> node = new HashMap<>();
     node.put("id", id);
-    node.put("node_type", type);
-    node.put("external_key", key);
+    node.put("nodeType", type);
+    node.put("externalKey", key);
     node.put("label", label);
     node.put("status", "ACTIVE");
-    node.put("created_at", "2026-08-18T04:00:00Z");
+    node.put("createdAt", "2026-08-18T04:00:00Z");
     return node;
   }
 
@@ -266,7 +266,7 @@ class PortalPreviewGeneratorTest {
             traceNode("n1", "REQUIREMENT", "REQ-1", "Lưu hồ sơ theo mã người bệnh"),
             traceNode("n2", "SPEC", "SPEC-1", "Đặc tả lưu hồ sơ"),
             traceNode("n3", "TEST", "TEST-1", "Kiểm thử lưu hồ sơ")),
-        "edges", List.of(Map.of("id", "e1", "source_node_id", "n1", "target_node_id", "n2", "relation", "SPECIFIED_BY"))));
+        "edges", List.of(Map.of("id", "e1", "sourceNodeId", "n1", "targetNodeId", "n2", "relation", "SPECIFIED_BY"))));
     return model;
   }
 

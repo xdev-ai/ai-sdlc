@@ -22,6 +22,17 @@ public class GovernanceController {
 
   public GovernanceController(GovernanceCatalogService governance, AuditVerificationService audit) { this.governance = governance; this.audit = audit; }
 
+  /**
+   * Pinning a kit and switching a policy or constitution on took their input as request parameters while the other
+   * sixty-three writes took a JSON body, so every client had to special-case them — the portal built query strings by
+   * hand for exactly these five endpoints.
+   *
+   * <p>They now accept a body like everything else. The parameter still works, because a caller outside this
+   * repository cannot be asked to change on our schedule; the body wins when both are sent.
+   */
+  record PinInput(@Min(0) @Max(10000) Integer precedence) {}
+  record ScopeInput(UUID projectId) {}
+
   record KitInput(@NotBlank @Pattern(regexp = "[a-z0-9-]{3,100}") String slug, @NotBlank @Size(max = 80) String version, @NotNull KitLayer layer, @NotBlank @Size(max = 100000) String manifest) {}
   record PolicyInput(UUID projectId, @NotBlank @Pattern(regexp = "[a-z0-9._-]{3,160}") String key, @NotBlank @Size(max = 80) String version, @NotBlank @Size(max = 100000) String rule) {}
   record ConstitutionInput(UUID projectId, @NotBlank @Size(max = 80) String version, @NotBlank @Size(max = 100000) String content) {}
@@ -43,7 +54,14 @@ public class GovernanceController {
   @PostMapping("/organizations/{organizationId}/spec-kits/{kitId}/deprecate") @ResponseStatus(HttpStatus.NO_CONTENT) @PreAuthorize("hasRole('admin')")
   void deprecateKit(@PathVariable UUID organizationId, @PathVariable UUID kitId, @RequestBody @Valid DeprecateKitInput input, @AuthenticationPrincipal Jwt jwt) { governance.deprecateKit(organizationId, kitId, jwt.getSubject(), input.reason()); }
   @PostMapping("/projects/{projectId}/spec-kits/{kitId}/pin") @ResponseStatus(HttpStatus.NO_CONTENT)
-  void pinKit(@PathVariable UUID projectId, @PathVariable UUID kitId, @RequestParam @Min(0) @Max(10000) int precedence, @AuthenticationPrincipal Jwt jwt) { governance.pinKit(projectId, kitId, precedence, jwt.getSubject()); }
+  void pinKit(@PathVariable UUID projectId, @PathVariable UUID kitId,
+      @RequestBody(required = false) @Valid PinInput input,
+      @RequestParam(required = false) @Min(0) @Max(10000) Integer precedence,
+      @AuthenticationPrincipal Jwt jwt) {
+    Integer resolved = input != null && input.precedence() != null ? input.precedence() : precedence;
+    if (resolved == null) throw new IllegalArgumentException("precedence is required, as a JSON body {\"precedence\":100} or ?precedence=100");
+    governance.pinKit(projectId, kitId, resolved, jwt.getSubject());
+  }
   @DeleteMapping("/projects/{projectId}/spec-kits/{kitId}/pin") @ResponseStatus(HttpStatus.NO_CONTENT)
   void unpinKit(@PathVariable UUID projectId, @PathVariable UUID kitId, @AuthenticationPrincipal Jwt jwt) { governance.unpinKit(projectId, kitId, jwt.getSubject()); }
   @GetMapping("/projects/{projectId}/spec-kits")
@@ -54,18 +72,38 @@ public class GovernanceController {
   @GetMapping("/projects/{projectId}/policies")
   PageResponse<Map<String, Object>> policies(@PathVariable UUID projectId, @RequestParam(defaultValue = "false") boolean includeInactive, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "25") int size, @AuthenticationPrincipal Jwt jwt) { return governance.listPolicies(projectId, jwt.getSubject(), includeInactive, page, size); }
   @PostMapping("/organizations/{organizationId}/policies/{policyId}/activate") @ResponseStatus(HttpStatus.NO_CONTENT) @PreAuthorize("hasRole('admin')")
-  void activatePolicy(@PathVariable UUID organizationId, @PathVariable UUID policyId, @RequestParam(required = false) UUID projectId, @AuthenticationPrincipal Jwt jwt) { governance.changePolicyStatus(organizationId, projectId, policyId, jwt.getSubject(), true); }
+  void activatePolicy(@PathVariable UUID organizationId, @PathVariable UUID policyId,
+      @RequestBody(required = false) ScopeInput input, @RequestParam(required = false) UUID projectId,
+      @AuthenticationPrincipal Jwt jwt) {
+    UUID scope = input != null && input.projectId() != null ? input.projectId() : projectId;
+    governance.changePolicyStatus(organizationId, scope, policyId, jwt.getSubject(), true);
+  }
   @PostMapping("/organizations/{organizationId}/policies/{policyId}/deactivate") @ResponseStatus(HttpStatus.NO_CONTENT) @PreAuthorize("hasRole('admin')")
-  void deactivatePolicy(@PathVariable UUID organizationId, @PathVariable UUID policyId, @RequestParam(required = false) UUID projectId, @AuthenticationPrincipal Jwt jwt) { governance.changePolicyStatus(organizationId, projectId, policyId, jwt.getSubject(), false); }
+  void deactivatePolicy(@PathVariable UUID organizationId, @PathVariable UUID policyId,
+      @RequestBody(required = false) ScopeInput input, @RequestParam(required = false) UUID projectId,
+      @AuthenticationPrincipal Jwt jwt) {
+    UUID scope = input != null && input.projectId() != null ? input.projectId() : projectId;
+    governance.changePolicyStatus(organizationId, scope, policyId, jwt.getSubject(), false);
+  }
 
   @PostMapping("/organizations/{organizationId}/constitutions") @ResponseStatus(HttpStatus.CREATED) @PreAuthorize("hasRole('admin')")
   Created addConstitution(@PathVariable UUID organizationId, @RequestBody @Valid ConstitutionInput input, @AuthenticationPrincipal Jwt jwt) { return new Created(governance.addConstitution(organizationId, input.projectId(), jwt.getSubject(), input.version(), input.content())); }
   @GetMapping("/projects/{projectId}/constitutions")
   PageResponse<Map<String, Object>> constitutions(@PathVariable UUID projectId, @RequestParam(defaultValue = "false") boolean includeInactive, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "25") int size, @AuthenticationPrincipal Jwt jwt) { return governance.listConstitutions(projectId, jwt.getSubject(), includeInactive, page, size); }
   @PostMapping("/organizations/{organizationId}/constitutions/{constitutionId}/activate") @ResponseStatus(HttpStatus.NO_CONTENT) @PreAuthorize("hasRole('admin')")
-  void activateConstitution(@PathVariable UUID organizationId, @PathVariable UUID constitutionId, @RequestParam(required = false) UUID projectId, @AuthenticationPrincipal Jwt jwt) { governance.changeConstitutionStatus(organizationId, projectId, constitutionId, jwt.getSubject(), true); }
+  void activateConstitution(@PathVariable UUID organizationId, @PathVariable UUID constitutionId,
+      @RequestBody(required = false) ScopeInput input, @RequestParam(required = false) UUID projectId,
+      @AuthenticationPrincipal Jwt jwt) {
+    UUID scope = input != null && input.projectId() != null ? input.projectId() : projectId;
+    governance.changeConstitutionStatus(organizationId, scope, constitutionId, jwt.getSubject(), true);
+  }
   @PostMapping("/organizations/{organizationId}/constitutions/{constitutionId}/deactivate") @ResponseStatus(HttpStatus.NO_CONTENT) @PreAuthorize("hasRole('admin')")
-  void deactivateConstitution(@PathVariable UUID organizationId, @PathVariable UUID constitutionId, @RequestParam(required = false) UUID projectId, @AuthenticationPrincipal Jwt jwt) { governance.changeConstitutionStatus(organizationId, projectId, constitutionId, jwt.getSubject(), false); }
+  void deactivateConstitution(@PathVariable UUID organizationId, @PathVariable UUID constitutionId,
+      @RequestBody(required = false) ScopeInput input, @RequestParam(required = false) UUID projectId,
+      @AuthenticationPrincipal Jwt jwt) {
+    UUID scope = input != null && input.projectId() != null ? input.projectId() : projectId;
+    governance.changeConstitutionStatus(organizationId, scope, constitutionId, jwt.getSubject(), false);
+  }
 
   @PostMapping("/projects/{projectId}/capability-grants") @ResponseStatus(HttpStatus.CREATED) @PreAuthorize("hasRole('admin')")
   Created grant(@PathVariable UUID projectId, @RequestBody @Valid CapabilityInput input, @AuthenticationPrincipal Jwt jwt) { return new Created(governance.grantCapability(projectId, jwt.getSubject(), input.subject(), input.capability(), input.expiresAt())); }

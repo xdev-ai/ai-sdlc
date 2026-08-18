@@ -4,6 +4,16 @@ All notable changes to the AI-SDLC platform are documented in this file. The rep
 
 ## [Unreleased]
 
+### Changed
+
+- **API response naming is camelCase everywhere.** Endpoints returning raw rows previously exposed database column names, so `lifecycle_status` and `node_type` went out beside camelCase fields from every record-based endpoint. Twenty-seven columns across the governance catalog are now aliased, and the portal, the React islands and `portal.js` read the new names. No published contract changed: `sdk/openapi/aisdlc-integration-v1.yaml` described none of these fields, and neither the CLI, the Java or TypeScript SDK, nor the Terraform provider referenced them.
+- **Writes take a JSON body.** Pinning a Spec Kit and activating or deactivating a policy or constitution took request parameters while the other sixty-three writes took a body, so every client special-cased those five. They now accept a body; the parameter keeps working, and the body wins when both are sent.
+
+### Fixed
+
+- **The Spec Kit registry returned 500 for every administrator once a single kit existed.** The page read `item.lifecycleStatus` while the API sent `lifecycle_status`, and Thymeleaf raises on a missing map key rather than yielding null — so step 5 of the setup sequence broke at the moment it first had data.
+- **Recording a quality metric period had never worked.** An `Instant` was bound positionally, which PostgreSQL reports as bad SQL grammar, so every write returned 500 and the Quality screen always showed "No calculated quality period is available" — an absence of data rather than a broken endpoint. Third occurrence of this defect in the codebase, after the inference cost ledger and the risk counters.
+
 ### Added
 
 - P0 GitHub SCM governance: signed GitHub App webhook ingestion, idempotent delivery ledger, repository links, pull-request/commit/workflow/release correlation, policy Check Run publication, SSR administration workflow, and `aisdlc link-pr`.

@@ -4,6 +4,7 @@ import ai.xdev.aisdlc.domain.DomainTypes.*;
 import ai.xdev.aisdlc.web.PageRequests;
 import ai.xdev.aisdlc.web.PageResponse;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.*;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -35,17 +36,17 @@ public class GovernanceCatalogService {
   }
 
   public List<Map<String, Object>> listKits(UUID organizationId) {
-    return jdbc.queryForList("select id, slug, version, layer, pinned, lifecycle_status, deprecated_at, deprecation_reason, created_at from spec_kits where organization_id = ? order by slug asc, created_at desc", organizationId);
+    return jdbc.queryForList("select id, slug, version, layer, pinned, lifecycle_status as \"lifecycleStatus\", deprecated_at as \"deprecatedAt\", deprecation_reason as \"deprecationReason\", created_at as \"createdAt\" from spec_kits where organization_id = ? order by slug asc, created_at desc", organizationId);
   }
 
   public PageResponse<Map<String, Object>> listKits(UUID organizationId, String lifecycle, int page, int size) {
     if (lifecycle == null || lifecycle.isBlank()) {
       return page("select count(*) from spec_kits where organization_id = ?", new Object[]{organizationId},
-          "select id, slug, version, layer, pinned, lifecycle_status, deprecated_at, deprecation_reason, created_at from spec_kits where organization_id = ? order by slug asc, created_at desc limit ? offset ?", new Object[]{organizationId}, page, size);
+          "select id, slug, version, layer, pinned, lifecycle_status as \"lifecycleStatus\", deprecated_at as \"deprecatedAt\", deprecation_reason as \"deprecationReason\", created_at as \"createdAt\" from spec_kits where organization_id = ? order by slug asc, created_at desc limit ? offset ?", new Object[]{organizationId}, page, size);
     }
     validateLifecycle(lifecycle);
     return page("select count(*) from spec_kits where organization_id = ? and lifecycle_status = ?", new Object[]{organizationId, lifecycle},
-        "select id, slug, version, layer, pinned, lifecycle_status, deprecated_at, deprecation_reason, created_at from spec_kits where organization_id = ? and lifecycle_status = ? order by slug asc, created_at desc limit ? offset ?", new Object[]{organizationId, lifecycle}, page, size);
+        "select id, slug, version, layer, pinned, lifecycle_status as \"lifecycleStatus\", deprecated_at as \"deprecatedAt\", deprecation_reason as \"deprecationReason\", created_at as \"createdAt\" from spec_kits where organization_id = ? and lifecycle_status = ? order by slug asc, created_at desc limit ? offset ?", new Object[]{organizationId, lifecycle}, page, size);
   }
 
   @Transactional
@@ -72,7 +73,7 @@ public class GovernanceCatalogService {
 
   public List<Map<String, Object>> projectKits(UUID projectId, String actor) {
     access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
-    return jdbc.queryForList("select sk.id, sk.slug, sk.version, sk.layer, sk.lifecycle_status, pk.precedence, pk.pinned_at from project_kits pk join spec_kits sk on sk.id = pk.spec_kit_id where pk.project_id = ? order by pk.precedence asc, sk.slug asc", projectId);
+    return jdbc.queryForList("select sk.id, sk.slug, sk.version, sk.layer, sk.lifecycle_status as \"lifecycleStatus\", pk.precedence, pk.pinned_at as \"pinnedAt\" from project_kits pk join spec_kits sk on sk.id = pk.spec_kit_id where pk.project_id = ? order by pk.precedence asc, sk.slug asc", projectId);
   }
 
   @Transactional
@@ -98,14 +99,14 @@ public class GovernanceCatalogService {
     var project = access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
     String active = includeInactive ? "" : " and active = true";
     return page("select count(*) from policies where organization_id = ? and (project_id is null or project_id = ?)" + active, new Object[]{project.getOrganizationId(), projectId},
-        "select id, project_id, key, version, rule, active, activated_at, activated_by, deactivated_at, deactivated_by, created_at from policies where organization_id = ? and (project_id is null or project_id = ?)" + active + " order by key asc, created_at desc limit ? offset ?", new Object[]{project.getOrganizationId(), projectId}, 0, 100);
+        "select id, project_id as \"projectId\", key, version, rule, active, activated_at as \"activatedAt\", activated_by as \"activatedBy\", deactivated_at as \"deactivatedAt\", deactivated_by as \"deactivatedBy\", created_at as \"createdAt\" from policies where organization_id = ? and (project_id is null or project_id = ?)" + active + " order by key asc, created_at desc limit ? offset ?", new Object[]{project.getOrganizationId(), projectId}, 0, 100);
   }
 
   public PageResponse<Map<String, Object>> listPolicies(UUID projectId, String actor, boolean includeInactive, int page, int size) {
     var project = access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
     String active = includeInactive ? "" : " and active = true";
     return page("select count(*) from policies where organization_id = ? and (project_id is null or project_id = ?)" + active, new Object[]{project.getOrganizationId(), projectId},
-        "select id, project_id, key, version, rule, active, activated_at, activated_by, deactivated_at, deactivated_by, created_at from policies where organization_id = ? and (project_id is null or project_id = ?)" + active + " order by key asc, created_at desc limit ? offset ?", new Object[]{project.getOrganizationId(), projectId}, page, size);
+        "select id, project_id as \"projectId\", key, version, rule, active, activated_at as \"activatedAt\", activated_by as \"activatedBy\", deactivated_at as \"deactivatedAt\", deactivated_by as \"deactivatedBy\", created_at as \"createdAt\" from policies where organization_id = ? and (project_id is null or project_id = ?)" + active + " order by key asc, created_at desc limit ? offset ?", new Object[]{project.getOrganizationId(), projectId}, page, size);
   }
 
   @Transactional
@@ -136,7 +137,7 @@ public class GovernanceCatalogService {
     var project = access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
     String active = includeInactive ? "" : " and active = true";
     return page("select count(*) from constitutions where organization_id = ? and (project_id is null or project_id = ?)" + active, new Object[]{project.getOrganizationId(), projectId},
-        "select id, project_id, version, content, active, activated_at, activated_by, deactivated_at, deactivated_by, created_at from constitutions where organization_id = ? and (project_id is null or project_id = ?)" + active + " order by created_at desc limit ? offset ?", new Object[]{project.getOrganizationId(), projectId}, page, size);
+        "select id, project_id as \"projectId\", version, content, active, activated_at as \"activatedAt\", activated_by as \"activatedBy\", deactivated_at as \"deactivatedAt\", deactivated_by as \"deactivatedBy\", created_at as \"createdAt\" from constitutions where organization_id = ? and (project_id is null or project_id = ?)" + active + " order by created_at desc limit ? offset ?", new Object[]{project.getOrganizationId(), projectId}, page, size);
   }
 
   @Transactional
@@ -160,7 +161,7 @@ public class GovernanceCatalogService {
     access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
     String expiration = includeExpired ? "" : " and (expires_at is null or expires_at > now())";
     return page("select count(*) from capability_grants where project_id = ?" + expiration, new Object[]{projectId},
-        "select id, subject, capability, expires_at, created_at from capability_grants where project_id = ?" + expiration + " order by created_at desc limit ? offset ?", new Object[]{projectId}, page, size);
+        "select id, subject, capability, expires_at as \"expiresAt\", created_at as \"createdAt\" from capability_grants where project_id = ?" + expiration + " order by created_at desc limit ? offset ?", new Object[]{projectId}, page, size);
   }
 
   @Transactional
@@ -186,11 +187,11 @@ public class GovernanceCatalogService {
     access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
     if (status == null || status.isBlank()) {
       return page("select count(*) from exception_requests where project_id = ?", new Object[]{projectId},
-          "select id, requested_by, policy_key, rationale, status, decided_by, decided_at, decision_note, expires_at, created_at from exception_requests where project_id = ? order by case when status = 'PENDING' then 0 else 1 end, created_at desc limit ? offset ?", new Object[]{projectId}, page, size);
+          "select id, requested_by as \"requestedBy\", policy_key as \"policyKey\", rationale, status, decided_by as \"decidedBy\", decided_at as \"decidedAt\", decision_note as \"decisionNote\", expires_at as \"expiresAt\", created_at as \"createdAt\" from exception_requests where project_id = ? order by case when status = 'PENDING' then 0 else 1 end, created_at desc limit ? offset ?", new Object[]{projectId}, page, size);
     }
     validateReviewStatus(status);
     return page("select count(*) from exception_requests where project_id = ? and status = ?", new Object[]{projectId, status},
-        "select id, requested_by, policy_key, rationale, status, decided_by, decided_at, decision_note, expires_at, created_at from exception_requests where project_id = ? and status = ? order by created_at desc limit ? offset ?", new Object[]{projectId, status}, page, size);
+        "select id, requested_by as \"requestedBy\", policy_key as \"policyKey\", rationale, status, decided_by as \"decidedBy\", decided_at as \"decidedAt\", decision_note as \"decisionNote\", expires_at as \"expiresAt\", created_at as \"createdAt\" from exception_requests where project_id = ? and status = ? order by created_at desc limit ? offset ?", new Object[]{projectId, status}, page, size);
   }
 
   @Transactional
@@ -216,7 +217,7 @@ public class GovernanceCatalogService {
 
   public Map<String, List<Map<String, Object>>> traceability(UUID projectId, String actor) {
     access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
-    return Map.of("nodes", jdbc.queryForList("select id, node_type, external_key, label, status, created_at from trace_nodes where project_id = ? order by created_at", projectId), "edges", jdbc.queryForList("select id, source_node_id, target_node_id, relation from trace_edges where project_id = ? order by id", projectId));
+    return Map.of("nodes", jdbc.queryForList("select id, node_type as \"nodeType\", external_key as \"externalKey\", label, status, created_at as \"createdAt\" from trace_nodes where project_id = ? order by created_at", projectId), "edges", jdbc.queryForList("select id, source_node_id as \"sourceNodeId\", target_node_id as \"targetNodeId\", relation from trace_edges where project_id = ? order by id", projectId));
   }
 
   @Transactional
@@ -245,11 +246,11 @@ public class GovernanceCatalogService {
     access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
     if (status == null || status.isBlank()) {
       return page("select count(*) from review_items where project_id = ?", new Object[]{projectId},
-          "select id, review_type, title, status, requested_by, decided_by, decision_note, decided_at, created_at, updated_at from review_items where project_id = ? order by case when status = 'PENDING' then 0 else 1 end, created_at desc limit ? offset ?", new Object[]{projectId}, page, size);
+          "select id, review_type as \"reviewType\", title, status, requested_by as \"requestedBy\", decided_by as \"decidedBy\", decision_note as \"decisionNote\", decided_at as \"decidedAt\", created_at as \"createdAt\", updated_at as \"updatedAt\" from review_items where project_id = ? order by case when status = 'PENDING' then 0 else 1 end, created_at desc limit ? offset ?", new Object[]{projectId}, page, size);
     }
     validateReviewStatus(status);
     return page("select count(*) from review_items where project_id = ? and status = ?", new Object[]{projectId, status},
-        "select id, review_type, title, status, requested_by, decided_by, decision_note, decided_at, created_at, updated_at from review_items where project_id = ? and status = ? order by created_at desc limit ? offset ?", new Object[]{projectId, status}, page, size);
+        "select id, review_type as \"reviewType\", title, status, requested_by as \"requestedBy\", decided_by as \"decidedBy\", decision_note as \"decisionNote\", decided_at as \"decidedAt\", created_at as \"createdAt\", updated_at as \"updatedAt\" from review_items where project_id = ? and status = ? order by created_at desc limit ? offset ?", new Object[]{projectId, status}, page, size);
   }
 
   @Transactional
@@ -259,7 +260,7 @@ public class GovernanceCatalogService {
     unitInterval("failureRate", failureRate); unitInterval("reworkRate", reworkRate); unitInterval("queueHealth", queueHealth); unitInterval("alignment", alignment);
     var project = access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER);
     UUID id = UUID.randomUUID();
-    jdbc.update("insert into quality_metric_snapshots(id, project_id, period_start, period_end, deployment_frequency, lead_time_hours, change_failure_rate, pr_review_time_delta_hours, rework_rate, review_queue_health, spec_alignment_score) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", id, projectId, start, end, deploymentFrequency, leadTime, failureRate, reviewDelta, reworkRate, queueHealth, alignment);
+    jdbc.update("insert into quality_metric_snapshots(id, project_id, period_start, period_end, deployment_frequency, lead_time_hours, change_failure_rate, pr_review_time_delta_hours, rework_rate, review_queue_health, spec_alignment_score) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", id, projectId, timestamp(start), timestamp(end), deploymentFrequency, leadTime, failureRate, reviewDelta, reworkRate, queueHealth, alignment);
     audit.append(project.getOrganizationId(), projectId, actor, "quality_metrics.recorded", "quality_metric_snapshot", id.toString(), "{}");
     return id;
   }
@@ -271,7 +272,7 @@ public class GovernanceCatalogService {
   public PageResponse<Map<String, Object>> metrics(UUID projectId, String actor, int page, int size) {
     access.requireMembership(projectId, actor, MembershipRole.OWNER, MembershipRole.DEVELOPER, MembershipRole.REVIEWER, MembershipRole.VIEWER);
     return page("select count(*) from quality_metric_snapshots where project_id = ?", new Object[]{projectId},
-        "select id, period_start, period_end, deployment_frequency, lead_time_hours, change_failure_rate, pr_review_time_delta_hours, rework_rate, review_queue_health, spec_alignment_score, calculated_at from quality_metric_snapshots where project_id = ? order by period_end desc limit ? offset ?", new Object[]{projectId}, page, size);
+        "select id, period_start as \"periodStart\", period_end as \"periodEnd\", deployment_frequency as \"deploymentFrequency\", lead_time_hours as \"leadTimeHours\", change_failure_rate as \"changeFailureRate\", pr_review_time_delta_hours as \"prReviewTimeDeltaHours\", rework_rate as \"reworkRate\", review_queue_health as \"reviewQueueHealth\", spec_alignment_score as \"specAlignmentScore\", calculated_at as \"calculatedAt\" from quality_metric_snapshots where project_id = ? order by period_end desc limit ? offset ?", new Object[]{projectId}, page, size);
   }
 
   private PageResponse<Map<String, Object>> page(String countSql, Object[] countParameters, String pageSql, Object[] pageParameters, int page, int size) {
@@ -299,6 +300,18 @@ public class GovernanceCatalogService {
   private void unitInterval(String name, BigDecimal value) {
     if (value != null && (value.signum() < 0 || value.compareTo(BigDecimal.ONE) > 0)) throw new IllegalArgumentException(name + " must be between 0 and 1");
   }
+
+  /**
+   * PostgreSQL's driver cannot infer a SQL type for {@link Instant}, so a positional bind of one fails at execution
+   * with "Can't infer the SQL type to use for an instance of java.time.Instant" — reported as bad SQL grammar, which
+   * sends the reader looking at the statement instead of the argument.
+   *
+   * <p>Recording a quality metric period had never worked for this reason: every write returned 500 and the Quality
+   * screen therefore always showed "No calculated quality period is available", which reads as an absence of data
+   * rather than a broken endpoint. This is the third place in this codebase to hit the same defect, after the
+   * inference cost ledger and the risk-intelligence counters.
+   */
+  private static Timestamp timestamp(Instant instant) { return instant == null ? null : Timestamp.from(instant); }
 
   private String json(String... entries) {
     if (entries.length % 2 != 0) throw new IllegalArgumentException("JSON entries require key-value pairs");
