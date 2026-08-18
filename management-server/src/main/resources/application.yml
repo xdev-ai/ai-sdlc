@@ -37,14 +37,32 @@ management:
     web:
       exposure:
         include: health,info,metrics
+  health:
+    # Spring's own mail indicator is binary: an unreachable relay makes it DOWN, and because it contributes to the
+    # aggregate, /actuator/health answered DOWN with HTTP 503 on every environment without SMTP. That is a false
+    # statement about a service whose governed API, audit ledger and evidence storage are all unaffected by mail.
+    # MailDeliveryHealthIndicator replaces it and reports DEGRADED instead, so the capability stays visible without
+    # the platform declaring itself down over an optional notification channel.
+    mail:
+      enabled: false
   endpoint:
     health:
       probes:
         enabled: true
+      # Components and their reasons are shown to an authenticated caller only. The endpoint is deliberately public so
+      # probes can read the status, and a public body would hand an unauthenticated reader the names and failure
+      # messages of internal dependencies.
+      show-details: when-authorized
+      status:
+        # DEGRADED sits below UP, so a degraded capability cannot drag the aggregate down. Relying on Spring's
+        # treatment of an unrecognised status would leave that behaviour implicit; here it is stated.
+        order: DOWN,OUT_OF_SERVICE,UP,DEGRADED,UNKNOWN
       group:
         liveness:
           include: livenessState,ping
         readiness:
+          # Mail is absent on purpose: a pod that cannot send email still serves every governed request, so taking it
+          # out of the load balancer would turn an optional-channel problem into an availability problem.
           include: readinessState,db,auditLedger
 springdoc:
   api-docs:

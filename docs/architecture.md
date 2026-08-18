@@ -85,7 +85,9 @@ Invalid input produces an RFC 9457 `application/problem+json` response. Conditio
 
 The API emits a correlation ID on requests and structured logs. A token-bucket limiter protects `/api/**`; its default capacity is 120 requests per minute per source address. Before horizontal scaling, configure a distributed Bucket4j backend so limits remain cluster-wide.
 
-Health endpoints expose liveness and readiness groups under `/actuator/health`. Readiness includes the database and the custom audit-ledger indicator. Set `AISDLC_ALLOWED_ORIGINS` to explicit production portal origins; wildcard origins are deliberately unsupported.
+Health endpoints expose liveness and readiness groups under `/actuator/health`. Readiness includes the database and the custom audit-ledger indicator.
+
+Optional capabilities report `DEGRADED`, never `DOWN`. Spring Boot's mail indicator is binary, so an unreachable SMTP relay used to make the aggregate `DOWN` with HTTP 503 — a false statement about a service whose governed API, audit ledger and evidence storage are unaffected, and a hazard if any probe were ever pointed at the aggregate, since an optional dependency could then take the control plane out of service. `MailDeliveryHealthIndicator` replaces it: `DEGRADED` is ordered below `UP`, so the aggregate stays `UP` while the component states that email delivery is unavailable and which setting to change. Mail is deliberately absent from readiness, because a pod that cannot send email still serves every governed request. Component details are shown only to an authenticated caller — the endpoint is public so probes can read the status, and a public body would hand an unauthenticated reader the names and failure messages of internal dependencies. Set `AISDLC_ALLOWED_ORIGINS` to explicit production portal origins; wildcard origins are deliberately unsupported.
 
 ---
 
