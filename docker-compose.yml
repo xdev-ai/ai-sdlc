@@ -58,7 +58,9 @@ services:
       keycloak:
         condition: service_healthy
     ports:
-      - "8180:8080"
+      # Sandbox/local default: OIDC is reachable from the local browser but is never exposed on every host interface.
+      # A production ingress terminates TLS and uses docker-compose.production.yml instead.
+      - "${AISDLC_IDENTITY_BIND_ADDRESS:-127.0.0.1}:${AISDLC_IDENTITY_PORT:-8180}:8080"
     volumes:
       - ./infra/nginx/keycloak.conf:/etc/nginx/conf.d/default.conf:ro
     read_only: true
@@ -162,7 +164,8 @@ services:
       management-server:
         condition: service_started
     ports:
-      - "8080:8080"
+      # Keep the session cookie and OIDC callback on the loopback development boundary by default.
+      - "${AISDLC_PORTAL_BIND_ADDRESS:-127.0.0.1}:${AISDLC_PORTAL_PORT:-8080}:8080"
     read_only: true
     tmpfs:
       - /tmp:uid=10001,gid=10001,mode=1777

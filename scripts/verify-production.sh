@@ -51,5 +51,8 @@ forbid infra/postgres/init-keycloak-db.sql 'GRANT .* TO aisdlc' 'PostgreSQL init
 require scripts/integration-smoke.sh '^bound_startup=\(timeout --foreground [0-9]+s\)$' 'integration smoke must bound Compose startup duration'
 require scripts/integration-smoke.sh 'bound_startup\[@\].*compose\[@\].*up --build' 'the startup bound must be applied to the Compose up it exists to bound'
 require scripts/integration-smoke.sh '--connect-timeout 5 --max-time 10' 'integration smoke must bound health probe duration'
+require docker-compose.yml 'AISDLC_IDENTITY_BIND_ADDRESS:-127\.0\.0\.1' 'identity gateway must bind loopback by default for local sandbox use'
+require docker-compose.yml 'AISDLC_PORTAL_BIND_ADDRESS:-127\.0\.0\.1' 'portal must bind loopback by default for local sandbox use'
+bash scripts/test-sandbox-stack-contract.sh
 
 echo 'Production topology static verification passed.'

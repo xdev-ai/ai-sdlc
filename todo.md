@@ -186,3 +186,5 @@
 - [x] Portal authentication UX: expose a privacy-safe Keycloak connection state in SSR navigation and a graceful, localized session-expiry recovery flow without exposing tokens or identity-provider internals.
 - [x] Portal authentication UX: add controller/template regression coverage, visual verification, and English operational documentation for Keycloak outage and expired-session behavior.
 - [x] Runtime verification: inspect commit `0c12096`, its CI workflows, and a live SSR portal instance in the sandbox without claiming unavailable Keycloak/PostgreSQL dependencies are running.
+- [x] Sandbox runtime: provide a Docker Compose launcher for PostgreSQL, Keycloak, management server, and SSR portal with deterministic Keycloak realm bootstrap, loopback-safe port binding, and an end-to-end OIDC login smoke-test guide.
+- [ ] Sandbox runtime: execute the Docker Compose launcher and complete the interactive Keycloak login smoke test on an authorized Docker-capable host.
