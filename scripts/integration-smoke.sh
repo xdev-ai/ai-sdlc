@@ -73,6 +73,13 @@ curl --fail --silent --show-error --connect-timeout 5 --max-time 10 --retry 12 -
 
 echo "Compose integration smoke test passed: identity, object storage, readiness and SSR landing are reachable."
 
+# Drive the browser-visible OIDC code flow, not merely the discovery document and redirect target.
+# The runner is short-lived, host-networked, and configured with no trace/screenshot/video output so
+# the ephemeral Keycloak password never becomes a CI artifact or log entry.
+AISDLC_PORTAL_BASE_URL="http://localhost:8080" \
+AISDLC_KEYCLOAK_BASE_URL="http://auth.localhost:8180" \
+  bash "$(dirname -- "$0")/test-sandbox-oidc-playwright.sh"
+
 # Reachable health surfaces are not a working platform. Drive one project through the governed flow and verify the
 # audit chain over it before the topology is torn down.
 AISDLC_ACCEPTANCE_NETWORK="aisdlc-ci_platform" \

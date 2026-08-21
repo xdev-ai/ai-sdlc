@@ -188,3 +188,4 @@
 - [x] Runtime verification: inspect commit `0c12096`, its CI workflows, and a live SSR portal instance in the sandbox without claiming unavailable Keycloak/PostgreSQL dependencies are running.
 - [x] Sandbox runtime: provide a Docker Compose launcher for PostgreSQL, Keycloak, management server, and SSR portal with deterministic Keycloak realm bootstrap, loopback-safe port binding, and an end-to-end OIDC login smoke-test guide.
 - [ ] Sandbox runtime: execute the Docker Compose launcher and complete the interactive Keycloak login smoke test on an authorized Docker-capable host.
+- [x] Sandbox runtime: add a Playwright OIDC browser test for Keycloak login redirect, authenticated SSR return, protected-route session recovery, and credential-safe diagnostics.

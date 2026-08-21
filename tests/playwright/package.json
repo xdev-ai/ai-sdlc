@@ -1,0 +1,13 @@
+{
+  "name": "@xdev-ai/ai-sdlc-sandbox-oidc-e2e",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Disposable browser-only OIDC checks for the AI-SDLC sandbox stack.",
+  "type": "module",
+  "scripts": {
+    "test:oidc": "playwright test --config=playwright.config.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1"
+  }
+}
