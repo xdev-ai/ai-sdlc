@@ -8,6 +8,8 @@ done
 
 grep -q 'AISDLC_IDENTITY_BIND_ADDRESS:-127.0.0.1' docker-compose.yml
 grep -q 'AISDLC_PORTAL_BIND_ADDRESS:-127.0.0.1' docker-compose.yml
+grep -q 'AISDLC_IDENTITY_BIND_ADDRESS="0.0.0.0"' scripts/integration-smoke.sh
+grep -q 'AISDLC_PORTAL_BIND_ADDRESS="0.0.0.0"' scripts/integration-smoke.sh
 grep -q 'docker compose --project-name' scripts/run-sandbox-stack.sh
 grep -q 'never creates, reads, or commits an environment file' scripts/run-sandbox-stack.sh
 grep -q 'kc-form-login' scripts/verify-sandbox-stack.sh
