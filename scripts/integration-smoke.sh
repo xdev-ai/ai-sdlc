@@ -19,6 +19,11 @@ export AISDLC_NOTIFICATION_ENCRYPTION_KEY="YWlzZGxjLWNpLWVwaGVtZXJhbC1ub3RpZmljY
 export AISDLC_EVIDENCE_S3_ACCESS_KEY="aisdlc_ci_minio"
 export AISDLC_EVIDENCE_S3_SECRET_KEY="aisdlc_ci_minio_ephemeral_password"
 export AISDLC_EVIDENCE_S3_BUCKET="aisdlc-evidence-ci"
+# The disposable GitHub runner probes host-published health surfaces. Compose's local/sandbox
+# default remains 127.0.0.1; CI explicitly uses an isolated runner network rather than inheriting
+# a host-restricted mapping that made the SSR health surface unreachable in the smoke job.
+export AISDLC_IDENTITY_BIND_ADDRESS="0.0.0.0"
+export AISDLC_PORTAL_BIND_ADDRESS="0.0.0.0"
 
 compose=(docker compose -p aisdlc-ci -f docker-compose.yml -f docker-compose.integration.yml)
 cleanup() {
