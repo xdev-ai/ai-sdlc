@@ -185,3 +185,4 @@
 - [x] Release evidence: publish the active-release build/module verification report and capture the verified public SSR portal surface without fabricating authenticated data views.
 - [x] Portal authentication UX: expose a privacy-safe Keycloak connection state in SSR navigation and a graceful, localized session-expiry recovery flow without exposing tokens or identity-provider internals.
 - [x] Portal authentication UX: add controller/template regression coverage, visual verification, and English operational documentation for Keycloak outage and expired-session behavior.
+- [x] Runtime verification: inspect commit `0c12096`, its CI workflows, and a live SSR portal instance in the sandbox without claiming unavailable Keycloak/PostgreSQL dependencies are running.
