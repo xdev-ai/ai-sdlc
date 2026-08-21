@@ -44,7 +44,7 @@ export LOCAL_ADMIN_PASSWORD
 scripts/run-sandbox-stack.sh up
 ```
 
-The launcher validates Compose interpolation, waits for service readiness, validates the public Keycloak discovery document, probes management-server readiness inside its private network, and follows the portal authorization redirect as far as the real Keycloak login page. It does **not** submit credentials automatically.
+The launcher validates Compose interpolation, waits for service readiness, validates the public Keycloak discovery document, probes management-server readiness inside its private network, and follows the portal authorization redirect as far as the real Keycloak login page.
 
 Open the portal in the same machine's browser:
 
@@ -54,6 +54,18 @@ http://localhost:8080/app
 
 Sign in with username `platform-admin` and the value supplied as `LOCAL_ADMIN_PASSWORD`. The realm admits only the declared redirect URIs for `localhost` and `127.0.0.1`; use one of those loopback hosts rather than a public tunnelling URL. On a successful sign-in, the portal exchanges the code on the internal gateway URL, validates the ID-token signature through the internal JWK set, and returns to the saved `/app` request.
 
+## Run the automated Playwright OIDC check
+
+On a Linux Docker host, run the browser test after the topology is ready:
+
+```bash
+scripts/run-sandbox-stack.sh playwright
+```
+
+The short-lived Playwright container begins at the protected `/app` route, completes the Keycloak authorization-code login as the disposable `platform-admin` user, verifies the SSR Keycloak connection indicator and sign-out control, then checks that `/session-expired` offers a safe reauthentication redirect. It uses host networking so the stack can retain loopback-only bindings and the real public callback origins (`localhost` and `auth.localhost`).
+
+`LOCAL_ADMIN_PASSWORD` is passed only to the short-lived browser container. Screenshots, trace files, video, HTML reports, and persistent browser test results are disabled by configuration and ignored by Git; do not enable them for this credential-bearing check. The script emits generic progress only and never echoes a credential. The GitHub Docker Compose smoke job runs the same test with CI-only disposable values.
+
 ## Operational commands
 
 | Command | Effect |
@@ -61,6 +73,7 @@ Sign in with username `platform-admin` and the value supplied as `LOCAL_ADMIN_PA
 | `scripts/run-sandbox-stack.sh status` | Show the disposable stack's service state. |
 | `scripts/run-sandbox-stack.sh logs portal` | Read the latest portal logs. Do not paste logs containing secrets into tickets. |
 | `scripts/run-sandbox-stack.sh verify` | Re-run health, discovery and login-form reachability checks. |
+| `scripts/run-sandbox-stack.sh playwright` | Run the credential-safe browser OIDC login and session-recovery verification on Linux Docker hosts. |
 | `scripts/run-sandbox-stack.sh down` | Stop containers but retain disposable volumes for troubleshooting. |
 | `scripts/run-sandbox-stack.sh reset` | Remove containers and volumes of this sandbox project; this deletes test data. |
 

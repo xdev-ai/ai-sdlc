@@ -17,7 +17,7 @@ compose=(docker compose --project-name "$PROJECT" -f docker-compose.yml)
 
 usage() {
   cat <<'EOF'
-Usage: scripts/run-sandbox-stack.sh [up|verify|status|logs|down|reset]
+Usage: scripts/run-sandbox-stack.sh [up|verify|playwright|status|logs|down|reset]
 
 Run `up` with the required disposable secrets exported in the current shell. See
 docs/sandbox-compose-oidc-login.md for a copy-safe setup sequence. `reset` removes only volumes
@@ -52,6 +52,10 @@ case "$ACTION" in
   verify)
     require_runtime; require_secrets
     "$ROOT/scripts/verify-sandbox-stack.sh" --project "$PROJECT"
+    ;;
+  playwright)
+    require_runtime; require_secrets
+    "$ROOT/scripts/test-sandbox-oidc-playwright.sh"
     ;;
   status)
     require_runtime
